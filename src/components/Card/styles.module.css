@@ -1,0 +1,29 @@
+.Card {
+    width: 220px;
+    user-select: none;
+}
+.Card:hover {
+    background-color: var(--chakra-colors-gray-100);
+}
+.CardBar {
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.CardMain {
+    padding: 5px;
+}
+.CardList {
+    display: flex;
+    justify-content: left;
+    flex-wrap: wrap;
+}
+.CardDragHandler {
+    display: flex;
+    cursor: pointer;
+}
+.CardImage {
+    -webkit-user-drag: none;
+    transition: width 0.2s, height 0.2s;
+}
