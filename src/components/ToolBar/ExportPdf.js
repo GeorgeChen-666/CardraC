@@ -10,9 +10,27 @@ const getLocateByCenterBase = (x, y, doc, pageIndex = 1) => {
   const centerY = pageHeight / 2;
   return [fixFloat(x + centerX), fixFloat(y + centerY)];
 };
-const getImageListByCardList = (state) => {
+const getPagedImageListByCardList = (state) => {
+  const { CardList, Config } = state;
   const repeatCardList = CardList.reduce((arr, cv) => arr.concat(new Array(cv.repeat).fill(cv)), []);
 
+  const pagedImageList = [];
+  const sides = Config.sides;
+  const size = Config.rows * Config.columns;
+  for (let i = 0; i < repeatCardList.length; i += size) {
+    const result = repeatCardList.slice(i, i + size);
+    pagedImageList.push({
+      images:result.map(c=>c.face),
+      type: 'face'
+    });
+    if(sides === 'double sides') {
+      pagedImageList.push({
+        images:result.map(c=>c.back),
+        type: 'back'
+      });
+    }
+  }
+  return pagedImageList
 }
 export const ExportPdf = (state) => {
   const { CardList, Config } = state;
@@ -28,6 +46,9 @@ export const ExportPdf = (state) => {
   const doc = new jsPDF({ orientation: 'landscape' });
   const crossMarks = new Set();
   const normalMarks = new Set();
+
+  console.log('pdf', getPagedImageListByCardList(state));
+  return;
   const maxWidth = fixFloat(doc.getPageWidth(0));
   const maxHeight = fixFloat(doc.getPageHeight(0));
   for (let cx = 0; cx < hc; cx++) {

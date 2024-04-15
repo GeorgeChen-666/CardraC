@@ -11,7 +11,7 @@ const initialState = Object.freeze({
     pageWidth: 210,
     pageHeight: 297,
     landscape: true,
-    sides:'double sides',
+    sides: 'double sides',
     configFlip : false,
     flip: '',
     cardWidth:63,
