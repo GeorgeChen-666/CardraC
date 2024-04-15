@@ -15,7 +15,7 @@ export const MarkForm = () => {
   const { state } = useContext(StoreContext);
   const {Config} = state;
   return (<div className={styles.FormPanel}>
-    <Control label={'Front cutting line'}>
+    <Control label={'Front Cutting Line'}>
       <RadioGroup name={'fCutLine'} defaultValue={Config.fCutLine}>
         <HStack>
           <Radio value={'0'}>None</Radio>
@@ -39,7 +39,7 @@ export const MarkForm = () => {
         <span>pt</span>
       </HStack>
     </Control>
-    <Control label={'Back cutting line'}>
+    <Control label={'Back Cutting Line'}>
       <RadioGroup name={'bCutLine'} defaultValue={Config.bCutLine}>
         <HStack>
           <Radio value={'0'}>None</Radio>

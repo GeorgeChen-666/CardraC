@@ -10,6 +10,10 @@ const getLocateByCenterBase = (x, y, doc, pageIndex = 1) => {
   const centerY = pageHeight / 2;
   return [fixFloat(x + centerX), fixFloat(y + centerY)];
 };
+const getImageListByCardList = (state) => {
+  const repeatCardList = CardList.reduce((arr, cv) => arr.concat(new Array(cv.repeat).fill(cv)), []);
+
+}
 export const ExportPdf = (state) => {
   const { CardList, Config } = state;
   const hc = Config.columns;

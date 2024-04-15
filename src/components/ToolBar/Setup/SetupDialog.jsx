@@ -1,4 +1,4 @@
-import React, { forwardRef, useContext, useImperativeHandle } from 'react';
+import React, { forwardRef, useContext, useImperativeHandle, useState } from 'react';
 import {
   Tabs, TabList, TabPanels, Tab, TabPanel, FormControl, FormLabel,
   Select, Checkbox, NumberInput,
@@ -24,12 +24,14 @@ import { StoreContext, Actions } from '../../../store';
 import { ConfigOverview } from './ConfigOverview';
 
 export const SetupDialog = forwardRef(({}, ref) => {
-  const { dispatch } = useContext(StoreContext);
+  const { dispatch} = useContext(StoreContext);
   const { isOpen, onOpen, onClose } = useDisclosure();
   useImperativeHandle(ref, () => ({
     openDialog: onOpen,
   }));
-
+  const editConfig = (payload) => {
+    dispatch({type: Actions.EditConfig, payload})
+  }
   return (<div>
     <Modal isOpen={isOpen} onClose={onClose} size={'5xl'} isCentered>
       <ModalOverlay />
@@ -48,10 +50,10 @@ export const SetupDialog = forwardRef(({}, ref) => {
 
               <TabPanels>
                 <TabPanel>
-                  <LayoutForm />
+                  <LayoutForm editConfig={editConfig}/>
                 </TabPanel>
                 <TabPanel>
-                  <CardForm />
+                  <CardForm editConfig={editConfig} />
                 </TabPanel>
                 <TabPanel>
                   <MarkForm />
@@ -63,15 +65,15 @@ export const SetupDialog = forwardRef(({}, ref) => {
         </ModalBody>
 
         <ModalFooter>
-          <Button colorScheme='blue' mr={3} onClick={() => {
-            const objData = {};
-            new FormData(document.getElementById('formConfigDialog'))
-              .forEach((value, key) => objData[key] = value);
-            dispatch({ type: Actions.EditConfig, payload: {...objData} });
-            onClose();
-          }}>
-            Save
-          </Button>
+          {/*<Button colorScheme='blue' mr={3} onClick={() => {*/}
+          {/*  const objData = {};*/}
+          {/*  new FormData(document.getElementById('formConfigDialog'))*/}
+          {/*    .forEach((value, key) => objData[key] = value);*/}
+          {/*  dispatch({ type: Actions.EditConfig, payload: {...objData} });*/}
+          {/*  onClose();*/}
+          {/*}}>*/}
+          {/*  Save*/}
+          {/*</Button>*/}
           <Button variant='ghost' onClick={onClose}>Close</Button>
         </ModalFooter>
       </ModalContent>
