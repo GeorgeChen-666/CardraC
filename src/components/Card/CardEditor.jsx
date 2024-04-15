@@ -75,7 +75,7 @@ export const CardEditor = ({ data, index }) => {
       <Stack direction='row' justifyContent={'center'}>
         <Image className={styles.CardImage} boxSize={isBackEditing ? '50px' : '160px'} src={data.face}
                fallbackSrc={emptyImg} />
-        {Config.sides === 2 && (
+        {Config.sides === 'double sides' && (
           <Image className={styles.CardImage}
                  boxSize={isBackEditing ? '160px' : '50px'}
                  src={data.back}

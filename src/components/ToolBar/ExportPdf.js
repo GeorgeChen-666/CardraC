@@ -20,7 +20,7 @@ const getPagedImageListByCardList = (state) => {
   for (let i = 0; i < repeatCardList.length; i += size) {
     const result = repeatCardList.slice(i, i + size);
     pagedImageList.push({
-      images:result.map(c=>c.face),
+      imageList:result.map(c=>c.face),
       type: 'face'
     });
     if(sides === 'double sides') {
@@ -32,8 +32,8 @@ const getPagedImageListByCardList = (state) => {
   }
   return pagedImageList
 }
-export const ExportPdf = (state) => {
-  const { CardList, Config } = state;
+const drawPageElements = (doc, pageData, state) => {
+  const { Config } = state;
   const hc = Config.columns;
   const vc = Config.rows;
   const cardW = Config.cardWidth;
@@ -41,28 +41,23 @@ export const ExportPdf = (state) => {
   const marginX = Config.marginX;
   const marginY = Config.marginY;
   const bleed = Config.bleed;
-  const repeatCardList = CardList.reduce((arr, cv) => arr.concat(new Array(cv.repeat).fill(cv)), []);
-  // Default export is a4 paper, portrait, using millimeters for units
-  const doc = new jsPDF({ orientation: 'landscape' });
   const crossMarks = new Set();
   const normalMarks = new Set();
-
-  console.log('pdf', getPagedImageListByCardList(state));
-  return;
   const maxWidth = fixFloat(doc.getPageWidth(0));
   const maxHeight = fixFloat(doc.getPageHeight(0));
+  const { imageList, type } = pageData;
   for (let cx = 0; cx < hc; cx++) {
     for (let cy = 0; cy < vc; cy++) {
       const cardIndex = cy * hc + cx;
-      const cardData = repeatCardList?.[cardIndex];
+      const imagePath = imageList?.[cardIndex] || emptyImg;
 
       const cardX = (cx - hc / 2) * cardW + (cx - (hc - 1) / 2) * marginX;
       const cardY = (cy - vc / 2) * cardH + (cy - (vc - 1) / 2) * marginY;
       const [cardXc, cardYc] = getLocateByCenterBase(cardX, cardY, doc);
-      if (cardData) {
-        doc.addImage(cardData.face, 'PNG', cardXc, cardYc, cardW, cardH);
+      if (imagePath) {
+        doc.addImage(imagePath, 'PNG', cardXc, cardYc, cardW, cardH);
       }
-      if(Config.fCutLine === 2 || Config.fCutLine === 3) {
+      if(Config.fCutLine === '2' || Config.fCutLine === '3') {
         //add cross mark loc
         crossMarks.add(`${cardXc + bleed},${cardYc + bleed}`);
         crossMarks.add(`${cardXc + cardW - bleed},${cardYc + cardH - bleed}`);
@@ -70,11 +65,11 @@ export const ExportPdf = (state) => {
         crossMarks.add(`${cardXc + cardW - bleed},${cardYc + bleed}`);
       }
 
-      if(Config.fCutLine === 1 || Config.fCutLine === 3) {
+      if(Config.fCutLine === '1' || Config.fCutLine === '3') {
         //add normal mark loc
         if (cx === 0) {
           normalMarks.add(`0,${cardYc + bleed}-${cardXc + bleed},${cardYc + bleed}`);
-          normalMarks.add(`0,${cardYc + cardH - bleed}-${cardXc},${cardYc + cardH - bleed}`);
+          normalMarks.add(`0,${cardYc + cardH - bleed}-${cardXc + bleed},${cardYc + cardH - bleed}`);
         }
         if (cx === hc - 1) {
           normalMarks.add(`${cardXc + cardW - bleed},${cardYc + bleed}-${maxWidth},${cardYc + bleed}`);
@@ -103,5 +98,22 @@ export const ExportPdf = (state) => {
     doc.line(parseFloat(x) - 2, parseFloat(y), parseFloat(x) + 2, parseFloat(y));
     doc.line(parseFloat(x), parseFloat(y) - 2, parseFloat(x), parseFloat(y) + 2);
   });
+}
+export const ExportPdf = (state) => {
+  const { CardList, Config } = state;
+
+  const repeatCardList = CardList.reduce((arr, cv) => arr.concat(new Array(cv.repeat).fill(cv)), []);
+  // Default export is a4 paper, portrait, using millimeters for units
+  const format = (Config.pageSize.split(':')[0]).toLowerCase();
+  const orientation = Config.landscape ? 'landscape': 'portrait'
+  const doc = new jsPDF({ format ,orientation });
+
+
+  const pagedImageList = getPagedImageListByCardList(state);
+  pagedImageList.forEach((pageData, index) => {
+    index > 0 && doc.addPage();//doc.addPage("a6", "l");
+    drawPageElements(doc,pageData,state);
+  })
+
   doc.save('a4.pdf');
 };

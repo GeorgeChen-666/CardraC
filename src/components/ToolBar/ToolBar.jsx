@@ -87,7 +87,7 @@ export const ToolBar = () => {
         </MenuList>
 
       </Menu>
-      {Config.sides === 2 && (<FormControl display='ruby'>
+      {Config.sides === 'double sides' && (<FormControl display='ruby'>
         <FormLabel>
           Back editing
         </FormLabel>
