@@ -15,20 +15,14 @@ import { MdPictureAsPdf } from "react-icons/md";
 import { SetupDialog } from './Setup/SetupDialog';
 import { Actions, StoreContext } from '../../store';
 import { emptyImg, ExportPdf } from './ExportPdf';
-import { ipcRenderer } from 'electron';
+import { openImage } from '../../functions';
 
 export const ToolBar = () => {
   const dialogRef = useRef(null);
   const {state, dispatch} = useContext(StoreContext);
-  const { Config } = state;
+  const { Config, CardList } = state;
   console.log(state);
-  useEffect(() => {
-    const onFileOpen = (event, filePaths) => {
-      dispatch({type:Actions.EditConfig, payload: {globalBackground: filePaths}})
-    }
-    ipcRenderer.on('setBgCardReturn', onFileOpen);
-    return () => ipcRenderer.off('setBgCardReturn', onFileOpen);
-  },[]);
+
   return (<div>
       <IconButton
         aria-label='add'
@@ -58,10 +52,9 @@ export const ToolBar = () => {
       <IconButton
         aria-label='export_pdf'
         icon={<Image boxSize='30px' src={Config.globalBackground || emptyImg} />}
-        onClick={() => {
-          ipcRenderer.send('open-image', {
-            returnChannel: 'setBgCardReturn'
-          });
+        onClick={async () => {
+          const filePath = await openImage();
+          dispatch({type:Actions.EditConfig, payload: {globalBackground: filePath}});
         }}
       />
       <Menu>
@@ -72,7 +65,10 @@ export const ToolBar = () => {
           <MenuItem>
             Remove
           </MenuItem>
-          <MenuItem>
+          <MenuItem onClick={async () => {
+            const filePath = await openImage();
+            dispatch({type:Actions.FillCardList, payload: CardList.map(c=>{c.back = filePath; return c;}) })
+          }}>
             Fill background
           </MenuItem>
           <MenuItem>

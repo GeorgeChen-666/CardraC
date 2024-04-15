@@ -68,16 +68,16 @@ export const LayoutForm = ({editConfig}) => {
       </RadioGroup>
     </Control>
     {Config.sides === 'double sides' && (<Control label={'Flip'}>
-      {Config.configFlip && <Select name={'flip'} value={Config.flip} width={'230px'} onChange={(event) => {
+      {!Config.autoConfigFlip && <Select name={'flip'} value={Config.flip} width={'230px'} onChange={(event) => {
         const flip = event.target.value || '';
-        editConfig({ flip, configFlip: (flip !== '')})
+        editConfig({ flip, autoConfigFlip: (flip === '')})
       }}>
         <option value={''}>Auto</option>
         <option value={'none'}>None</option>
         <option value={'long-edge binding'}>Long-edge binding</option>
         <option value={'short-edge binding'}>Short-edge binding</option>
       </Select>}
-      {!Config.configFlip && (<Stack direction='row' alignItems={'center'}>
+      {Config.autoConfigFlip && (<Stack direction='row' alignItems={'center'}>
         <Input width={'230px'} isDisabled value={Config.landscape ? 'Long-edge binding' : 'Short-edge binding'} />
         <Link color={'blue'} onClick={() => {
           editConfig({ flip: Config.landscape ? 'long-edge binding' : 'short-edge binding', configFlip:true});
