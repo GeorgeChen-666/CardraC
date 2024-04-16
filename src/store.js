@@ -1,11 +1,12 @@
 import React, { useCallback, useReducer } from 'react';
 import { createSlice, configureStore  } from '@reduxjs/toolkit';
+import _ from 'lodash';
 import logger from 'redux-logger'
 import { Provider } from 'react-redux'
 
 const initialState = Object.freeze({
   Global: {
-    selection: [],
+    selection: new Set(),
     lastSelection: null,
     isBackEditing: false
   },
@@ -124,7 +125,18 @@ export const pnpSlice = createSlice({
     },
     FillCardList: (state, action) => {
       state.CardList = action.payload;
-    }
+    },
+    EditCardById: (state, action) => {
+      const card = state.CardList.find(c => c.id === action.payload.id);
+      if(card) {
+        Object.keys(action.payload).forEach(key=> {
+          card[key] = action.payload[key];
+        })
+      }
+    },
+    RemoveCardByIds: (state, action) => {
+      state.CardList = state.CardList.filter(c => !action.payload.includes(c.id));
+    },
   },
 })
 export const Actions = pnpSlice.actions;

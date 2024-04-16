@@ -1,4 +1,4 @@
-import React, { useContext, memo } from 'react';
+import React, { memo, useEffect } from 'react';
 import {
   Card,
   Button,
@@ -20,28 +20,46 @@ import { IoIosOpen, IoIosMore, IoIosSwap, IoIosKeypad } from 'react-icons/io';
 import styles from './styles.module.css';
 import { StoreContext, Actions } from '../../store';
 import { emptyImg } from '../ToolBar/ExportPdf';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import _ from 'lodash';
 
-export const CardEditor = ({ data, index }) => {
+export default memo(({ data, index }) => {
   console.log('rending', index);
-  const { dispatch, state } = useContext(StoreContext);
-  const {Config} = state;
-  const isBackEditing = state.Global.isBackEditing;
-  return (<Card className={styles.Card} size={'sm'} padding={2} onClick={(event) => {
-    const lastSelection = state.Global.lastSelection;
-    const cardList = state.CardList;
-    const lastSelectionIndex = state.CardList.findIndex(c => c.id === lastSelection);
-    const currentSelectionIndex = state.CardList.findIndex(c => c.id === data.id);
-    if (event.shiftKey && lastSelectionIndex + currentSelectionIndex > -1) {
-      const newSelectionIds = cardList.filter((c, i) => {
+  const Config = useSelector((state) => (
+    _.pick(state.pnp.Config, [
+      'sides',
+    ])
+  ), shallowEqual);
+  const Global = useSelector((state) => (
+    _.pick(state.pnp.Global, [
+      'isBackEditing',
+      'lastSelection',
+      'selection',
+    ])
+  ), shallowEqual);
+  const newSelectionIds = useSelector((state) => {
+    const lastSelection = state.pnp.Global.lastSelection;
+    const lastSelectionIndex = state.pnp.CardList.findIndex(c => c.id === lastSelection);
+    const currentSelectionIndex = state.pnp.CardList.findIndex(c => c.id === data.id);
+    if(lastSelectionIndex + currentSelectionIndex > -1) {
+      return state.pnp.CardList.filter((c, i) => {
         const ia = [lastSelectionIndex, currentSelectionIndex];
         return (i >= Math.min(...ia) && i <= Math.max(...ia));
-      }).map(c => c.id);
-      dispatch({ type: Actions.EditGlobal, payload: { selection: new Set(newSelectionIds) } });
+      }).map(c => c.id)
     } else {
-      if (state.Global.selection.has(data.id)) {
-        dispatch({ type: Actions.EditGlobal, payload: { selection: new Set([]), lastSelection: null } });
+      return [];
+    }
+  }, shallowEqual);
+  const dispatch = useDispatch();
+  const isBackEditing = Global.isBackEditing;
+  return (<Card className={styles.Card} size={'sm'} padding={2} onClick={(event) => {
+    if (event.shiftKey && newSelectionIds.length > 0) {
+      dispatch(Actions.EditGlobal({ selection: new Set(newSelectionIds) }));
+    } else {
+      if (Global.selection.has(data.id)) {
+        dispatch(Actions.EditGlobal({ selection: new Set([]), lastSelection: null }));
       } else {
-        dispatch({ type: Actions.EditGlobal, payload: { selection: new Set([data.id]), lastSelection: data.id } });
+        dispatch(Actions.EditGlobal({ selection: new Set([data.id]), lastSelection: data.id }));
       }
     }
   }}>
@@ -53,17 +71,20 @@ export const CardEditor = ({ data, index }) => {
           aria-label='Options'
           icon={<IoIosSwap />}
           variant='outline'
-          onClick={() => {
-            dispatch({ type: Actions.EditCardById, payload: { id: data.id, face: data.back, back: data.face } });
+          onClick={(e) => {
+            e.stopPropagation();
+            dispatch(Actions.EditCardById({ id: data.id, face: data.back, back: data.face }));
+            //dispatch({ type: Actions.EditCardById, payload: { id: data.id, face: data.back, back: data.face } });
           }}
         />
-        <span className={styles.CardDragHandler}><IoIosKeypad /><IoIosKeypad /></span>
+        <span className={styles.CardDragHandler} onClick={e=>e.stopPropagation()}><IoIosKeypad /><IoIosKeypad /></span>
         <MenuButton
           size={'xs'}
           as={IconButton}
           aria-label='Options'
           icon={<IoIosMore />}
           variant='outline'
+          onClick={e => e.stopPropagation()}
         />
         <MenuList>
           <MenuItem icon={<IoIosOpen />} command='⌘T'>
@@ -74,12 +95,12 @@ export const CardEditor = ({ data, index }) => {
     </div>
     <div className={styles.CardMain}>
       <Stack direction='row' justifyContent={'center'}>
-        <Image className={styles.CardImage} boxSize={isBackEditing ? '50px' : '160px'} src={data.face.path}
+        <Image className={styles.CardImage} boxSize={isBackEditing ? '50px' : '160px'} src={data.face?.path}
                fallbackSrc={emptyImg.path} />
         {Config.sides === 'double sides' && (
           <Image className={styles.CardImage}
                  boxSize={isBackEditing ? '160px' : '50px'}
-                 src={data.back.path}
+                 src={data.back?.path}
                  fallbackSrc={emptyImg.path}
           />
         )}
@@ -87,10 +108,12 @@ export const CardEditor = ({ data, index }) => {
       </Stack>
     </div>
     <div className={styles.CardBar}>
-      <Checkbox isChecked={state.Global.selection.has(data.id)}>#{index + 1}</Checkbox>
-      <NumberInput size='xs' maxW={16} defaultValue={1} min={1} onChange={($, value) => {
-        dispatch({ type: Actions.EditCardById, payload: { repeat: value } });
-      }}>
+      <Checkbox isChecked={Global.selection.has(data.id)}>#{index + 1}</Checkbox>
+      <NumberInput size='xs' maxW={16} defaultValue={1} min={1}
+                   onClick={(e) => e.stopPropagation()}
+                   onChange={($, value) => {
+                     dispatch(Actions.EditCardById({ id: data.id, repeat: value }));
+                   }}>
         <NumberInputField />
         <NumberInputStepper>
           <NumberIncrementStepper />
@@ -100,10 +123,11 @@ export const CardEditor = ({ data, index }) => {
     </div>
     <div>
       <Button width='100%' size='sm' onClick={() => {
-        dispatch({ type: Actions.RemoveCardById, payload: data.id });
+        dispatch(Actions.RemoveCardByIds([data.id]));
+        //dispatch({ type: Actions.RemoveCardById, payload: data.id });
       }}>
         Remove image
       </Button>
     </div>
   </Card>);
-};
+});
