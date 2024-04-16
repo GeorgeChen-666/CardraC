@@ -4,9 +4,10 @@ import { IoIosAdd } from 'react-icons/io';
 import { StoreContext, Actions } from '../../store';
 import styles from './styles.module.css';
 import { openMultiImage } from '../../functions';
+import { useDispatch } from 'react-redux';
 
 export const AddCard = () => {
-  const { state, dispatch } = useContext(StoreContext);
+  const dispatch = useDispatch();
   const inputRef = useRef();
   return (<div className={styles.Card}>
     <IconButton
@@ -19,7 +20,8 @@ export const AddCard = () => {
       onClick={async () => {
         if (process?.versions?.electron) {
           const filePaths = await openMultiImage();
-          dispatch({ type: Actions.AddCardByFace, payload: [...filePaths] });
+          dispatch(Actions.AddCardByFaces([...filePaths]));
+          //dispatch({ type: Actions.AddCardByFace, payload: [...filePaths] });
         } else {
           inputRef.current?.click();
         }
@@ -33,10 +35,10 @@ export const AddCard = () => {
       accept='image/jpeg,image/png'
       onChange={() => {
         console.log(inputRef.current?.files);
-        dispatch({
-          type: Actions.AddCardByFace,
-          payload: [...inputRef.current?.files].map(f => URL.createObjectURL(f)),
-        });
+        // dispatch({
+        //   type: Actions.AddCardByFace,
+        //   payload: [...inputRef.current?.files].map(f => URL.createObjectURL(f)),
+        // });
         inputRef.current.value = '';
       }}
     />

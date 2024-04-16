@@ -9,30 +9,34 @@ import {
 import React, { useContext, useEffect, useState } from 'react';
 import {Control} from './Control';
 import styles from './styles.module.css';
-import { StoreContext } from '../../../store';
+import { Actions } from '../../../store';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import _ from 'lodash';
 
-export const CardForm = ({editConfig}) => {
-  const { state } = useContext(StoreContext);
-  const {Config} = state;
-
-  // useEffect(()=>{
-  //   const timer = setInterval(()=> {
-  //     if(autoColumnsRows) {
-  //       console.log('uuuuu')
-  //
-  //     }
-  //   }, 500);
-  //   return ()=> {
-  //     clearInterval(timer);
-  //   }
-  // },[autoColumnsRows])
+export const CardForm = () => {
+  const Config = useSelector((state) => (
+    _.pick(state.pnp.Config, [
+      'columns',
+      'rows',
+      'cardWidth',
+      'cardHeight',
+      'marginX',
+      'marginY',
+      'autoColumnsRows',
+      'bleed',
+      'landscape',
+      'pageWidth',
+      'pageHeight'
+    ])
+  ), shallowEqual);
+  const dispatch = useDispatch();
   useEffect(() => {
     if(Config.autoColumnsRows) {
       const pageWidth = Config.landscape? Config.pageHeight: Config.pageWidth;
       const pageHeight = Config.landscape? Config.pageWidth: Config.pageHeight;
       const autoColumns = parseInt(pageWidth / (Config.cardWidth + Config.marginX));
       const autoRows = parseInt(pageHeight / (Config.cardHeight + Config.marginY));
-      editConfig({ columns: autoColumns, rows: autoRows });
+      dispatch(Actions.EditConfig({ columns: autoColumns, rows: autoRows }));
     }
   }, [
     Config.autoColumnsRows,
@@ -46,8 +50,8 @@ export const CardForm = ({editConfig}) => {
   ]);
   return (<div className={styles.FormPanel}>
     <Control label={'Width'}>
-      <NumberInput name={'cardWidth'} value={Config.cardWidth} onChange={(s, v) => {
-        editConfig({cardWidth: v})
+      <NumberInput value={Config.cardWidth} onChange={(s, v) => {
+        dispatch(Actions.EditConfig({cardWidth: v}))
       }} mr={3}>
         <NumberInputField />
         <NumberInputStepper>
@@ -58,8 +62,8 @@ export const CardForm = ({editConfig}) => {
       mm
     </Control>
     <Control label={'Height'}>
-      <NumberInput name={'cardHeight'} value={Config.cardHeight} onChange={(s, v) => {
-        editConfig({cardHeight: v})
+      <NumberInput value={Config.cardHeight} onChange={(s, v) => {
+        dispatch(Actions.EditConfig({cardHeight: v}))
       }} mr={3}>
         <NumberInputField />
         <NumberInputStepper>
@@ -71,7 +75,7 @@ export const CardForm = ({editConfig}) => {
     </Control>
     <Control label={'Margin X'}>
       <NumberInput name={'marginX'} value={Config.marginX} onChange={(s, v) => {
-        editConfig({marginX: v})
+        dispatch(Actions.EditConfig({marginX: v}))
       }} mr={3}>
         <NumberInputField />
         <NumberInputStepper>
@@ -83,7 +87,7 @@ export const CardForm = ({editConfig}) => {
     </Control>
     <Control label={'Margin Y'}>
       <NumberInput name={'marginY'} value={Config.marginY} onChange={(s, v) => {
-        editConfig({marginY: v})
+        dispatch(Actions.EditConfig({marginY: v}))
       }} mr={3}>
         <NumberInputField />
         <NumberInputStepper>
@@ -95,7 +99,7 @@ export const CardForm = ({editConfig}) => {
     </Control>
     <Control label={'Bleed'}>
       <NumberInput value={Config.bleed} onChange={(s, v) => {
-        editConfig({bleed: v})
+        dispatch(Actions.EditConfig({bleed: v}))
       }} mr={3}>
         <NumberInputField />
         <NumberInputStepper>
@@ -108,7 +112,7 @@ export const CardForm = ({editConfig}) => {
     <Control label={'Columns/Rows'}>
       <HStack>
         <NumberInput isDisabled={Config.autoColumnsRows} name={'columns'} width={'90px'} value={Config.columns} onChange={(s, v) => {
-          editConfig({columns:v});
+          dispatch(Actions.EditConfig({columns:v}));
         }} mr={8}>
           <NumberInputField />
           <NumberInputStepper>
@@ -117,7 +121,7 @@ export const CardForm = ({editConfig}) => {
           </NumberInputStepper>
         </NumberInput>
         <NumberInput isDisabled={Config.autoColumnsRows} name={'rows'} width={'90px'} value={Config.rows} onChange={(s, v) => {
-          editConfig({rows:v});
+          dispatch(Actions.EditConfig({rows:v}));
         }} mr={4}>
           <NumberInputField />
           <NumberInputStepper>
@@ -126,7 +130,7 @@ export const CardForm = ({editConfig}) => {
           </NumberInputStepper>
         </NumberInput>
         <Checkbox name={'autoColumnsRows'} value={'true'} isChecked={Config.autoColumnsRows}
-                  onChange={(event) => editConfig({autoColumnsRows:event.target.checked})}
+                  onChange={(event) => dispatch(Actions.EditConfig({autoColumnsRows:event.target.checked}))}
         >Auto</Checkbox>
       </HStack>
     </Control>

@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, memo } from 'react';
 import {
   Card,
   Button,
@@ -22,6 +22,7 @@ import { StoreContext, Actions } from '../../store';
 import { emptyImg } from '../ToolBar/ExportPdf';
 
 export const CardEditor = ({ data, index }) => {
+  console.log('rending', index);
   const { dispatch, state } = useContext(StoreContext);
   const {Config} = state;
   const isBackEditing = state.Global.isBackEditing;
@@ -73,13 +74,13 @@ export const CardEditor = ({ data, index }) => {
     </div>
     <div className={styles.CardMain}>
       <Stack direction='row' justifyContent={'center'}>
-        <Image className={styles.CardImage} boxSize={isBackEditing ? '50px' : '160px'} src={data.face}
-               fallbackSrc={emptyImg} />
+        <Image className={styles.CardImage} boxSize={isBackEditing ? '50px' : '160px'} src={data.face.path}
+               fallbackSrc={emptyImg.path} />
         {Config.sides === 'double sides' && (
           <Image className={styles.CardImage}
                  boxSize={isBackEditing ? '160px' : '50px'}
-                 src={data.back}
-                 fallbackSrc={emptyImg}
+                 src={data.back.path}
+                 fallbackSrc={emptyImg.path}
           />
         )}
 

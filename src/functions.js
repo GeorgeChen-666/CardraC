@@ -6,7 +6,7 @@ export const openImage = () => new Promise((resolve)=>{
   });
   const onFileOpen = (event, filePaths) => {
     ipcRenderer.off('open-image-return', onFileOpen);
-    resolve(filePaths)
+    resolve(filePaths.map(p => ({path: p, ext: p.split('.').pop()}))?.[0])
   }
   ipcRenderer.on('open-image-return', onFileOpen);
 });
@@ -18,7 +18,7 @@ export const openMultiImage = () => new Promise((resolve)=>{
   });
   const onFileOpen = (event, filePaths) => {
     ipcRenderer.off('open-image-return', onFileOpen);
-    resolve(filePaths)
+    resolve(filePaths.map(p => ({path: p, ext: p.split('.').pop()})))
   }
   ipcRenderer.on('open-image-return', onFileOpen);
 })

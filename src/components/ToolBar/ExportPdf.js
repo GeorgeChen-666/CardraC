@@ -1,7 +1,10 @@
 import { jsPDF } from 'jspdf';
 
-export const emptyImg = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
-  '12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg==';
+export const emptyImg = {
+  path: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
+    '12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg==',
+  ext: 'png'
+};
 const fixFloat = num => parseFloat(num.toFixed(2));
 const getLocateByCenterBase = (x, y, doc, pageIndex = 1) => {
   const pageHeight = doc.getPageHeight(pageIndex);
@@ -25,7 +28,7 @@ const getPagedImageListByCardList = (state) => {
     });
     if (sides === 'double sides') {
       pagedImageList.push({
-        imageList: result.map(c => c.back || Config.globalBackground[0] || emptyImg),
+        imageList: result.map(c => c.back || Config.globalBackground || emptyImg),
         type: 'back',
       });
     }
@@ -49,23 +52,38 @@ const drawPageElements = (doc, pageData, state) => {
   const landscape = Config.landscape;
   const flipWay = ['none', 'long-edge binding', 'short-edge binding'].indexOf(Config.flip);
   const { imageList, type } = pageData;
-  for (let cx = 0; cx < hc; cx++) {
-    for (let cy = 0; cy < vc; cy++) {
-      const cardIndex = cy * hc + cx;
-      const imagePath = imageList?.[cardIndex] || emptyImg;
+  console.log('page');
+  for (let xx = 0; xx < hc; xx++) {
+    for (let yy = 0; yy < vc; yy++) {
+      let cardRotation = 0;
+      let cx = xx;
+      let cy = yy;
+      if(type === 'back') {
+        if (flipWay === 1 && landscape || flipWay === 2 && !landscape) {//横长边 竖短边
+          cardRotation = 180
+          cy = vc - cy - 1;
+        } else if (flipWay === 1 && !landscape || flipWay === 2 && landscape) {//竖长边 横短边
+          cx = hc - cx - 1;
+        }
+      }
+
+      const cardIndex = yy * hc + xx;
+      const image = imageList?.[cardIndex] || emptyImg;
       const cardX = (cx - hc / 2) * cardW + (cx - (hc - 1) / 2) * marginX;
       const cardY = (cy - vc / 2) * cardH + (cy - (vc - 1) / 2) * marginY;
-      let cardRotation = 0;
-      if (flipWay === 1 && landscape || flipWay === 2 && !landscape) {//横长边 竖短边
-        // cardRotation = 180
-        // cardX = (cx - hc / 2) * cardW + (cx - (hc - 1) / 2) * marginX;
-        // cardY = vc- (cy - vc / 2) * cardH + (cy - (vc - 1) / 2) * marginY;
-      } else if (flipWay === 1 && !landscape || flipWay === 2 && landscape) {//竖长边 横短边
 
-      }
       const [cardXc, cardYc] = getLocateByCenterBase(cardX, cardY, doc);
-      if (imagePath) {
-        doc.addImage(imagePath, 'JPG', cardXc, cardYc, cardW, cardH, imagePath, 'NONE', cardRotation);
+      let [imageXc,imageYc] = [cardXc, cardYc];
+      if(cardRotation === 180) {
+        imageXc = imageXc + cardW;
+        imageYc = imageYc - cardH;
+      }
+      console.log(image, cx , cy, cardXc, cardYc);
+      if (image) {
+        try {
+          doc.addImage(image.path, image.ext, imageXc, imageYc, cardW, cardH, image.path, 'NONE', cardRotation);
+        } catch (e) {
+        }
       }
       if (Config.fCutLine === '2' || Config.fCutLine === '3') {
         //add cross mark loc
@@ -110,9 +128,7 @@ const drawPageElements = (doc, pageData, state) => {
   });
 };
 export const ExportPdf = (state) => {
-  const { CardList, Config } = state;
-
-  const repeatCardList = CardList.reduce((arr, cv) => arr.concat(new Array(cv.repeat).fill(cv)), []);
+  const { Config } = state;
   // Default export is a4 paper, portrait, using millimeters for units
   const format = (Config.pageSize.split(':')[0]).toLowerCase();
   const orientation = Config.landscape ? 'landscape' : 'portrait';

@@ -22,15 +22,17 @@ import { CardForm } from './CardForm';
 import { MarkForm } from './MarkForm';
 import { StoreContext, Actions } from '../../../store';
 import { ConfigOverview } from './ConfigOverview';
+import { useDispatch } from 'react-redux';
 
 export const SetupDialog = forwardRef(({}, ref) => {
-  const { dispatch} = useContext(StoreContext);
+  const dispatch = useDispatch();
   const { isOpen, onOpen, onClose } = useDisclosure();
   useImperativeHandle(ref, () => ({
     openDialog: onOpen,
   }));
   const editConfig = (payload) => {
-    dispatch({type: Actions.EditConfig, payload})
+    dispatch(Actions.EditConfig(payload))
+    // dispatch({type: Actions.EditConfig, payload})
   }
   return (<div>
     <Modal isOpen={isOpen} onClose={onClose} size={'5xl'} isCentered>
@@ -39,41 +41,30 @@ export const SetupDialog = forwardRef(({}, ref) => {
         <ModalHeader padding={4}>Setup</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
-          <ConfigOverview />
-          <form id={'formConfigDialog'}>
-            <Tabs orientation={'vertical'} height={400}>
-              <TabList>
-                <Tab alignSelf={'end'}>Layout</Tab>
-                <Tab alignSelf={'end'}>Card</Tab>
-                <Tab alignSelf={'end'}>Mark</Tab>
-              </TabList>
+          {/*<ConfigOverview />*/}
+          <Tabs orientation={'vertical'} height={400}>
+            <TabList>
+              <Tab alignSelf={'end'}>Layout</Tab>
+              <Tab alignSelf={'end'}>Card</Tab>
+              <Tab alignSelf={'end'}>Mark</Tab>
+            </TabList>
 
-              <TabPanels>
-                <TabPanel>
-                  <LayoutForm editConfig={editConfig}/>
-                </TabPanel>
-                <TabPanel>
-                  <CardForm editConfig={editConfig} />
-                </TabPanel>
-                <TabPanel>
-                  <MarkForm />
-                </TabPanel>
-              </TabPanels>
-            </Tabs>
-          </form>
+            <TabPanels>
+              <TabPanel>
+                <LayoutForm />
+              </TabPanel>
+              <TabPanel>
+                <CardForm />
+              </TabPanel>
+              <TabPanel>
+                <MarkForm />
+              </TabPanel>
+            </TabPanels>
+          </Tabs>
 
         </ModalBody>
 
         <ModalFooter>
-          {/*<Button colorScheme='blue' mr={3} onClick={() => {*/}
-          {/*  const objData = {};*/}
-          {/*  new FormData(document.getElementById('formConfigDialog'))*/}
-          {/*    .forEach((value, key) => objData[key] = value);*/}
-          {/*  dispatch({ type: Actions.EditConfig, payload: {...objData} });*/}
-          {/*  onClose();*/}
-          {/*}}>*/}
-          {/*  Save*/}
-          {/*</Button>*/}
           <Button variant='ghost' onClick={onClose}>Close</Button>
         </ModalFooter>
       </ModalContent>

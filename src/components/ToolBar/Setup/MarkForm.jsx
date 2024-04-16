@@ -10,10 +10,21 @@ import React, { useContext } from 'react';
 import {Control} from './Control';
 import styles from './styles.module.css';
 import { StoreContext } from '../../../store';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import _ from 'lodash';
 
 export const MarkForm = () => {
-  const { state } = useContext(StoreContext);
-  const {Config} = state;
+  const Config = useSelector((state) => (
+    _.pick(state.pnp.Config, [
+      'fCutLine',
+      'fCutlineColor',
+      'fCutlineThinkness',
+      'bCutLine',
+      'bCutlineColor',
+      'bCutlineThinkness'
+    ])
+  ), shallowEqual);
+  const dispatch = useDispatch();
   return (<div className={styles.FormPanel}>
     <Control label={'Front Cutting Line'}>
       <RadioGroup name={'fCutLine'} defaultValue={Config.fCutLine}>
