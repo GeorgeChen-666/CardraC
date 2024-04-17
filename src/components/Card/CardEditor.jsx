@@ -29,12 +29,11 @@ export default memo(({ data, index }) => {
     accept: 'Card',
     hover({ id: draggedId }) {
       if (draggedId !== data.id) {
-        console.log(draggedId, data.id)
+        dispatch(Actions.MoveCard({id:draggedId, to:index}));
       }
     },
-    drop: (draggedCardId) => {
-      console.log(draggedCardId, data.id)
-      dispatch(Actions.MoveCard({id:draggedCardId, index}))
+    drop: ({ id: draggedId }) => {
+      dispatch(Actions.MoveCard({id:draggedId, to:index}));
     },
   });
 
@@ -44,15 +43,6 @@ export default memo(({ data, index }) => {
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
-
-    // end: (item, monitor) => {
-    //   const { id: droppedId, originalIndex } = item;
-    //   const didDrop = monitor.didDrop();
-    //   if (!didDrop) {
-    //     //moveCard(droppedId, originalIndex)
-    //     dispatch(Actions.MoveCard({id:droppedId, originalIndex}))
-    //   }
-    // },
   });
   console.log('rending', index);
   const Config = useSelector((state) => (
