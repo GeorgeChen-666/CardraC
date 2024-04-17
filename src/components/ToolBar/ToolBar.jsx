@@ -9,7 +9,14 @@ import {
   IconButton,
   FormControl,
   FormLabel,
-  Switch, Image, Button,
+  Switch,
+  Image,
+  Button,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
+  NumberIncrementStepper,
+  NumberDecrementStepper,
 } from '@chakra-ui/react';
 import { MdPictureAsPdf } from 'react-icons/md';
 import { SetupDialog } from './Setup/SetupDialog';
@@ -78,9 +85,23 @@ export const ToolBar = () => {
           }}>
             Fill background
           </MenuItem>
-          {/*<MenuItem>*/}
-          {/*  Set count*/}
-          {/*</MenuItem>*/}
+          <MenuItem>
+            Set count
+            <NumberInput size='xs' maxW={16} defaultValue={1} min={1}
+                         onClick={(e) => e.stopPropagation()}
+                         onChange={($, value) => {
+                           //dispatch(Actions.EditCardById({ id: data.id, repeat: value }));
+                         }}>
+              <NumberInputField />
+              <NumberInputStepper>
+                <NumberIncrementStepper />
+                <NumberDecrementStepper />
+              </NumberInputStepper>
+            </NumberInput>
+            <Button colorScheme='teal' size='xs'>
+              OK
+            </Button>
+          </MenuItem>
           <MenuItem onClick={()=>{
             dispatch(Actions.SwapSelectionCards());
           }}>
