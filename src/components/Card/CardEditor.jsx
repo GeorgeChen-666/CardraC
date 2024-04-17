@@ -18,7 +18,7 @@ import {
 } from '@chakra-ui/react';
 import { IoIosOpen, IoIosMore, IoIosSwap, IoIosKeypad } from 'react-icons/io';
 import styles from './styles.module.css';
-import { StoreContext, Actions } from '../../store';
+import { Actions } from '../../store';
 import { emptyImg } from '../ToolBar/ExportPdf';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import _ from 'lodash';

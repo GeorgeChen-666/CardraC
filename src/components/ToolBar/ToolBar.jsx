@@ -13,7 +13,7 @@ import {
 } from '@chakra-ui/react';
 import { MdPictureAsPdf } from 'react-icons/md';
 import { SetupDialog } from './Setup/SetupDialog';
-import { Actions, StoreContext } from '../../store';
+import { Actions } from '../../store';
 import { emptyImg, ExportPdf } from './ExportPdf';
 import { openImage } from '../../functions';
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
@@ -58,7 +58,7 @@ export const ToolBar = () => {
         icon={<Image boxSize='30px' src={Config.globalBackground?.path || emptyImg.path} />}
         onClick={async () => {
           const filePath = await openImage();
-          dispatch({ type: Actions.EditConfig, payload: { globalBackground: filePath } });
+          dispatch(Actions.EditConfig({ globalBackground: filePath }));
         }}
       />
       <Menu>
@@ -67,19 +67,23 @@ export const ToolBar = () => {
           Selection
         </MenuButton>
         <MenuList>
-          <MenuItem>
+          <MenuItem onClick={() => {
+            dispatch(Actions.RemoveSelectionCards());
+          }}>
             Remove
           </MenuItem>
           <MenuItem onClick={async () => {
-            //const filePath = await openImage();
-            //dispatch({type:Actions.FillCardList, payload: CardList.map(c=>{c.back = filePath; return c;}) })
+            const filePath = await openImage();
+            dispatch(Actions.FillCardBack(filePath))
           }}>
             Fill background
           </MenuItem>
-          <MenuItem>
-            Set count
-          </MenuItem>
-          <MenuItem>
+          {/*<MenuItem>*/}
+          {/*  Set count*/}
+          {/*</MenuItem>*/}
+          <MenuItem onClick={()=>{
+            dispatch(Actions.SwapSelectionCards());
+          }}>
             Swap Face/Back
           </MenuItem>
           <MenuItem>
@@ -94,7 +98,6 @@ export const ToolBar = () => {
         </FormLabel>
         <Switch size={'lg'} onChange={(e) => {
           dispatch(Actions.EditGlobal({ isBackEditing: e.target.checked }));
-          //dispatch({ type: Actions.EditGlobal, payload: {isBackEditing: e.target.checked}})
         }} />
       </FormControl>)}
 
