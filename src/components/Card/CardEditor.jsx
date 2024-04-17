@@ -22,8 +22,38 @@ import { StoreContext, Actions } from '../../store';
 import { emptyImg } from '../ToolBar/ExportPdf';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import _ from 'lodash';
+import { useDrag, useDrop } from 'react-dnd';
 
 export default memo(({ data, index }) => {
+  const [, dropRef] = useDrop({
+    accept: 'Card',
+    hover({ id: draggedId }) {
+      if (draggedId !== data.id) {
+        console.log(draggedId, data.id)
+      }
+    },
+    drop: (draggedCardId) => {
+      console.log(draggedCardId, data.id)
+      dispatch(Actions.MoveCard({id:draggedCardId, index}))
+    },
+  });
+
+  const [{ isDragging }, dragRef, previewRef] = useDrag({
+    item: { id: data.id, originalIndex: index },
+    type: 'Card',
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+
+    // end: (item, monitor) => {
+    //   const { id: droppedId, originalIndex } = item;
+    //   const didDrop = monitor.didDrop();
+    //   if (!didDrop) {
+    //     //moveCard(droppedId, originalIndex)
+    //     dispatch(Actions.MoveCard({id:droppedId, originalIndex}))
+    //   }
+    // },
+  });
   console.log('rending', index);
   const Config = useSelector((state) => (
     _.pick(state.pnp.Config, [
@@ -33,36 +63,18 @@ export default memo(({ data, index }) => {
   const Global = useSelector((state) => (
     _.pick(state.pnp.Global, [
       'isBackEditing',
-      'lastSelection',
-      'selection',
     ])
   ), shallowEqual);
-  const newSelectionIds = useSelector((state) => {
-    const lastSelection = state.pnp.Global.lastSelection;
-    const lastSelectionIndex = state.pnp.CardList.findIndex(c => c.id === lastSelection);
-    const currentSelectionIndex = state.pnp.CardList.findIndex(c => c.id === data.id);
-    if(lastSelectionIndex + currentSelectionIndex > -1) {
-      return state.pnp.CardList.filter((c, i) => {
-        const ia = [lastSelectionIndex, currentSelectionIndex];
-        return (i >= Math.min(...ia) && i <= Math.max(...ia));
-      }).map(c => c.id)
-    } else {
-      return [];
-    }
-  }, shallowEqual);
   const dispatch = useDispatch();
   const isBackEditing = Global.isBackEditing;
-  return (<Card className={styles.Card} size={'sm'} padding={2} onClick={(event) => {
-    if (event.shiftKey && newSelectionIds.length > 0) {
-      dispatch(Actions.EditGlobal({ selection: new Set(newSelectionIds) }));
-    } else {
-      if (Global.selection.has(data.id)) {
-        dispatch(Actions.EditGlobal({ selection: new Set([]), lastSelection: null }));
-      } else {
-        dispatch(Actions.EditGlobal({ selection: new Set([data.id]), lastSelection: data.id }));
-      }
-    }
-  }}>
+  return (<Card ref={(node) => previewRef(dropRef(node))} style={{ opacity: isDragging ? 0.5: 1 }} className={styles.Card} size={'sm'} padding={2}
+                onClick={(event) => {
+                  if (event.shiftKey) {
+                    dispatch(Actions.ShiftSelectCard(data.id));
+                  } else {
+                    dispatch(Actions.SelectCard(data.id));
+                  }
+                }}>
     <div className={styles.CardBar}>
       <Menu>
         <IconButton
@@ -74,10 +86,10 @@ export default memo(({ data, index }) => {
           onClick={(e) => {
             e.stopPropagation();
             dispatch(Actions.EditCardById({ id: data.id, face: data.back, back: data.face }));
-            //dispatch({ type: Actions.EditCardById, payload: { id: data.id, face: data.back, back: data.face } });
           }}
         />
-        <span className={styles.CardDragHandler} onClick={e=>e.stopPropagation()}><IoIosKeypad /><IoIosKeypad /></span>
+        <span ref={dragRef} className={styles.CardDragHandler}
+              onClick={e => e.stopPropagation()}><IoIosKeypad /><IoIosKeypad /></span>
         <MenuButton
           size={'xs'}
           as={IconButton}
@@ -108,7 +120,7 @@ export default memo(({ data, index }) => {
       </Stack>
     </div>
     <div className={styles.CardBar}>
-      <Checkbox isChecked={Global.selection.has(data.id)}>#{index + 1}</Checkbox>
+      <Checkbox isChecked={data.selected}>#{index + 1}</Checkbox>
       <NumberInput size='xs' maxW={16} defaultValue={1} min={1}
                    onClick={(e) => e.stopPropagation()}
                    onChange={($, value) => {

@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf';
+import { store } from '../../store';
 
 export const emptyImg = {
   path: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
@@ -127,7 +128,8 @@ const drawPageElements = (doc, pageData, state) => {
     doc.line(parseFloat(x), parseFloat(y) - 2, parseFloat(x), parseFloat(y) + 2);
   });
 };
-export const ExportPdf = (state) => {
+export const ExportPdf = () => {
+  const { pnp:state } = store.getState();
   const { Config } = state;
   // Default export is a4 paper, portrait, using millimeters for units
   const format = (Config.pageSize.split(':')[0]).toLowerCase();

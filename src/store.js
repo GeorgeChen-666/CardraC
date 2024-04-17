@@ -1,4 +1,4 @@
-import React, { useCallback, useReducer } from 'react';
+import React from 'react';
 import { createSlice, configureStore  } from '@reduxjs/toolkit';
 import _ from 'lodash';
 import logger from 'redux-logger'
@@ -6,7 +6,6 @@ import { Provider } from 'react-redux'
 
 const initialState = Object.freeze({
   Global: {
-    selection: new Set(),
     lastSelection: null,
     isBackEditing: false
   },
@@ -36,70 +35,6 @@ const initialState = Object.freeze({
   },
   CardList: [],
 });
-// const Actions = Object.freeze({
-//   EditGlobal: 'EditGlobal',
-//   EditConfig: 'EditConfig',
-//   AddCardByFace: 'AddCardByFace',
-//   EditCardById: 'EditCardById',
-//   RemoveCardById: 'RemoveCardById',
-//   FillCardList: 'FillCardList',
-// });
-// const reducer = (state, action) => {
-//   const { type, payload } = action;
-//   switch (type) {
-//     case Actions.EditGlobal:
-//       return {
-//         ...state,
-//         Global: {...state.Global, ...payload}
-//       };
-//     case Actions.EditConfig:
-//       return {
-//         ...state,
-//         Config: {...state.Config, ...payload}
-//       };
-//     case Actions.AddCardByFace:
-//       return {
-//         ...state,
-//         CardList: [
-//           ...state.CardList,
-//           ...payload.map(p => ({
-//             id: crypto.randomUUID(),
-//             face: p,
-//             back: '',
-//             repeat: 1
-//           })),
-//         ],
-//       };
-//     case Actions.EditCardById:
-//       return {
-//         ...state,
-//         CardList: [
-//           ...state.CardList.map(c => c.id === payload.id ? { ...c, ...payload } : c),
-//         ],
-//       };
-//     case Actions.RemoveCardById:
-//       return {
-//         ...state,
-//         CardList: [
-//           ...state.CardList.filter(c => c.id !== payload),
-//         ],
-//       };
-//     case Actions.FillCardList:
-//       return {
-//         ...state,
-//         CardList: [ ...payload ],
-//       };
-//     case 'increment':
-//       return state + 1;
-//     case 'decrement':
-//       return state - 1;
-//     case 'reset':
-//       return 0;
-//     default:
-//       throw new Error('Unexpected action');
-//   }
-// };
-export const StoreContext = React.createContext();
 
 export const pnpSlice = createSlice({
   name: 'pnp',
@@ -109,6 +44,36 @@ export const pnpSlice = createSlice({
       Object.keys(action.payload).forEach(key=> {
         state.Global[key] = action.payload[key];
       })
+    },
+    SelectCard: (state, action) => {
+      const selectedId = action.payload;
+      const selection = state.CardList.filter(c=>c.selected);
+      if(_.some(selection, {id:selectedId}) && selection.length === 1) {
+        selection.forEach(c => c.selected = false);
+        state.Global.lastSelection = null;
+      } else {
+        selection.forEach(c => c.selected = false);
+        const selectedCard = state.CardList.find(c=>c.id ===selectedId);
+        selectedCard && (selectedCard.selected = true);
+        state.Global.lastSelection = selectedId;
+      }
+    },
+    ShiftSelectCard: (state, action) => {
+      const lastSelection = state.Global.lastSelection;
+      const lastSelectionIndex = state.CardList.findIndex(c => c.id === lastSelection);
+      const currentSelectionIndex = state.CardList.findIndex(c => c.id === action.payload);
+      if(lastSelectionIndex + currentSelectionIndex > -1) {
+        state.CardList.forEach((c, i) => {
+          const ia = [lastSelectionIndex, currentSelectionIndex];
+          if(i >= Math.min(...ia) && i <= Math.max(...ia)) {
+            c.selected = true;
+          } else {
+            c.selected = false;
+          }
+        });
+      } else {
+        state.CardList.forEach(c => c.selected = false);
+      }
     },
     EditConfig: (state, action) => {
       Object.keys(action.payload).forEach(key=> {
@@ -122,6 +87,12 @@ export const pnpSlice = createSlice({
         back: null,
         repeat: 1
       })));
+    },
+    MoveCard: (state, action) => {
+      const { id, to } = action.payload;
+      const from = state.CardList.findIndex(c=>c.id === id);
+      const card = state.CardList.splice(from,1);
+      state.CardList.splice(to,0,card);
     },
     FillCardList: (state, action) => {
       state.CardList = action.payload;
@@ -140,7 +111,7 @@ export const pnpSlice = createSlice({
   },
 })
 export const Actions = pnpSlice.actions;
-const store = configureStore({
+export const store = configureStore({
   reducer: {
     pnp: pnpSlice.reducer,
   },

@@ -21,7 +21,7 @@
 }
 .CardDragHandler {
     display: flex;
-    cursor: pointer;
+    cursor: move;
 }
 .CardImage {
     -webkit-user-drag: none;
