@@ -9,6 +9,7 @@ import {
 import {StoreProvider} from './store'
 import {ToolBar} from './components/ToolBar/ToolBar';
 import {CardEditorList} from './components/Card/CardEditorList';
+import { Footer } from './components/Footer';
 
 function App() {
   return (
@@ -32,7 +33,7 @@ function App() {
               <CardEditorList />
             </GridItem>
             <GridItem pl='2' area={'footer'}>
-              Footer
+              <Footer />
             </GridItem>
           </Grid>
         </Box>

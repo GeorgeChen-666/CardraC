@@ -92,6 +92,9 @@ export default memo(({ data, index }) => {
           <MenuItem icon={<IoIosOpen />} command='⌘T'>
             New Tab
           </MenuItem>
+          <MenuItem>
+            Duplicate
+          </MenuItem>
         </MenuList>
       </Menu>
     </div>

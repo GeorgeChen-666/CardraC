@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { IoIosOpen, IoIosOptions, IoIosArrowDown } from 'react-icons/io';
 import { AiFillFolderOpen, AiFillFileAdd, AiFillSetting, AiFillSave } from 'react-icons/ai';
 import {
@@ -32,6 +32,7 @@ export const ToolBar = () => {
     globalBackground: state.pnp.Config.globalBackground,
   }), shallowEqual);
   const Global = useSelector((state) => state.pnp.Global, shallowEqual);
+  const [ bulkCount, setBulkCount ] = useState(1);
   const dispatch = useDispatch();
   console.log({ Config, Global });
   return (<div>
@@ -68,7 +69,7 @@ export const ToolBar = () => {
           dispatch(Actions.EditConfig({ globalBackground: filePath }));
         }}
       />
-      <Menu>
+      <Menu onOpen={()=>setBulkCount(1)}>
         <MenuButton visibility={Global.selection?.size === 0 ? 'hidden' : 'inline'} as={Button}
                     rightIcon={<IoIosArrowDown />}>
           Selection
@@ -87,9 +88,10 @@ export const ToolBar = () => {
           </MenuItem>
           <MenuItem>
             Set count
-            <NumberInput size='xs' maxW={16} defaultValue={1} min={1}
+            <NumberInput size='xs' maxW={16} value={bulkCount} min={1}
                          onClick={(e) => e.stopPropagation()}
                          onChange={($, value) => {
+                           setBulkCount(value);
                            //dispatch(Actions.EditCardById({ id: data.id, repeat: value }));
                          }}>
               <NumberInputField />
@@ -115,7 +117,7 @@ export const ToolBar = () => {
       </Menu>
       {Config.sides === 'double sides' && (<FormControl display='ruby'>
         <FormLabel>
-          Back editing
+          Switch view
         </FormLabel>
         <Switch size={'lg'} onChange={(e) => {
           dispatch(Actions.EditGlobal({ isBackEditing: e.target.checked }));
