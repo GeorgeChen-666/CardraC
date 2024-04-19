@@ -6,6 +6,8 @@ import { Provider } from 'react-redux';
 
 const initialState = Object.freeze({
   Global: {
+    isInProgress: false,
+    progress: 0,
     lastSelection: null,
     isBackEditing: false,
     selections: [],
@@ -89,18 +91,46 @@ export const pnpSlice = createSlice({
         repeat: 1,
       })));
     },
+    MoveDragHover: (state, action) => {
+      const { to } = action.payload;
+      const id = 'dragTarget';
+      const from = state.CardList.findIndex(c => c.id === id);
+      if(from !== -1) {
+        state.CardList.splice(from, 1);
+      }
+      state.CardList.splice(to, 0, { id });
+    },
+    MoveSelectedCards: (state, action) => {
+      const dragTargetId = 'dragTarget';
+      const selection = state.CardList.filter(c => c.selected);
+      const orderedSelection = selection.sort((a, b) => {
+        return state.CardList.findIndex(c => c.id === b.id) - state.CardList.findIndex(c => c.id === a.id);
+      })
+      orderedSelection.forEach(c => {
+        state.CardList.splice(state.CardList.findIndex(cc => cc.id === c.id), 1)
+      });
+      orderedSelection.forEach(s => {
+        state.CardList.splice(action.payload.to, 0, s);
+      });
+      const from = state.CardList.findIndex(c => c.id === dragTargetId);
+      if(from !== -1) {
+        state.CardList.splice(from, 1);
+      }
+    },
     MoveCard: (state, action) => {
       const { id, to } = action.payload;
       const from = state.CardList.findIndex(c => c.id === id);
       const [card] = state.CardList.splice(from, 1);
       state.CardList.splice(to, 0, card);
     },
-    FillCardList: (state, action) => {
-      state.CardList = action.payload;
-    },
-    FillCardBack: (state, action) => {
+    FillSelectedCardBack: (state, action) => {
       const selection = state.CardList.filter(c => c.selected);
       selection.forEach(c => (c.back = action.payload));
+    },
+    FillSelectedCardBackWithEachBack: (state, action) => {
+      const backImageList = action.payload;
+      const selection = state.CardList.filter(c => c.selected);
+      selection.forEach((c, index) => (c.back = backImageList?.[index]));
     },
     EditCardById: (state, action) => {
       const card = state.CardList.find(c => c.id === action.payload.id);

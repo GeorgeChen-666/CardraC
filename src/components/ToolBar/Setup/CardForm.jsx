@@ -3,11 +3,10 @@ import {
   NumberIncrementStepper,
   NumberInput,
   NumberInputField,
-  NumberInputStepper, PinInput, PinInputField, Radio, RadioGroup,
-  Select, Stack,
+  NumberInputStepper
 } from '@chakra-ui/react';
-import React, { useContext, useEffect, useState } from 'react';
-import {Control} from './Control';
+import React, { useEffect } from 'react';
+import {Control, ControlType} from './Control';
 import styles from './styles.module.css';
 import { Actions } from '../../../store';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
@@ -49,69 +48,24 @@ export const CardForm = () => {
     Config.landscape
   ]);
   return (<div className={styles.FormPanel}>
-    <Control label={'Width'}>
-      <NumberInput value={Config.cardWidth} onChange={(s, v) => {
-        dispatch(Actions.EditConfig({cardWidth: v}))
-      }} mr={3}>
-        <NumberInputField />
-        <NumberInputStepper>
-          <NumberIncrementStepper />
-          <NumberDecrementStepper />
-        </NumberInputStepper>
-      </NumberInput>
+    <Control label={'Width'} attrKey={'cardWidth'} type={ControlType.NumberInput}>
       mm
     </Control>
-    <Control label={'Height'}>
-      <NumberInput value={Config.cardHeight} onChange={(s, v) => {
-        dispatch(Actions.EditConfig({cardHeight: v}))
-      }} mr={3}>
-        <NumberInputField />
-        <NumberInputStepper>
-          <NumberIncrementStepper />
-          <NumberDecrementStepper />
-        </NumberInputStepper>
-      </NumberInput>
+    <Control label={'Height'} attrKey={'cardHeight'} type={ControlType.NumberInput}>
       mm
     </Control>
-    <Control label={'Margin X'}>
-      <NumberInput name={'marginX'} value={Config.marginX} onChange={(s, v) => {
-        dispatch(Actions.EditConfig({marginX: v}))
-      }} mr={3}>
-        <NumberInputField />
-        <NumberInputStepper>
-          <NumberIncrementStepper />
-          <NumberDecrementStepper />
-        </NumberInputStepper>
-      </NumberInput>
+    <Control label={'Margin X'} attrKey={'marginX'} type={ControlType.NumberInput}>
       mm
     </Control>
-    <Control label={'Margin Y'}>
-      <NumberInput name={'marginY'} value={Config.marginY} onChange={(s, v) => {
-        dispatch(Actions.EditConfig({marginY: v}))
-      }} mr={3}>
-        <NumberInputField />
-        <NumberInputStepper>
-          <NumberIncrementStepper />
-          <NumberDecrementStepper />
-        </NumberInputStepper>
-      </NumberInput>
+    <Control label={'Margin Y'} attrKey={'marginY'} type={ControlType.NumberInput}>
       mm
     </Control>
-    <Control label={'Bleed'}>
-      <NumberInput value={Config.bleed} onChange={(s, v) => {
-        dispatch(Actions.EditConfig({bleed: v}))
-      }} mr={3}>
-        <NumberInputField />
-        <NumberInputStepper>
-          <NumberIncrementStepper />
-          <NumberDecrementStepper />
-        </NumberInputStepper>
-      </NumberInput>
+    <Control label={'Bleed'} attrKey={'bleed'} type={ControlType.NumberInput}>
       mm
     </Control>
     <Control label={'Columns/Rows'}>
       <HStack>
-        <NumberInput isDisabled={Config.autoColumnsRows} name={'columns'} width={'90px'} value={Config.columns} onChange={(s, v) => {
+        <NumberInput isDisabled={Config.autoColumnsRows} width={'90px'} value={Config.columns} onChange={(s, v) => {
           dispatch(Actions.EditConfig({columns:v}));
         }} mr={8}>
           <NumberInputField />
@@ -120,7 +74,7 @@ export const CardForm = () => {
             <NumberDecrementStepper />
           </NumberInputStepper>
         </NumberInput>
-        <NumberInput isDisabled={Config.autoColumnsRows} name={'rows'} width={'90px'} value={Config.rows} onChange={(s, v) => {
+        <NumberInput isDisabled={Config.autoColumnsRows} width={'90px'} value={Config.rows} onChange={(s, v) => {
           dispatch(Actions.EditConfig({rows:v}));
         }} mr={4}>
           <NumberInputField />
@@ -129,7 +83,7 @@ export const CardForm = () => {
             <NumberDecrementStepper />
           </NumberInputStepper>
         </NumberInput>
-        <Checkbox name={'autoColumnsRows'} value={'true'} isChecked={Config.autoColumnsRows}
+        <Checkbox value={'true'} isChecked={Config.autoColumnsRows}
                   onChange={(event) => dispatch(Actions.EditConfig({autoColumnsRows:event.target.checked}))}
         >Auto</Checkbox>
       </HStack>

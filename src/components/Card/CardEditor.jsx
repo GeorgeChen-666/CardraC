@@ -1,4 +1,4 @@
-import React, { memo, useEffect } from 'react';
+import React, { memo, useCallback } from 'react';
 import {
   Card,
   Button,
@@ -16,7 +16,7 @@ import {
   MenuItem,
   Checkbox,
 } from '@chakra-ui/react';
-import { IoIosOpen, IoIosMore, IoIosSwap, IoIosKeypad } from 'react-icons/io';
+import { IoIosMore, IoIosSwap, IoIosKeypad } from 'react-icons/io';
 import styles from './styles.module.css';
 import { Actions } from '../../store';
 import { emptyImg } from '../ToolBar/ExportPdf';
@@ -29,22 +29,23 @@ export default memo(({ data, index }) => {
     accept: 'Card',
     hover({ id: draggedId }) {
       if (draggedId !== data.id) {
-        dispatch(Actions.MoveCard({id:draggedId, to:index}));
+        dispatch(Actions.MoveDragHover({to:index}));
       }
     },
-    drop: ({ id: draggedId }) => {
-      dispatch(Actions.MoveCard({id:draggedId, to:index}));
+    drop: () => {
+      dispatch(Actions.MoveSelectedCards({to:index}));
     },
   });
 
   const [{ isDragging }, dragRef, previewRef] = useDrag({
     item: { id: data.id, originalIndex: index },
+    isDragging: (monitor) => data.selected || monitor.getItem().id === data.id,
     type: 'Card',
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
   });
-  console.log('rending', index);
+  console.log('rending', index, isDragging);
   const Config = useSelector((state) => (
     _.pick(state.pnp.Config, [
       'sides',
@@ -56,15 +57,16 @@ export default memo(({ data, index }) => {
     ])
   ), shallowEqual);
   const dispatch = useDispatch();
+  const onSelectCard = useCallback((event) => {
+    if (event.shiftKey) {
+      dispatch(Actions.ShiftSelectCard(data.id));
+    } else {
+      dispatch(Actions.SelectCard(data.id));
+    }
+  }, [data.id])
   const isBackEditing = Global.isBackEditing;
-  return (<Card ref={(node) => previewRef(dropRef(node))} style={{ opacity: isDragging ? 0.5: 1 }} className={styles.Card} size={'sm'} padding={2}
-                onClick={(event) => {
-                  if (event.shiftKey) {
-                    dispatch(Actions.ShiftSelectCard(data.id));
-                  } else {
-                    dispatch(Actions.SelectCard(data.id));
-                  }
-                }}>
+  return (<Card ref={node => previewRef(dropRef(node))} style={{ display: (isDragging ? 'none': 'unset') }} className={styles.Card} size={'sm'} padding={2}
+                onClick={onSelectCard}>
     <div className={styles.CardBar}>
       <Menu>
         <IconButton
@@ -79,7 +81,13 @@ export default memo(({ data, index }) => {
           }}
         />
         <span ref={dragRef} className={styles.CardDragHandler}
-              onClick={e => e.stopPropagation()}><IoIosKeypad /><IoIosKeypad /></span>
+              onMouseDown={e=>{
+                if(!data.selected) {
+                  dispatch(Actions.SelectCard(data.id));
+                }
+              }}
+              onClick={e => e.stopPropagation()}
+        ><IoIosKeypad /><IoIosKeypad /></span>
         <MenuButton
           size={'xs'}
           as={IconButton}
@@ -89,8 +97,8 @@ export default memo(({ data, index }) => {
           onClick={e => e.stopPropagation()}
         />
         <MenuList>
-          <MenuItem icon={<IoIosOpen />} command='⌘T'>
-            New Tab
+          <MenuItem>
+            Background..
           </MenuItem>
           <MenuItem>
             Duplicate
@@ -113,7 +121,7 @@ export default memo(({ data, index }) => {
       </Stack>
     </div>
     <div className={styles.CardBar}>
-      <Checkbox isChecked={data.selected}>#{index + 1}</Checkbox>
+      <Checkbox isChecked={data.selected} onClick={onSelectCard}>#{index + 1}</Checkbox>
       <NumberInput size='xs' maxW={16} defaultValue={1} min={1}
                    onClick={(e) => e.stopPropagation()}
                    onChange={($, value) => {
@@ -129,7 +137,6 @@ export default memo(({ data, index }) => {
     <div>
       <Button width='100%' size='sm' onClick={() => {
         dispatch(Actions.RemoveCardByIds([data.id]));
-        //dispatch({ type: Actions.RemoveCardById, payload: data.id });
       }}>
         Remove image
       </Button>

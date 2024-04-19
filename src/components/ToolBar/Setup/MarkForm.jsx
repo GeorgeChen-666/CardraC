@@ -1,15 +1,15 @@
 import {
-  Checkbox, HStack, NumberDecrementStepper,
+  HStack, NumberDecrementStepper,
   NumberIncrementStepper,
   NumberInput,
   NumberInputField,
-  NumberInputStepper, PinInput, PinInputField, Radio, RadioGroup,
-  Input, Stack, FormLabel,
+  NumberInputStepper, Radio, RadioGroup,
+  Input, FormLabel,
 } from '@chakra-ui/react';
-import React, { useContext } from 'react';
+import React from 'react';
 import {Control} from './Control';
 import styles from './styles.module.css';
-import { StoreContext } from '../../../store';
+import { Actions } from '../../../store';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import _ from 'lodash';
 
@@ -27,7 +27,8 @@ export const MarkForm = () => {
   const dispatch = useDispatch();
   return (<div className={styles.FormPanel}>
     <Control label={'Front Cutting Line'}>
-      <RadioGroup name={'fCutLine'} defaultValue={Config.fCutLine}>
+      <RadioGroup defaultValue={Config.fCutLine}
+                  onChange={(value) => dispatch(Actions.EditConfig({fCutLine:value}))}>
         <HStack>
           <Radio value={'0'}>None</Radio>
           <Radio value={'1'}>Normal</Radio>
@@ -38,9 +39,11 @@ export const MarkForm = () => {
     </Control>
     <Control label={'Color'}>
       <HStack>
-        <Input name={'fCutlineColor'} width={'80px'} type={'color'} defaultValue={Config.fCutlineColor} />
+        <Input name={'fCutlineColor'} width={'80px'} type={'color'} defaultValue={Config.fCutlineColor}
+               onChange={(value) => dispatch(Actions.EditConfig({fCutlineColor:value}))} />
         <FormLabel textAlign={'right'} className={styles.FormLabel}>Thinckness</FormLabel>
-        <NumberInput width={'90px'} defaultValue={Config.fCutlineThinkness}>
+        <NumberInput width={'90px'} defaultValue={Config.fCutlineThinkness}
+                     onChange={($, value) => dispatch(Actions.EditConfig({fCutlineThinkness:value}))}>
           <NumberInputField />
           <NumberInputStepper>
             <NumberIncrementStepper />
@@ -51,7 +54,8 @@ export const MarkForm = () => {
       </HStack>
     </Control>
     <Control label={'Back Cutting Line'}>
-      <RadioGroup name={'bCutLine'} defaultValue={Config.bCutLine}>
+      <RadioGroup defaultValue={Config.bCutLine}
+                  onChange={(value) => dispatch(Actions.EditConfig({bCutLine:value}))}>
         <HStack>
           <Radio value={'0'}>None</Radio>
           <Radio value={'1'}>Normal</Radio>
@@ -62,9 +66,11 @@ export const MarkForm = () => {
     </Control>
     <Control label={'Color'}>
       <HStack>
-        <Input name={'bCutlineColor'} width={'80px'} type={'color'}  defaultValue={Config.bCutlineColor} />
+        <Input width={'80px'} type={'color'}  defaultValue={Config.bCutlineColor}
+               onChange={(value) => dispatch(Actions.EditConfig({bCutlineColor:value}))}/>
         <FormLabel textAlign={'right'} className={styles.FormLabel}>Thinckness</FormLabel>
-        <NumberInput name={'bCutlineThinkness'} width={'90px'} defaultValue={Config.bCutlineThinkness}>
+        <NumberInput width={'90px'} defaultValue={Config.bCutlineThinkness}
+                     onChange={($, value) => dispatch(Actions.EditConfig({bCutlineThinkness:value}))}>
           <NumberInputField />
           <NumberInputStepper>
             <NumberIncrementStepper />

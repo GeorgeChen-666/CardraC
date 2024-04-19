@@ -79,7 +79,6 @@ const drawPageElements = (doc, pageData, state) => {
         imageXc = imageXc + cardW;
         imageYc = imageYc - cardH;
       }
-      console.log(image, cx , cy, cardXc, cardYc);
       if (image) {
         try {
           doc.addImage(image.path, image.ext, imageXc, imageYc, cardW, cardH, image.path, 'NONE', cardRotation);
@@ -128,21 +127,26 @@ const drawPageElements = (doc, pageData, state) => {
     doc.line(parseFloat(x), parseFloat(y) - 2, parseFloat(x), parseFloat(y) + 2);
   });
 };
-export const ExportPdf = () => {
+export const ExportPdf = ({ onProgress,onFinish }) => {
   const { pnp:state } = store.getState();
   const { Config } = state;
-  // Default export is a4 paper, portrait, using millimeters for units
-  const format = (Config.pageSize.split(':')[0]).toLowerCase();
-  const orientation = Config.landscape ? 'landscape' : 'portrait';
-  const doc = new jsPDF({ format, orientation });
+  return new Promise((resolve, reject)=>{
+    // Default export is a4 paper, portrait, using millimeters for units
+    const format = (Config.pageSize.split(':')[0]).toLowerCase();
+    const orientation = Config.landscape ? 'landscape' : 'portrait';
+    const doc = new jsPDF({ format, orientation });
 
+    const pagedImageList = getPagedImageListByCardList(state);
+    console.log(pagedImageList);
+    pagedImageList.forEach((pageData, index) => {
+      index > 0 && doc.addPage();//doc.addPage("a6", "l");
+      drawPageElements(doc, pageData, state);
+      onProgress && onProgress(parseInt((index / pagedImageList.length) * 100))
+    });
 
-  const pagedImageList = getPagedImageListByCardList(state);
-  console.log(pagedImageList);
-  pagedImageList.forEach((pageData, index) => {
-    index > 0 && doc.addPage();//doc.addPage("a6", "l");
-    drawPageElements(doc, pageData, state);
+    doc.save('myFile.pdf');
+    onFinish && onFinish();
+    resolve();
   });
 
-  doc.save('a4.pdf');
 };

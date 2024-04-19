@@ -3,14 +3,14 @@ import {
   NumberIncrementStepper,
   NumberInput,
   NumberInputField, Input,
-  NumberInputStepper, Radio, RadioGroup, FormLabel,
+  NumberInputStepper, Radio, RadioGroup,
   Select, Stack, Link,
 } from '@chakra-ui/react';
-import React, { useContext, useRef, useState } from 'react';
-import { Control } from './Control';
+import React from 'react';
+import { Control, ControlType } from './Control';
 import styles from './styles.module.css';
 import _ from 'lodash';
-import { Actions, StoreContext } from '../../../store';
+import { Actions } from '../../../store';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 
 export const LayoutForm = () => {
@@ -48,28 +48,14 @@ export const LayoutForm = () => {
                 onChange={(event) => dispatch(Actions.EditConfig({ landscape: event.target.checked }))}
       >Landscape</Checkbox>
     </Control>
-    <Control label={'Page Width'}>
-      <NumberInput value={Config.pageWidth} onChange={(s, v) => {
-        dispatch(Actions.EditConfig({ pageWidth: v, pageSize: '' }));
-      }} mr={3}>
-        <NumberInputField />
-        <NumberInputStepper>
-          <NumberIncrementStepper />
-          <NumberDecrementStepper />
-        </NumberInputStepper>
-      </NumberInput>
+    <Control label={'Page Width'} attrKey={'pageWidth'} type={ControlType.NumberInput} onChange={(value) =>
+      dispatch(Actions.EditConfig({ pageWidth: value, pageSize: '' }))
+    }>
       mm
     </Control>
-    <Control label={'Page Height'}>
-      <NumberInput value={Config.pageHeight} onChange={(s, v) => {
-        dispatch(Actions.EditConfig({ pageHeight: v, pageSize: '' }));
-      }} mr={3}>
-        <NumberInputField />
-        <NumberInputStepper>
-          <NumberIncrementStepper />
-          <NumberDecrementStepper />
-        </NumberInputStepper>
-      </NumberInput>
+    <Control label={'Page Height'} attrKey={'pageHeight'} type={ControlType.NumberInput} onChange={(value) =>
+      dispatch(Actions.EditConfig({ pageHeight: value, pageSize: '' }))
+    }>
       mm
     </Control>
     <Control label={'Side'}>

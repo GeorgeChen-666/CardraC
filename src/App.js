@@ -21,15 +21,16 @@ function App() {
                     "main"
                     "footer"`}
             gridTemplateRows={'50px 1fr 30px'}
-            minH="100vh"
+            height="100vh"
             gap='1'
             color='blackAlpha.700'
             fontWeight='bold'
+            overflow={'hidden'}
           >
             <GridItem pl='2' area={'header'}>
               <ToolBar />
             </GridItem>
-            <GridItem pl='2' area={'main'}>
+            <GridItem pl='2' area={'main'} overflow={'auto'}>
               <CardEditorList />
             </GridItem>
             <GridItem pl='2' area={'footer'}>
