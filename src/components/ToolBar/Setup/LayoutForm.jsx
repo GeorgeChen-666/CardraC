@@ -58,6 +58,15 @@ export const LayoutForm = () => {
     }>
       mm
     </Control>
+    <Control label={'Scale'} attrKey={'scale'} type={ControlType.NumberInput}>
+      %
+    </Control>
+    <Control label={'Offset X'} attrKey={'offsetX'} type={ControlType.NumberInput}>
+      mm
+    </Control>
+    <Control label={'Offset Y'} attrKey={'offsetY'} type={ControlType.NumberInput}>
+      mm
+    </Control>
     <Control label={'Side'}>
       <RadioGroup value={Config.sides} onChange={(v) => dispatch(Actions.EditConfig({ sides: v }))}>
         <Stack direction='row'>

@@ -40,11 +40,14 @@ const drawPageElements = (doc, pageData, state) => {
   const { Config } = state;
   const hc = Config.columns;
   const vc = Config.rows;
-  const cardW = Config.cardWidth;
-  const cardH = Config.cardHeight;
-  const marginX = Config.marginX;
-  const marginY = Config.marginY;
-  const bleed = Config.bleed;
+  const scale = fixFloat(Config.scale / 100);
+  const cardW = fixFloat(Config.cardWidth * scale);
+  const cardH = fixFloat(Config.cardHeight * scale);
+  const marginX = fixFloat(Config.marginX * scale);
+  const marginY = fixFloat(Config.marginY * scale);
+  const bleed = fixFloat(Config.bleed * scale);
+  const offsetX = 1 * Config.offsetX;
+  const offsetY = 1 * Config.offsetY;
   const crossMarks = new Set();
   const normalMarks = new Set();
   const maxWidth = fixFloat(doc.getPageWidth(0));
@@ -76,8 +79,11 @@ const drawPageElements = (doc, pageData, state) => {
       const [cardXc, cardYc] = getLocateByCenterBase(cardX, cardY, doc);
       let [imageXc,imageYc] = [cardXc, cardYc];
       if(cardRotation === 180) {
-        imageXc = imageXc + cardW;
-        imageYc = imageYc - cardH;
+        imageXc = imageXc + cardW + offsetX;
+        imageYc = imageYc - cardH + offsetY;
+      } else {
+        imageXc = imageXc + offsetX;
+        imageYc = imageYc + offsetY;
       }
       if (image) {
         try {
@@ -87,29 +93,29 @@ const drawPageElements = (doc, pageData, state) => {
       }
       if (Config.fCutLine === '2' || Config.fCutLine === '3') {
         //add cross mark loc
-        crossMarks.add(`${cardXc + bleed},${cardYc + bleed}`);
-        crossMarks.add(`${cardXc + cardW - bleed},${cardYc + cardH - bleed}`);
-        crossMarks.add(`${cardXc + bleed},${cardYc + cardH - bleed}`);
-        crossMarks.add(`${cardXc + cardW - bleed},${cardYc + bleed}`);
+        crossMarks.add(`${cardXc + bleed + offsetX},${cardYc + bleed + offsetY}`);
+        crossMarks.add(`${cardXc + cardW - bleed + offsetX},${cardYc + cardH - bleed + offsetY}`);
+        crossMarks.add(`${cardXc + bleed + offsetX},${cardYc + cardH - bleed + offsetY}`);
+        crossMarks.add(`${cardXc + cardW - bleed + offsetX},${cardYc + bleed + offsetY}`);
       }
 
       if (Config.fCutLine === '1' || Config.fCutLine === '3') {
         //add normal mark loc
         if (cx === 0) {
-          normalMarks.add(`0,${cardYc + bleed}-${cardXc + bleed},${cardYc + bleed}`);
-          normalMarks.add(`0,${cardYc + cardH - bleed}-${cardXc + bleed},${cardYc + cardH - bleed}`);
+          normalMarks.add(`${offsetX},${cardYc + bleed + offsetY}-${cardXc + bleed + offsetX},${cardYc + bleed + offsetY}`);
+          normalMarks.add(`${offsetX},${cardYc + cardH - bleed + offsetY}-${cardXc + bleed + offsetX},${cardYc + cardH - bleed + offsetY}`);
         }
         if (cx === hc - 1) {
-          normalMarks.add(`${cardXc + cardW - bleed},${cardYc + bleed}-${maxWidth},${cardYc + bleed}`);
-          normalMarks.add(`${cardXc + cardW - bleed},${cardYc + cardH - bleed}-${maxWidth},${cardYc + cardH - bleed}`);
+          normalMarks.add(`${cardXc + cardW - bleed + offsetX},${cardYc + bleed + offsetY}-${maxWidth + offsetX},${cardYc + bleed + offsetY}`);
+          normalMarks.add(`${cardXc + cardW - bleed + offsetX},${cardYc + cardH - bleed + offsetY}-${maxWidth + offsetX},${cardYc + cardH - bleed + offsetY}`);
         }
         if (cy === 0) {
-          normalMarks.add(`${cardXc + bleed},0-${cardXc + bleed},${cardYc + bleed}`);
-          normalMarks.add(`${cardXc + cardW - bleed},0-${cardXc + cardW - bleed},${cardYc + bleed}`);
+          normalMarks.add(`${cardXc + bleed + offsetX},${offsetY}-${cardXc + bleed + offsetX},${cardYc + bleed + offsetY}`);
+          normalMarks.add(`${cardXc + cardW - bleed + offsetX},${offsetY}-${cardXc + cardW - bleed + offsetX},${cardYc + bleed + offsetY}`);
         }
         if (cy === vc - 1) {
-          normalMarks.add(`${cardXc + bleed},${cardYc + cardH - bleed}-${cardXc + bleed},${maxHeight}`);
-          normalMarks.add(`${cardXc + cardW - bleed},${cardYc + cardH - bleed}-${cardXc + cardW - bleed},${maxHeight}`);
+          normalMarks.add(`${cardXc + bleed + offsetX},${cardYc + cardH - bleed + offsetY}-${cardXc + bleed + offsetX},${maxHeight + offsetY}`);
+          normalMarks.add(`${cardXc + cardW - bleed + offsetX},${cardYc + cardH - bleed + offsetY}-${cardXc + cardW - bleed + offsetX},${maxHeight + offsetY}`);
         }
       }
 
@@ -123,8 +129,8 @@ const drawPageElements = (doc, pageData, state) => {
   });
   crossMarks.forEach(cm => {
     const [x, y] = cm.split(',');
-    doc.line(parseFloat(x) - 2, parseFloat(y), parseFloat(x) + 2, parseFloat(y));
-    doc.line(parseFloat(x), parseFloat(y) - 2, parseFloat(x), parseFloat(y) + 2);
+    doc.line(parseFloat(x) - fixFloat(2 * scale), parseFloat(y), parseFloat(x) + fixFloat(2 * scale), parseFloat(y));
+    doc.line(parseFloat(x), parseFloat(y) - fixFloat(2 * scale), parseFloat(x), parseFloat(y) + fixFloat(2 * scale));
   });
 };
 export const ExportPdf = ({ onProgress,onFinish }) => {

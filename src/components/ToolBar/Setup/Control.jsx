@@ -22,16 +22,20 @@ export const Control = (({ children, label, attrKey, type, onChange }) =>
   const Config = useSelector((state) => (
     _.pick(state.pnp.Config, [attrKey])
   ), shallowEqual);
+  const [value, setValue] = React.useState(Config[attrKey])
   return (<FormControl className={styles.FormControl}>
     <FormLabel textAlign={'right'} className={styles.FormLabel}>{label}</FormLabel>
     {
       (()=>{
         if(type === ControlType.NumberInput) {
-          return ((<NumberInput value={Config[attrKey]} onChange={(s, v) => {
+          return ((<NumberInput value={value}
+                                onChange={(valueString) => setValue(valueString)}
+                                onBlur={(e) => {
+            const value = e.target.value;
             if(onChange) {
-              onChange(v)
+              onChange(value)
             } else {
-              dispatch(Actions.EditConfig({[attrKey]: v}))
+              dispatch(Actions.EditConfig({[attrKey]: value}))
             }
           }} mr={3}>
             <NumberInputField />
