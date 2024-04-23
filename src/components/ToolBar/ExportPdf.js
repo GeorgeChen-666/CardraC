@@ -46,8 +46,8 @@ const drawPageElements = (doc, pageData, state) => {
   const marginX = fixFloat(Config.marginX * scale);
   const marginY = fixFloat(Config.marginY * scale);
   const bleed = fixFloat(Config.bleed * scale);
-  const offsetX = 1 * Config.offsetX;
-  const offsetY = 1 * Config.offsetY;
+  let offsetX = 1 * Config.offsetX;
+  let offsetY = 1 * Config.offsetY;
   const crossMarks = new Set();
   const normalMarks = new Set();
   const maxWidth = fixFloat(doc.getPageWidth(0));
@@ -56,6 +56,15 @@ const drawPageElements = (doc, pageData, state) => {
   const landscape = Config.landscape;
   const flipWay = ['none', 'long-edge binding', 'short-edge binding'].indexOf(Config.flip);
   const { imageList, type } = pageData;
+  if(type === 'back') {
+    if(landscape && flipWay === 1 || !landscape && flipWay === 2) {
+      offsetX = offsetX * -1;
+    }
+    if(landscape && flipWay === 2 || !landscape && flipWay === 1) {
+      offsetY = offsetY * -1;
+    }
+  }
+
   console.log('page');
   for (let xx = 0; xx < hc; xx++) {
     for (let yy = 0; yy < vc; yy++) {
@@ -102,20 +111,20 @@ const drawPageElements = (doc, pageData, state) => {
       if (Config.fCutLine === '1' || Config.fCutLine === '3') {
         //add normal mark loc
         if (cx === 0) {
-          normalMarks.add(`${offsetX},${cardYc + bleed + offsetY}-${cardXc + bleed + offsetX},${cardYc + bleed + offsetY}`);
-          normalMarks.add(`${offsetX},${cardYc + cardH - bleed + offsetY}-${cardXc + bleed + offsetX},${cardYc + cardH - bleed + offsetY}`);
+          normalMarks.add(`0,${cardYc + bleed + offsetY}-${cardXc + bleed + offsetX},${cardYc + bleed + offsetY}`);
+          normalMarks.add(`0,${cardYc + cardH - bleed + offsetY}-${cardXc + bleed + offsetX},${cardYc + cardH - bleed + offsetY}`);
         }
         if (cx === hc - 1) {
-          normalMarks.add(`${cardXc + cardW - bleed + offsetX},${cardYc + bleed + offsetY}-${maxWidth + offsetX},${cardYc + bleed + offsetY}`);
-          normalMarks.add(`${cardXc + cardW - bleed + offsetX},${cardYc + cardH - bleed + offsetY}-${maxWidth + offsetX},${cardYc + cardH - bleed + offsetY}`);
+          normalMarks.add(`${cardXc + cardW - bleed + offsetX},${cardYc + bleed + offsetY}-${maxWidth},${cardYc + bleed + offsetY}`);
+          normalMarks.add(`${cardXc + cardW - bleed + offsetX},${cardYc + cardH - bleed + offsetY}-${maxWidth},${cardYc + cardH - bleed + offsetY}`);
         }
         if (cy === 0) {
-          normalMarks.add(`${cardXc + bleed + offsetX},${offsetY}-${cardXc + bleed + offsetX},${cardYc + bleed + offsetY}`);
-          normalMarks.add(`${cardXc + cardW - bleed + offsetX},${offsetY}-${cardXc + cardW - bleed + offsetX},${cardYc + bleed + offsetY}`);
+          normalMarks.add(`${cardXc + bleed + offsetX},0-${cardXc + bleed + offsetX},${cardYc + bleed + offsetY}`);
+          normalMarks.add(`${cardXc + cardW - bleed + offsetX},0-${cardXc + cardW - bleed + offsetX},${cardYc + bleed + offsetY}`);
         }
         if (cy === vc - 1) {
-          normalMarks.add(`${cardXc + bleed + offsetX},${cardYc + cardH - bleed + offsetY}-${cardXc + bleed + offsetX},${maxHeight + offsetY}`);
-          normalMarks.add(`${cardXc + cardW - bleed + offsetX},${cardYc + cardH - bleed + offsetY}-${cardXc + cardW - bleed + offsetX},${maxHeight + offsetY}`);
+          normalMarks.add(`${cardXc + bleed + offsetX},${cardYc + cardH - bleed + offsetY}-${cardXc + bleed + offsetX},${maxHeight}`);
+          normalMarks.add(`${cardXc + cardW - bleed + offsetX},${cardYc + cardH - bleed + offsetY}-${cardXc + cardW - bleed + offsetX},${maxHeight}`);
         }
       }
 
@@ -125,12 +134,18 @@ const drawPageElements = (doc, pageData, state) => {
     const [loc1, loc2] = nm.split('-');
     const [x1, y1] = loc1.split(',');
     const [x2, y2] = loc2.split(',');
-    doc.line(parseFloat(x1), parseFloat(y1), parseFloat(x2), parseFloat(y2));
+    try {
+      doc.line(parseFloat(x1), parseFloat(y1), parseFloat(x2), parseFloat(y2));
+    } catch (e) {
+    }
   });
   crossMarks.forEach(cm => {
     const [x, y] = cm.split(',');
-    doc.line(parseFloat(x) - fixFloat(2 * scale), parseFloat(y), parseFloat(x) + fixFloat(2 * scale), parseFloat(y));
-    doc.line(parseFloat(x), parseFloat(y) - fixFloat(2 * scale), parseFloat(x), parseFloat(y) + fixFloat(2 * scale));
+    try {
+      doc.line(parseFloat(x) - fixFloat(2 * scale), parseFloat(y), parseFloat(x) + fixFloat(2 * scale), parseFloat(y));
+      doc.line(parseFloat(x), parseFloat(y) - fixFloat(2 * scale), parseFloat(x), parseFloat(y) + fixFloat(2 * scale));
+    } catch (e) {
+    }
   });
 };
 export const ExportPdf = ({ onProgress,onFinish }) => {
