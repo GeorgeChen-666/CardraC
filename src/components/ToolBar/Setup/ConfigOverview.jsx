@@ -1,4 +1,4 @@
-import styles from './styles.module.css';
+import './styles.css';
 import React, { useEffect } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import _ from 'lodash';
@@ -11,7 +11,7 @@ export const ConfigOverview = () => {
     ])
   ), shallowEqual);
   useEffect(() => {
-    const overviewDiv = document.getElementsByClassName(styles.ConfigOverviewPage)?.[0];
+    const overviewDiv = document.getElementsByClassName('ConfigOverviewPage')?.[0];
     if (Config.landscape) {
       overviewDiv.style.width = '100%';
       overviewDiv.style.height = '30px';
@@ -21,7 +21,7 @@ export const ConfigOverview = () => {
     }
   }, [Config.landscape]);
 
-  return (<div className={styles.ConfigOverview}>
-    <div className={styles.ConfigOverviewPage}></div>
+  return (<div className={'ConfigOverview'}>
+    <div className={'ConfigOverviewPage'}></div>
   </div>);
 };

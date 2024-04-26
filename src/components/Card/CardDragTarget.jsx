@@ -1,4 +1,4 @@
-import styles from './styles.module.css';
+import './styles.css';
 import { Card } from '@chakra-ui/react';
 import React from 'react';
 import { useDrop } from 'react-dnd';
@@ -13,5 +13,5 @@ export const CardDragTarget = ({index}) => {
       dispatch(Actions.MoveSelectedCards({to:index}));
     },
   });
-  return (<Card ref={dropRef} className={styles.Card} size={'sm'} padding={2}>here...</Card>)
+  return (<Card ref={dropRef} className={'Card'} size={'sm'} padding={2}>here...</Card>)
 }

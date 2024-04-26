@@ -7,7 +7,7 @@ import {
 } from '@chakra-ui/react';
 import React, { useEffect } from 'react';
 import {Control, ControlType} from './Control';
-import styles from './styles.module.css';
+import './styles.css';
 import { Actions } from '../../../store';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import _ from 'lodash';
@@ -47,7 +47,7 @@ export const CardForm = () => {
     Config.marginY,
     Config.landscape
   ]);
-  return (<div className={styles.FormPanel}>
+  return (<div className={'FormPanel'}>
     <Control label={'Width'} attrKey={'cardWidth'} type={ControlType.NumberInput}>
       mm
     </Control>

@@ -2,14 +2,14 @@ import React, { useRef, useContext } from 'react';
 import { IconButton } from '@chakra-ui/react';
 import { IoIosAdd } from 'react-icons/io';
 import { StoreContext, Actions } from '../../store';
-import styles from './styles.module.css';
+import './styles.css';
 import { openMultiImage } from '../../functions';
 import { useDispatch } from 'react-redux';
 
 export const AddCard = () => {
   const dispatch = useDispatch();
   const inputRef = useRef();
-  return (<div className={styles.Card}>
+  return (<div className={'Card'}>
     <IconButton
       fontSize={100}
       height={286}

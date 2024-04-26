@@ -8,7 +8,7 @@ import {
 } from '@chakra-ui/react';
 import React from 'react';
 import {Control} from './Control';
-import styles from './styles.module.css';
+import './styles.css';
 import { Actions } from '../../../store';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import _ from 'lodash';
@@ -25,7 +25,7 @@ export const MarkForm = () => {
     ])
   ), shallowEqual);
   const dispatch = useDispatch();
-  return (<div className={styles.FormPanel}>
+  return (<div className={'FormPanel'}>
     <Control label={'Front Cutting Line'}>
       <RadioGroup defaultValue={Config.fCutLine}
                   onChange={(value) => dispatch(Actions.EditConfig({fCutLine:value}))}>
@@ -41,7 +41,7 @@ export const MarkForm = () => {
       <HStack>
         <Input name={'fCutlineColor'} width={'80px'} type={'color'} defaultValue={Config.fCutlineColor}
                onChange={(value) => dispatch(Actions.EditConfig({fCutlineColor:value}))} />
-        <FormLabel textAlign={'right'} className={styles.FormLabel}>Thinckness</FormLabel>
+        <FormLabel textAlign={'right'} className={'FormPanel'}>Thinckness</FormLabel>
         <NumberInput width={'90px'} defaultValue={Config.fCutlineThinkness}
                      onChange={($, value) => dispatch(Actions.EditConfig({fCutlineThinkness:value}))}>
           <NumberInputField />
@@ -68,7 +68,7 @@ export const MarkForm = () => {
       <HStack>
         <Input width={'80px'} type={'color'}  defaultValue={Config.bCutlineColor}
                onChange={(value) => dispatch(Actions.EditConfig({bCutlineColor:value}))}/>
-        <FormLabel textAlign={'right'} className={styles.FormLabel}>Thinckness</FormLabel>
+        <FormLabel textAlign={'right'} className={'FormPanel'}>Thinckness</FormLabel>
         <NumberInput width={'90px'} defaultValue={Config.bCutlineThinkness}
                      onChange={($, value) => dispatch(Actions.EditConfig({bCutlineThinkness:value}))}>
           <NumberInputField />

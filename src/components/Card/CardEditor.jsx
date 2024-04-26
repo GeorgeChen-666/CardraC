@@ -17,7 +17,7 @@ import {
   Checkbox,
 } from '@chakra-ui/react';
 import { IoIosMore, IoIosSwap, IoIosKeypad } from 'react-icons/io';
-import styles from './styles.module.css';
+import './styles.css';
 import { Actions } from '../../store';
 import { emptyImg } from '../ToolBar/ExportPdf';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
@@ -65,9 +65,9 @@ export default memo(({ data, index }) => {
     }
   }, [data.id])
   const isBackEditing = Global.isBackEditing;
-  return (<Card ref={node => previewRef(dropRef(node))} style={{ display: (isDragging ? 'none': 'unset') }} className={styles.Card} size={'sm'} padding={2}
+  return (<Card ref={node => previewRef(dropRef(node))} style={{ display: (isDragging ? 'none': 'unset') }} className={'Card'} size={'sm'} padding={2}
                 onClick={onSelectCard}>
-    <div className={styles.CardBar}>
+    <div className={'CardBar'}>
       <Menu>
         <IconButton
           size={'xs'}
@@ -80,7 +80,7 @@ export default memo(({ data, index }) => {
             dispatch(Actions.EditCardById({ id: data.id, face: data.back, back: data.face }));
           }}
         />
-        <span ref={dragRef} className={styles.CardDragHandler}
+        <span ref={dragRef} className={'CardDragHandler'}
               onMouseDown={e=>{
                 if(!data.selected) {
                   dispatch(Actions.SelectCard(data.id));
@@ -106,12 +106,12 @@ export default memo(({ data, index }) => {
         </MenuList>
       </Menu>
     </div>
-    <div className={styles.CardMain}>
+    <div className={'CardMain'}>
       <Stack direction='row' justifyContent={'center'}>
-        <Image className={styles.CardImage} boxSize={isBackEditing ? '50px' : '160px'} src={data.face?.path}
+        <Image className={'CardImage'} boxSize={isBackEditing ? '50px' : '160px'} src={data.face?.path}
                fallbackSrc={emptyImg.path} />
         {Config.sides === 'double sides' && (
-          <Image className={styles.CardImage}
+          <Image className={'CardImage'}
                  boxSize={isBackEditing ? '160px' : '50px'}
                  src={data.back?.path}
                  fallbackSrc={emptyImg.path}
@@ -120,7 +120,7 @@ export default memo(({ data, index }) => {
 
       </Stack>
     </div>
-    <div className={styles.CardBar}>
+    <div className={'CardBar'}>
       <Checkbox isChecked={data.selected} onClick={onSelectCard}>#{index + 1}</Checkbox>
       <NumberInput size='xs' maxW={16} defaultValue={1} min={1}
                    onClick={(e) => e.stopPropagation()}

@@ -1,3 +1,4 @@
+import React from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import _ from 'lodash';
 import { HStack, Progress } from '@chakra-ui/react';

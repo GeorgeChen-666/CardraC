@@ -1,7 +1,7 @@
 import React from 'react';
 import CardEditor from './CardEditor';
 import { AddCard } from './AddCard';
-import styles from './styles.module.css';
+import './styles.css';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -10,7 +10,7 @@ import { CardDragTarget } from './CardDragTarget';
 export const CardEditorList = () => {
   const CardList = useSelector((state) => state.pnp.CardList, shallowEqual);
 
-  return <div className={styles.CardList}>
+  return <div className={'CardList'}>
     <DndProvider backend={HTML5Backend}>
       {
         CardList.map((c, index) => {

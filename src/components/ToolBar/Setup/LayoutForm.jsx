@@ -8,7 +8,7 @@ import {
 } from '@chakra-ui/react';
 import React from 'react';
 import { Control, ControlType } from './Control';
-import styles from './styles.module.css';
+import './styles.css';
 import _ from 'lodash';
 import { Actions } from '../../../store';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
@@ -28,7 +28,7 @@ export const LayoutForm = () => {
   ), shallowEqual);
   const dispatch = useDispatch();
 
-  return (<div className={styles.FormPanel}>
+  return (<div className={'FormPanel'}>
     <Control label={'Size'}>
       <Select value={Config.pageSize} width={'120px'} mr={3} onChange={(event) => {
         const pageSize = event.target.value;
