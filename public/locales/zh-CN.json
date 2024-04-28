@@ -1,0 +1,30 @@
+{
+  "button": {
+    "OK": "OK"
+  },
+  "toolbar" : {
+    "btnAdd" : "创建pnp文件。",
+    "btnOpen" : "打开pnp文件。",
+    "btnSave" : "保存pnp文件。",
+    "btnConfig" : "参数设置。",
+    "btnExport" : "导出pdf。",
+    "btnGlobalBackground" : "全局背景图。",
+    "lblSwitchView": "切换视图",
+    "bulkMenu": {
+      "labelSelection": "选择项...",
+      "menuRemove": "删除",
+      "menuFillBackground": "填充背景",
+      "menuFillMultiBackground": "多图填充背景",
+      "menuSetCount": "设置数量",
+      "menuSwap": "交换 卡面/卡背",
+      "menuMove": "移动到..."
+    }
+  },
+  "cardEditor": {
+    "btnRemove": "移除"
+  },
+  "footer": {
+    "files": "文件数",
+    "images": "卡牌数"
+  }
+}

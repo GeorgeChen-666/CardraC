@@ -72,7 +72,6 @@ export default memo(({ data, index }) => {
         <IconButton
           size={'xs'}
           isDisabled={Config.sides === 1}
-          aria-label='Options'
           icon={<IoIosSwap />}
           variant='outline'
           onClick={(e) => {
@@ -138,7 +137,7 @@ export default memo(({ data, index }) => {
       <Button width='100%' size='sm' onClick={() => {
         dispatch(Actions.RemoveCardByIds([data.id]));
       }}>
-        Remove image
+        {t('cardEditor.btnRemove')}
       </Button>
     </div>
   </Card>);

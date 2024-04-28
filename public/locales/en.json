@@ -1,0 +1,33 @@
+{
+  "button": {
+    "OK": "OK"
+  },
+  "toolbar" : {
+    "btnAdd" : "Create a new pnp file.",
+    "btnOpen" : "Open a pnp file.",
+    "btnSave" : "Save pnp file.",
+    "btnConfig" : "Settings config.",
+    "btnExport" : "Export pdf.",
+    "btnGlobalBackground" : "Global background.",
+    "lblSwitchView": "Switch View",
+    "bulkMenu": {
+      "labelSelection": "Selection ...",
+      "menuRemove": "Remove",
+      "menuFillBackground": "Fill Background",
+      "menuFillMultiBackground": "Fill multi background",
+      "menuSetCount": "Set Count",
+      "menuSwap": "Swap Face/Back",
+      "menuMove": "Move to ..."
+    }
+  },
+  "cardEditor": {
+    "btnRemove": "Remove image"
+  },
+  "configDialog": {
+
+  },
+  "footer": {
+    "files": "Files",
+    "images": "Images"
+  }
+}

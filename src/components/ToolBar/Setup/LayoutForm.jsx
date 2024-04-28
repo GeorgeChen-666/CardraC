@@ -1,9 +1,5 @@
 import {
-  Checkbox, NumberDecrementStepper,
-  NumberIncrementStepper,
-  NumberInput,
-  NumberInputField, Input,
-  NumberInputStepper, Radio, RadioGroup,
+  Checkbox, Input, Radio, RadioGroup,
   Select, Stack, Link,
 } from '@chakra-ui/react';
 import React from 'react';

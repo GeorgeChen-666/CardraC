@@ -25,8 +25,10 @@ import { Actions } from '../../store';
 import { emptyImg, ExportPdf } from './ExportPdf';
 import { openImage, openMultiImage } from '../../functions';
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
+import { useTranslation } from "react-i18next";
 
 export const ToolBar = () => {
+  const { t } = useTranslation();
   const dialogRef = useRef(null);
   const Config = useSelector((state) => ({
     sides: state.pnp.Config.sides,
@@ -38,36 +40,32 @@ export const ToolBar = () => {
   const [bulkCount, setBulkCount] = useState(1);
   const dispatch = useDispatch();
   return (<div>
-      <Tooltip label='Create a new pnp file.'>
+      <Tooltip label={t('toolbar.btnAdd')}>
         <IconButton
-          aria-label='add'
           icon={<AiFillFileAdd size={'30'} />}
         />
       </Tooltip>
-      <Tooltip label='Open a pnp file.'>
+      <Tooltip label={t('toolbar.btnOpen')}>
         <IconButton
-          aria-label='open'
           icon={<AiFillFolderOpen size={'30'} />}
         />
       </Tooltip>
-      <Tooltip label='Save pnp file.'>
+      <Tooltip label={t('toolbar.btnSave')}>
         <IconButton
           aria-label='save'
           icon={<AiFillSave size={'30'} />}
         />
       </Tooltip>
-      <Tooltip label='Settings config.'>
+      <Tooltip label={t('toolbar.btnConfig')}>
         <IconButton
-          aria-label='config'
           icon={<AiFillSetting size={'30'} />}
           onClick={() => {
             dialogRef.current?.openDialog();
           }}
         />
       </Tooltip>
-      <Tooltip label='Export pdf.'>
+      <Tooltip label={t('toolbar.btnExport')}>
         <IconButton
-          aria-label='export_pdf'
           icon={<MdPictureAsPdf size={'30'} />}
           onClick={async () => {
             dispatch(Actions.EditGlobal({ isInProgress: true }));
@@ -82,9 +80,8 @@ export const ToolBar = () => {
           }}
         />
       </Tooltip>
-      <Tooltip label='Global background.'>
+      <Tooltip label={t('toolbar.btnGlobalBackground')}>
         <IconButton
-          aria-label='Global background'
           icon={<Image boxSize='30px' src={Config.globalBackground?.path || emptyImg.path} />}
           onClick={async () => {
             const filePath = await openImage();
@@ -95,28 +92,28 @@ export const ToolBar = () => {
       <Menu onOpen={() => setBulkCount(1)}>
         <MenuButton visibility={selectionLength === 0 ? 'hidden' : 'inline'} as={Button}
                     rightIcon={<IoIosArrowDown />}>
-          Selection ...
+          {t('toolbar.bulkMenu.labelSelection')}
         </MenuButton>
         <MenuList>
           <MenuItem onClick={() => {
             dispatch(Actions.RemoveSelectionCards());
           }}>
-            Remove
+            {t('toolbar.bulkMenu.menuRemove')}
           </MenuItem>
           <MenuItem onClick={async () => {
             const filePath = await openImage();
             dispatch(Actions.FillSelectedCardBack(filePath));
           }}>
-            Fill background
+            {t('toolbar.bulkMenu.menuFillBackground')}
           </MenuItem>
           <MenuItem onClick={async () => {
             const filePaths = await openMultiImage();
             dispatch(Actions.FillSelectedCardBackWithEachBack(filePaths));
           }}>
-            Fill multi background
+            {t('toolbar.bulkMenu.menuFillMultiBackground')}
           </MenuItem>
           <MenuItem>
-            Set count
+            {t('toolbar.bulkMenu.menuSetCount')}
             <NumberInput size='xs' maxW={16} value={bulkCount} min={1}
                          onClick={(e) => e.stopPropagation()}
                          onChange={($, value) => {
@@ -130,23 +127,23 @@ export const ToolBar = () => {
               </NumberInputStepper>
             </NumberInput>
             <Button colorScheme='teal' size='xs'>
-              OK
+              {t('toolbar.button.OK')}
             </Button>
           </MenuItem>
           <MenuItem onClick={() => {
             dispatch(Actions.SwapSelectionCards());
           }}>
-            Swap Face/Back
+            {t('toolbar.bulkMenu.menuSwap')}
           </MenuItem>
           <MenuItem>
-            Move to ...
+            {t('toolbar.bulkMenu.menuMove')}
           </MenuItem>
         </MenuList>
 
       </Menu>
       {Config.sides === 'double sides' && (<FormControl display='ruby'>
         <FormLabel>
-          Switch view
+          {t('toolbar.bulkMenu.lblSwitchView')}
         </FormLabel>
         <Switch size={'lg'} onChange={(e) => {
           dispatch(Actions.EditGlobal({ isBackEditing: e.target.checked }));

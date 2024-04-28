@@ -14,7 +14,6 @@ export const AddCard = () => {
       fontSize={100}
       height={286}
       width={'100%'}
-      aria-label='Options'
       icon={<IoIosAdd />}
       variant='outline'
       onClick={async () => {
