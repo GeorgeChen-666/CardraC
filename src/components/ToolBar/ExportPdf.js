@@ -1,5 +1,7 @@
-import { jsPDF } from 'jspdf';
-import { store } from '../../store';
+// import { jsPDF } from 'jspdf';
+const { jsPDF } = require("jspdf");
+const { ipcMain } = require('electron');
+// import { store } from '../../store';
 
 export const emptyImg = {
   path: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
@@ -148,6 +150,28 @@ const drawPageElements = (doc, pageData, state) => {
     }
   });
 };
+export const registerExportPdf = (mainWindow) => {
+  ipcMain.on('export-pdf', (event, args) => {
+    const { Config } = args;
+    const format = (Config.pageSize.split(':')[0]).toLowerCase();
+    const orientation = Config.landscape ? 'landscape' : 'portrait';
+    const doc = new jsPDF({ format, orientation });
+    const pagedImageList = getPagedImageListByCardList(state);
+    console.log(pagedImageList);
+    pagedImageList.forEach((pageData, index) => {
+      index > 0 && doc.addPage();//doc.addPage("a6", "l");
+      drawPageElements(doc, pageData, state);
+      mainWindow.webContents.send('export-pdf-progress', parseInt((index / pagedImageList.length) * 100));
+      // onProgress && onProgress(parseInt((index / pagedImageList.length) * 100))
+    });
+
+    doc.save('myFile.pdf');
+    mainWindow.webContents.send('export-pdf-done');
+    // onFinish && onFinish();
+    // resolve();
+  })
+}
+
 export const ExportPdf = ({ onProgress,onFinish }) => {
   const { pnp:state } = store.getState();
   const { Config } = state;
