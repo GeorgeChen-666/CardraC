@@ -152,7 +152,8 @@ const drawPageElements = (doc, pageData, state) => {
 };
 export const registerExportPdf = (mainWindow) => {
   ipcMain.on('export-pdf', (event, args) => {
-    const { Config } = args;
+    const state = args.state;
+    const { Config } = state;
     const format = (Config.pageSize.split(':')[0]).toLowerCase();
     const orientation = Config.landscape ? 'landscape' : 'portrait';
     const doc = new jsPDF({ format, orientation });
@@ -172,26 +173,26 @@ export const registerExportPdf = (mainWindow) => {
   })
 }
 
-export const ExportPdf = ({ onProgress,onFinish }) => {
-  const { pnp:state } = store.getState();
-  const { Config } = state;
-  return new Promise((resolve, reject)=>{
-    // Default export is a4 paper, portrait, using millimeters for units
-    const format = (Config.pageSize.split(':')[0]).toLowerCase();
-    const orientation = Config.landscape ? 'landscape' : 'portrait';
-    const doc = new jsPDF({ format, orientation });
-
-    const pagedImageList = getPagedImageListByCardList(state);
-    console.log(pagedImageList);
-    pagedImageList.forEach((pageData, index) => {
-      index > 0 && doc.addPage();//doc.addPage("a6", "l");
-      drawPageElements(doc, pageData, state);
-      onProgress && onProgress(parseInt((index / pagedImageList.length) * 100))
-    });
-
-    doc.save('myFile.pdf');
-    onFinish && onFinish();
-    resolve();
-  });
-
-};
+// export const ExportPdf = ({ onProgress,onFinish }) => {
+//   const { pnp:state } = store.getState();
+//   const { Config } = state;
+//   return new Promise((resolve, reject)=>{
+//     // Default export is a4 paper, portrait, using millimeters for units
+//     const format = (Config.pageSize.split(':')[0]).toLowerCase();
+//     const orientation = Config.landscape ? 'landscape' : 'portrait';
+//     const doc = new jsPDF({ format, orientation });
+//
+//     const pagedImageList = getPagedImageListByCardList(state);
+//     console.log(pagedImageList);
+//     pagedImageList.forEach((pageData, index) => {
+//       index > 0 && doc.addPage();//doc.addPage("a6", "l");
+//       drawPageElements(doc, pageData, state);
+//       onProgress && onProgress(parseInt((index / pagedImageList.length) * 100))
+//     });
+//
+//     doc.save('myFile.pdf');
+//     onFinish && onFinish();
+//     resolve();
+//   });
+//
+// };

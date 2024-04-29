@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('node:path');
+const { registerExportPdf } = require('./components/ToolBar/ExportPdf');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -24,6 +25,8 @@ const createWindow = () => {
 
   // Open the DevTools.
   mainWindow.webContents.openDevTools();
+
+  registerExportPdf(mainWindow);
 
   ipcMain.on('open-image', (event, args) => {
     const { properties = [], returnChannel } = args;

@@ -7,6 +7,7 @@ import './i18n';
 
 const container = document.getElementById('root');
 const root = ReactDOM.createRoot(container);
+
 //StrictMode
 root.render(
   <>

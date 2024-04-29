@@ -23,8 +23,10 @@ import { emptyImg } from '../ToolBar/ExportPdf';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import _ from 'lodash';
 import { useDrag, useDrop } from 'react-dnd';
+import { useTranslation } from 'react-i18next';
 
 export default memo(({ data, index }) => {
+  const { t } = useTranslation();
   const [, dropRef] = useDrop({
     accept: 'Card',
     hover({ id: draggedId }) {

@@ -21,9 +21,9 @@ import {
 } from '@chakra-ui/react';
 import { MdPictureAsPdf } from 'react-icons/md';
 import { SetupDialog } from './Setup/SetupDialog';
-import { Actions } from '../../store';
-import { emptyImg, ExportPdf } from './ExportPdf';
-import { openImage, openMultiImage } from '../../functions';
+import { Actions, store } from '../../store';
+// import { emptyImg, ExportPdf } from './ExportPdf';
+import { exportPdf, openImage, openMultiImage } from '../../functions';
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { useTranslation } from "react-i18next";
 
@@ -69,20 +69,22 @@ export const ToolBar = () => {
           icon={<MdPictureAsPdf size={'30'} />}
           onClick={async () => {
             dispatch(Actions.EditGlobal({ isInProgress: true }));
-            await ExportPdf({
-              onProgress: (value) => {
-                console.log('pppppp', value)
-                dispatch(Actions.EditGlobal({ progress: value }));
-              },
-              onFinish: () => dispatch(Actions.EditGlobal({ isInProgress: false })),
-            });
+            await exportPdf( { state: store.getState().pnp, onProgress: value => dispatch(Actions.EditGlobal({ progress: value })) } )
+            dispatch(Actions.EditGlobal({ isInProgress: false })),
+            // await ExportPdf({
+            //   onProgress: (value) => {
+            //     console.log('pppppp', value)
+            //     dispatch(Actions.EditGlobal({ progress: value }));
+            //   },
+            //   onFinish: () => dispatch(Actions.EditGlobal({ isInProgress: false })),
+            // });
             alert('666')
           }}
         />
       </Tooltip>
       <Tooltip label={t('toolbar.btnGlobalBackground')}>
         <IconButton
-          icon={<Image boxSize='30px' src={Config.globalBackground?.path || emptyImg.path} />}
+          icon={<Image boxSize='30px' src={Config.globalBackground?.path} />}
           onClick={async () => {
             const filePath = await openImage();
             dispatch(Actions.EditConfig({ globalBackground: filePath }));
@@ -143,7 +145,7 @@ export const ToolBar = () => {
       </Menu>
       {Config.sides === 'double sides' && (<FormControl display='ruby'>
         <FormLabel>
-          {t('toolbar.bulkMenu.lblSwitchView')}
+          {t('toolbar.lblSwitchView')}
         </FormLabel>
         <Switch size={'lg'} onChange={(e) => {
           dispatch(Actions.EditGlobal({ isBackEditing: e.target.checked }));
