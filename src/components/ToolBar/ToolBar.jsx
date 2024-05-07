@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';import { jsPDF } from "jspdf";
 import { IoIosArrowDown } from 'react-icons/io';
 import { AiFillFolderOpen, AiFillFileAdd, AiFillSetting, AiFillSave } from 'react-icons/ai';
 import {
@@ -68,17 +68,16 @@ export const ToolBar = () => {
         <IconButton
           icon={<MdPictureAsPdf size={'30'} />}
           onClick={async () => {
+            
+
+// Default export is a4 paper, portrait, using millimeters for units
+            const doc = new jsPDF();
+
+            // doc.text("Hello world!", 10, 10);
+            // doc.save("a4.pdf"); return;
             dispatch(Actions.EditGlobal({ isInProgress: true }));
-            await exportPdf( { state: store.getState().pnp, onProgress: value => dispatch(Actions.EditGlobal({ progress: value })) } )
-            dispatch(Actions.EditGlobal({ isInProgress: false })),
-            // await ExportPdf({
-            //   onProgress: (value) => {
-            //     console.log('pppppp', value)
-            //     dispatch(Actions.EditGlobal({ progress: value }));
-            //   },
-            //   onFinish: () => dispatch(Actions.EditGlobal({ isInProgress: false })),
-            // });
-            alert('666')
+            await exportPdf( { state: store.getState().pnp, onProgress: ($,value) => dispatch(Actions.EditGlobal({ progress: value })) } )
+            dispatch(Actions.EditGlobal({ isInProgress: false }))
           }}
         />
       </Tooltip>
@@ -128,9 +127,9 @@ export const ToolBar = () => {
                 <NumberDecrementStepper />
               </NumberInputStepper>
             </NumberInput>
-            <Button colorScheme='teal' size='xs'>
-              {t('toolbar.button.OK')}
-            </Button>
+            {/*<Button colorScheme='teal' size='xs'>*/}
+            {/*  {t('toolbar.button.OK')}*/}
+            {/*</Button>*/}
           </MenuItem>
           <MenuItem onClick={() => {
             dispatch(Actions.SwapSelectionCards());

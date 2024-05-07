@@ -27,13 +27,16 @@ export const openMultiImage = () => new Promise((resolve)=>{
   ipcRenderer.on('open-image-return', onFileOpen);
 });
 
-export const exportPdf = ({ state, onProgress }) => new Promise((resolve)=>{
+export const exportPdf = ({ doc, state, onProgress }) => new Promise((resolve)=>{
   ipcRenderer.send('export-pdf', {
-    state
+    state: JSON.parse(JSON.stringify(state))
   });
   if(onProgress) {
     ipcRenderer.on('export-pdf-progress', onProgress);
   }
 
-  ipcRenderer.on('export-pdf-done', resolve);
+  ipcRenderer.on('export-pdf-done', () => {
+    console.log('done!')
+    resolve()
+  });
 });
