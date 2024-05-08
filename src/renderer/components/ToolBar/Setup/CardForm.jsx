@@ -35,7 +35,7 @@ export const CardForm = () => {
       const pageHeight = Config.landscape? Config.pageWidth: Config.pageHeight;
       const autoColumns = parseInt(pageWidth / (Config.cardWidth + Config.marginX));
       const autoRows = parseInt(pageHeight / (Config.cardHeight + Config.marginY));
-      dispatch(Actions.EditConfig({ columns: autoColumns, rows: autoRows }));
+      dispatch(Actions.ConfigEdit({ columns: autoColumns, rows: autoRows }));
     }
   }, [
     Config.autoColumnsRows,
@@ -66,7 +66,7 @@ export const CardForm = () => {
     <Control label={'Columns/Rows'}>
       <HStack>
         <NumberInput isDisabled={Config.autoColumnsRows} width={'90px'} value={Config.columns} onChange={(s, v) => {
-          dispatch(Actions.EditConfig({columns:v}));
+          dispatch(Actions.ConfigEdit({columns:v}));
         }} mr={8}>
           <NumberInputField />
           <NumberInputStepper>
@@ -75,7 +75,7 @@ export const CardForm = () => {
           </NumberInputStepper>
         </NumberInput>
         <NumberInput isDisabled={Config.autoColumnsRows} width={'90px'} value={Config.rows} onChange={(s, v) => {
-          dispatch(Actions.EditConfig({rows:v}));
+          dispatch(Actions.ConfigEdit({rows:v}));
         }} mr={4}>
           <NumberInputField />
           <NumberInputStepper>
@@ -84,7 +84,7 @@ export const CardForm = () => {
           </NumberInputStepper>
         </NumberInput>
         <Checkbox value={'true'} isChecked={Config.autoColumnsRows}
-                  onChange={(event) => dispatch(Actions.EditConfig({autoColumnsRows:event.target.checked}))}
+                  onChange={(event) => dispatch(Actions.ConfigEdit({autoColumnsRows:event.target.checked}))}
         >Auto</Checkbox>
       </HStack>
     </Control>

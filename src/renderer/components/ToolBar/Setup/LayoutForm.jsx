@@ -30,7 +30,7 @@ export const LayoutForm = () => {
         const pageSize = event.target.value;
         if (pageSize) {
           const [width, height] = event.target.value.replace(/A\d:/, '').split(',');
-          dispatch(Actions.EditConfig({ pageSize, pageWidth: parseInt(width), pageHeight: parseInt(height) }));
+          dispatch(Actions.ConfigEdit({ pageSize, pageWidth: parseInt(width), pageHeight: parseInt(height) }));
         }
       }}>
         <option value={''}>Custom</option>
@@ -41,16 +41,16 @@ export const LayoutForm = () => {
         <option value={'A1:594,841'}>A1</option>
       </Select>
       <Checkbox value={'true'} isChecked={Config.landscape}
-                onChange={(event) => dispatch(Actions.EditConfig({ landscape: event.target.checked }))}
+                onChange={(event) => dispatch(Actions.ConfigEdit({ landscape: event.target.checked }))}
       >Landscape</Checkbox>
     </Control>
     <Control label={'Page Width'} attrKey={'pageWidth'} type={ControlType.NumberInput} onChange={(value) =>
-      dispatch(Actions.EditConfig({ pageWidth: value, pageSize: '' }))
+      dispatch(Actions.ConfigEdit({ pageWidth: value, pageSize: '' }))
     }>
       mm
     </Control>
     <Control label={'Page Height'} attrKey={'pageHeight'} type={ControlType.NumberInput} onChange={(value) =>
-      dispatch(Actions.EditConfig({ pageHeight: value, pageSize: '' }))
+      dispatch(Actions.ConfigEdit({ pageHeight: value, pageSize: '' }))
     }>
       mm
     </Control>
@@ -64,7 +64,7 @@ export const LayoutForm = () => {
       mm
     </Control>
     <Control label={'Side'}>
-      <RadioGroup value={Config.sides} onChange={(v) => dispatch(Actions.EditConfig({ sides: v }))}>
+      <RadioGroup value={Config.sides} onChange={(v) => dispatch(Actions.ConfigEdit({ sides: v }))}>
         <Stack direction='row'>
           <Radio value='one side'>One side</Radio>
           <Radio value='double sides'>Double sides</Radio>
@@ -74,7 +74,7 @@ export const LayoutForm = () => {
     {Config.sides === 'double sides' && (<Control label={'Flip'}>
       {!Config.autoConfigFlip && <Select value={Config.flip} width={'230px'} onChange={(event) => {
         const flip = event.target.value || '';
-        dispatch(Actions.EditConfig({ flip, autoConfigFlip: (flip === '') }));
+        dispatch(Actions.ConfigEdit({ flip, autoConfigFlip: (flip === '') }));
       }}>
         <option value={''}>Auto</option>
         <option value={'none'}>None</option>
@@ -84,7 +84,7 @@ export const LayoutForm = () => {
       {Config.autoConfigFlip && (<Stack direction='row' alignItems={'center'}>
         <Input width={'230px'} isDisabled value={Config.landscape ? 'Long-edge binding' : 'Short-edge binding'} />
         <Link color={'blue'} onClick={() => {
-          dispatch(Actions.EditConfig({ flip: Config.landscape ? 'long-edge binding' : 'short-edge binding', autoConfigFlip: false }));
+          dispatch(Actions.ConfigEdit({ flip: Config.landscape ? 'long-edge binding' : 'short-edge binding', autoConfigFlip: false }));
         }}>edit</Link>
       </Stack>)}
     </Control>)}

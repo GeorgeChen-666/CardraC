@@ -1,18 +1,4 @@
-
 const { jsPDF } = require("jspdf");
-const { dialog, ipcMain } = require('electron');
-const fs = require('fs')
-
-const readFileToBase64 = (filePath) => new Promise((resolve, reject) => {
-  fs.readFile(filePath, (err, data) => {
-    if (err) {
-      reject(err);
-      return;
-    }
-    const base64String = data.toString('base64');
-    resolve(base64String);
-  });
-})
 
 export const emptyImg = {
   path: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
@@ -112,8 +98,8 @@ const drawPageElements = async (doc, pageData, state) => {
           if(image === emptyImg) {
             doc.addImage(image.path, image.ext, imageXc, imageYc, cardW, cardH, image.path, 'NONE', cardRotation);
           } else {
-            const base64String = await readFileToBase64(image.path);
-            doc.addImage(base64String, image.ext, imageXc, imageYc, cardW, cardH, image.path, 'NONE', cardRotation);
+            // const base64String = await readFileToBase64(image.path);
+            doc.addImage(image.data, image.ext, imageXc, imageYc, cardW, cardH, image.path, 'NONE', cardRotation);
           }
         } catch (e) {
           console.log('addImage error',e)
@@ -167,68 +153,20 @@ const drawPageElements = async (doc, pageData, state) => {
     }
   });
 };
-export const registerExportPdf = (mainWindow) => {
 
-  ipcMain.on('export-pdf', (event, args) => {
-    const state = args.state;
-    const { Config } = state;
-    const format = (Config.pageSize.split(':')[0]).toLowerCase();
-    const orientation = Config.landscape ? 'landscape' : 'portrait';
-    const doc = new jsPDF({ format, orientation });
-    const pagedImageList = getPagedImageListByCardList(state);
-    const pageJobs = pagedImageList.map((pageData, index) => async () =>{
-      index > 0 && doc.addPage();
-      await drawPageElements(doc, pageData, state);
-      mainWindow.webContents.send('export-pdf-progress', parseInt((index / pagedImageList.length) * 100));
-    });
-    (async () => {
-      for (const job of pageJobs) {
-        await job();
-      }
-      const blob = doc.output('blob');
-      dialog.showSaveDialog({
-        title: 'Save PDF',
-        defaultPath: 'pnp.pdf'
-      }).then(async result => {
-        if (!result.canceled) {
-          const filePath = result.filePath;
-
-          const buffer = Buffer.from( await blob.arrayBuffer() );
-
-          fs.writeFile(filePath, buffer, () => console.log('file saved!') );
-          mainWindow.webContents.send('export-pdf-progress', 100);
-          mainWindow.webContents.send('export-pdf-done');
-        }
-      }).catch(err => {
-        console.log('Error saving file:', err);
-      });
-    })();
-
-    // onFinish && onFinish();
-    // resolve();
-  })
-}
-
-// export const ExportPdf = ({ onProgress,onFinish }) => {
-//   const { pnp:state } = store.getState();
-//   const { Config } = state;
-//   return new Promise((resolve, reject)=>{
-//     // Default export is a4 paper, portrait, using millimeters for units
-//     const format = (Config.pageSize.split(':')[0]).toLowerCase();
-//     const orientation = Config.landscape ? 'landscape' : 'portrait';
-//     const doc = new jsPDF({ format, orientation });
-//
-//     const pagedImageList = getPagedImageListByCardList(state);
-//     console.log(pagedImageList);
-//     pagedImageList.forEach((pageData, index) => {
-//       index > 0 && doc.addPage();//doc.addPage("a6", "l");
-//       drawPageElements(doc, pageData, state);
-//       onProgress && onProgress(parseInt((index / pagedImageList.length) * 100))
-//     });
-//
-//     doc.save('myFile.pdf');
-//     onFinish && onFinish();
-//     resolve();
-//   });
-//
-// };
+export const exportPdf = async (state, onProgress) => {
+  const { Config } = state;
+  const format = (Config.pageSize.split(':')[0]).toLowerCase();
+  const orientation = Config.landscape ? 'landscape' : 'portrait';
+  const doc = new jsPDF({ format, orientation });
+  const pagedImageList = getPagedImageListByCardList(state);
+  const pageJobs = pagedImageList.map((pageData, index) => async () =>{
+    index > 0 && doc.addPage();
+    await drawPageElements(doc, pageData, state);
+    onProgress(parseInt((index / pagedImageList.length) * 100));
+  });
+  for (const job of pageJobs) {
+    await job();
+  }
+  return doc.output('blob');
+};

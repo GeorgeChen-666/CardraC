@@ -4,14 +4,16 @@ import React from 'react';
 import { useDrop } from 'react-dnd';
 import { Actions } from '../../store';
 import { useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 
 export const CardDragTarget = ({index}) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const [, dropRef] = useDrop({
     accept: 'Card',
     drop: () => {
-      dispatch(Actions.MoveSelectedCards({to:index}));
+      dispatch(Actions.SelectedCardsMove());
     },
   });
-  return (<Card ref={dropRef} className={'Card'} size={'sm'} padding={2}>here...</Card>)
+  return (<Card ref={dropRef} className={'Card'} size={'sm'} padding={2}>{t('cardEditor.lblHere')}</Card>)
 }

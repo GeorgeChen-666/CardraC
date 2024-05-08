@@ -28,7 +28,7 @@ export const MarkForm = () => {
   return (<div className={'FormPanel'}>
     <Control label={'Front Cutting Line'}>
       <RadioGroup defaultValue={Config.fCutLine}
-                  onChange={(value) => dispatch(Actions.EditConfig({fCutLine:value}))}>
+                  onChange={(value) => dispatch(Actions.ConfigEdit({fCutLine:value}))}>
         <HStack>
           <Radio value={'0'}>None</Radio>
           <Radio value={'1'}>Normal</Radio>
@@ -40,10 +40,10 @@ export const MarkForm = () => {
     <Control label={'Color'}>
       <HStack>
         <Input name={'fCutlineColor'} width={'80px'} type={'color'} defaultValue={Config.fCutlineColor}
-               onChange={(value) => dispatch(Actions.EditConfig({fCutlineColor:value}))} />
+               onChange={(value) => dispatch(Actions.ConfigEdit({fCutlineColor:value}))} />
         <FormLabel textAlign={'right'} className={'FormPanel'}>Thinckness</FormLabel>
         <NumberInput width={'90px'} defaultValue={Config.fCutlineThinkness}
-                     onChange={($, value) => dispatch(Actions.EditConfig({fCutlineThinkness:value}))}>
+                     onChange={($, value) => dispatch(Actions.ConfigEdit({fCutlineThinkness:value}))}>
           <NumberInputField />
           <NumberInputStepper>
             <NumberIncrementStepper />
@@ -55,7 +55,7 @@ export const MarkForm = () => {
     </Control>
     <Control label={'Back Cutting Line'}>
       <RadioGroup defaultValue={Config.bCutLine}
-                  onChange={(value) => dispatch(Actions.EditConfig({bCutLine:value}))}>
+                  onChange={(value) => dispatch(Actions.ConfigEdit({bCutLine:value}))}>
         <HStack>
           <Radio value={'0'}>None</Radio>
           <Radio value={'1'}>Normal</Radio>
@@ -67,10 +67,10 @@ export const MarkForm = () => {
     <Control label={'Color'}>
       <HStack>
         <Input width={'80px'} type={'color'}  defaultValue={Config.bCutlineColor}
-               onChange={(value) => dispatch(Actions.EditConfig({bCutlineColor:value}))}/>
+               onChange={(value) => dispatch(Actions.ConfigEdit({bCutlineColor:value}))}/>
         <FormLabel textAlign={'right'} className={'FormPanel'}>Thinckness</FormLabel>
         <NumberInput width={'90px'} defaultValue={Config.bCutlineThinkness}
-                     onChange={($, value) => dispatch(Actions.EditConfig({bCutlineThinkness:value}))}>
+                     onChange={($, value) => dispatch(Actions.ConfigEdit({bCutlineThinkness:value}))}>
           <NumberInputField />
           <NumberInputStepper>
             <NumberIncrementStepper />

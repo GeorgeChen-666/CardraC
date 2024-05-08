@@ -35,7 +35,7 @@ export const Control = (({ children, label, attrKey, type, onChange }) =>
             if(onChange) {
               onChange(value)
             } else {
-              dispatch(Actions.EditConfig({[attrKey]: value}))
+              dispatch(Actions.ConfigEdit({[attrKey]: value}))
             }
           }} mr={3}>
             <NumberInputField />

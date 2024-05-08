@@ -21,6 +21,7 @@
     }
   },
   "cardEditor": {
+    "lblHere": "here...",
     "btnRemove": "Remove image"
   },
   "configDialog": {

@@ -1,6 +1,5 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
-const path = require('node:path');
-const { registerExportPdf } = require('./components/ToolBar/ExportPdf');
+const { app, BrowserWindow } = require('electron');
+const { registerRendererActionHandlers, isDev } = require('./functions');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -10,8 +9,8 @@ if (require('electron-squirrel-startup')) {
 const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1280,
+    height: 800,
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
       nodeIntegration: true,
@@ -22,27 +21,25 @@ const createWindow = () => {
 
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
-
-  // Open the DevTools.
-  mainWindow.webContents.openDevTools();
-
-  registerExportPdf(mainWindow);
-
-  ipcMain.on('open-image', (event, args) => {
-    const { properties = [], returnChannel } = args;
-    dialog.showOpenDialog({
-      filters: [
-        { name: 'Image File', extensions: ['jpg', 'png', 'gif'] }
-      ],
-      properties: ['openFile', ...properties],
-    }).then((result) => {
-      if (!result.canceled) {
-        mainWindow.webContents.send(returnChannel, result.filePaths);
-      }
-    }).catch((err) => {
-      console.error(err);
+  if(!isDev) {
+    // Open the DevTools.
+    mainWindow.webContents.openDevTools();
+  } else {
+    mainWindow.setAutoHideMenuBar(true);
+    mainWindow.webContents.on('context-menu', (e, params) => {
+      e.preventDefault(); // 阻止默认的右键菜单
+      // // 你可以在这里定义自己的菜单项
+      // const menu = Menu.buildFromTemplate([
+      //   { label: '自定义项' }
+      // ]);
+      // menu.popup({ window: mainWindow });
     });
-  });
+  }
+
+
+
+  registerRendererActionHandlers(mainWindow);
+
 };
 
 // This method will be called when Electron has finished

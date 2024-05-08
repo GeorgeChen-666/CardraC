@@ -21,6 +21,7 @@
     }
   },
   "cardEditor": {
+    "lblHere": "至于此处...",
     "btnRemove": "移除"
   },
   "footer": {

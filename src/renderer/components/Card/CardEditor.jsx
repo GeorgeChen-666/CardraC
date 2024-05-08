@@ -19,7 +19,7 @@ import {
 import { IoIosMore, IoIosSwap, IoIosKeypad } from 'react-icons/io';
 import './styles.css';
 import { Actions } from '../../store';
-import { emptyImg } from '../ToolBar/ExportPdf';
+import { emptyImg } from '../../../main/ExportPdf';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import _ from 'lodash';
 import { useDrag, useDrop } from 'react-dnd';
@@ -31,11 +31,11 @@ export default memo(({ data, index }) => {
     accept: 'Card',
     hover({ id: draggedId }) {
       if (draggedId !== data.id) {
-        dispatch(Actions.MoveDragHover({to:index}));
+        dispatch(Actions.DragHoverMove({to:index}));
       }
     },
     drop: () => {
-      dispatch(Actions.MoveSelectedCards({to:index}));
+      dispatch(Actions.SelectedCardsMove());
     },
   });
 
@@ -61,9 +61,9 @@ export default memo(({ data, index }) => {
   const dispatch = useDispatch();
   const onSelectCard = useCallback((event) => {
     if (event.shiftKey) {
-      dispatch(Actions.ShiftSelectCard(data.id));
+      dispatch(Actions.CardShiftSelect(data.id));
     } else {
-      dispatch(Actions.SelectCard(data.id));
+      dispatch(Actions.CardSelect(data.id));
     }
   }, [data.id])
   const isBackEditing = Global.isBackEditing;
@@ -78,13 +78,13 @@ export default memo(({ data, index }) => {
           variant='outline'
           onClick={(e) => {
             e.stopPropagation();
-            dispatch(Actions.EditCardById({ id: data.id, face: data.back, back: data.face }));
+            dispatch(Actions.CardEditById({ id: data.id, face: data.back, back: data.face }));
           }}
         />
         <span ref={dragRef} className={'CardDragHandler'}
               onMouseDown={e=>{
                 if(!data.selected) {
-                  dispatch(Actions.SelectCard(data.id));
+                  dispatch(Actions.CardSelect(data.id));
                 }
               }}
               onClick={e => e.stopPropagation()}
@@ -98,10 +98,10 @@ export default memo(({ data, index }) => {
           onClick={e => e.stopPropagation()}
         />
         <MenuList>
-          <MenuItem>
+          <MenuItem onClick={(e) => { e.stopPropagation(); }}>
             Background..
           </MenuItem>
-          <MenuItem>
+          <MenuItem onClick={(e) => { e.stopPropagation(); }}>
             Duplicate
           </MenuItem>
         </MenuList>
@@ -123,10 +123,10 @@ export default memo(({ data, index }) => {
     </div>
     <div className={'CardBar'}>
       <Checkbox isChecked={data.selected} onClick={onSelectCard}>#{index + 1}</Checkbox>
-      <NumberInput size='xs' maxW={16} defaultValue={1} min={1}
+      <NumberInput size='xs' maxW={16} value={data.repeat} min={1}
                    onClick={(e) => e.stopPropagation()}
                    onChange={($, value) => {
-                     dispatch(Actions.EditCardById({ id: data.id, repeat: value }));
+                     dispatch(Actions.CardEditById({ id: data.id, repeat: value }));
                    }}>
         <NumberInputField />
         <NumberInputStepper>
@@ -137,7 +137,7 @@ export default memo(({ data, index }) => {
     </div>
     <div>
       <Button width='100%' size='sm' onClick={() => {
-        dispatch(Actions.RemoveCardByIds([data.id]));
+        dispatch(Actions.CardRemoveByIds([data.id]));
       }}>
         {t('cardEditor.btnRemove')}
       </Button>

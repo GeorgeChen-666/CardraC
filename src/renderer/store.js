@@ -4,8 +4,9 @@ import _ from 'lodash';
 import logger from 'redux-logger';
 import { Provider } from 'react-redux';
 
-const initialState = Object.freeze({
+export const initialState = Object.freeze({
   Global: {
+    projectPath: '',
     isInProgress: false,
     progress: 0,
     lastSelection: null,
@@ -23,8 +24,8 @@ const initialState = Object.freeze({
     sides: 'double sides',
     autoConfigFlip: true,
     flip: 'long-edge binding',
-    cardWidth: 63,
-    cardHeight: 88,
+    cardWidth: 65,
+    cardHeight: 90,
     marginX: 1,
     marginY: 1,
     bleed: 1,
@@ -46,12 +47,17 @@ export const pnpSlice = createSlice({
   name: 'pnp',
   initialState,
   reducers: {
-    EditGlobal: (state, action) => {
+    StateFill: (state, action) => {
+      Object.keys(action.payload).forEach(key => {
+        state[key] = action.payload[key];
+      });
+    },
+    GlobalEdit: (state, action) => {
       Object.keys(action.payload).forEach(key => {
         state.Global[key] = action.payload[key];
       });
     },
-    SelectCard: (state, action) => {
+    CardSelect: (state, action) => {
       const selectedId = action.payload;
       const selection = state.CardList.filter(c => c.selected);
       if (_.some(selection, { id: selectedId }) && selection.length === 1) {
@@ -64,7 +70,7 @@ export const pnpSlice = createSlice({
         state.Global.lastSelection = selectedId;
       }
     },
-    ShiftSelectCard: (state, action) => {
+    CardShiftSelect: (state, action) => {
       const lastSelection = state.Global.lastSelection;
       const lastSelectionIndex = state.CardList.findIndex(c => c.id === lastSelection);
       const currentSelectionIndex = state.CardList.findIndex(c => c.id === action.payload);
@@ -81,12 +87,12 @@ export const pnpSlice = createSlice({
         state.CardList.forEach(c => c.selected = false);
       }
     },
-    EditConfig: (state, action) => {
+    ConfigEdit: (state, action) => {
       Object.keys(action.payload).forEach(key => {
         state.Config[key] = action.payload[key];
       });
     },
-    AddCardByFaces: (state, action) => {
+    CardAddByFaces: (state, action) => {
       state.CardList = state.CardList.concat(action.payload.map(p => ({
         id: crypto.randomUUID(),
         face: p,
@@ -94,7 +100,7 @@ export const pnpSlice = createSlice({
         repeat: 1,
       })));
     },
-    MoveDragHover: (state, action) => {
+    DragHoverMove: (state, action) => {
       const { to } = action.payload;
       const id = 'dragTarget';
       const from = state.CardList.findIndex(c => c.id === id);
@@ -103,7 +109,7 @@ export const pnpSlice = createSlice({
       }
       state.CardList.splice(to, 0, { id });
     },
-    MoveSelectedCards: (state, action) => {
+    SelectedCardsMove: (state, action) => {
       const dragTargetId = 'dragTarget';
       const selection = state.CardList.filter(c => c.selected);
       const orderedSelection = selection.sort((a, b) => {
@@ -112,30 +118,21 @@ export const pnpSlice = createSlice({
       orderedSelection.forEach(c => {
         state.CardList.splice(state.CardList.findIndex(cc => cc.id === c.id), 1)
       });
-      orderedSelection.forEach(s => {
-        state.CardList.splice(action.payload.to, 0, s);
+      const to = state.CardList.findIndex(c => c.id === dragTargetId);
+      orderedSelection.forEach((s, index) => {
+        state.CardList.splice(to, 0, s);
       });
-      const from = state.CardList.findIndex(c => c.id === dragTargetId);
-      if(from !== -1) {
-        state.CardList.splice(from, 1);
+      const targetIndex = state.CardList.findIndex(c => c.id === dragTargetId);
+      if(targetIndex !== -1) {
+        state.CardList.splice(targetIndex, 1);
       }
     },
-    MoveCard: (state, action) => {
-      const { id, to } = action.payload;
-      const from = state.CardList.findIndex(c => c.id === id);
-      const [card] = state.CardList.splice(from, 1);
-      state.CardList.splice(to, 0, card);
-    },
-    FillSelectedCardBack: (state, action) => {
-      const selection = state.CardList.filter(c => c.selected);
-      selection.forEach(c => (c.back = action.payload));
-    },
-    FillSelectedCardBackWithEachBack: (state, action) => {
+    SelectedCardFillBackWithEachBack: (state, action) => {
       const backImageList = action.payload;
       const selection = state.CardList.filter(c => c.selected);
       selection.forEach((c, index) => (c.back = backImageList?.[index]));
     },
-    EditCardById: (state, action) => {
+    CardEditById: (state, action) => {
       const card = state.CardList.find(c => c.id === action.payload.id);
       if (card) {
         Object.keys(action.payload).forEach(key => {
@@ -143,17 +140,25 @@ export const pnpSlice = createSlice({
         });
       }
     },
-    SwapSelectionCards: (state) => {
+    SelectedCardsSwap: (state) => {
       const selection = state.CardList.filter(c => c.selected);
       selection.forEach(c => ([c.face, c.back] = [c.back, c.face]));
     },
-    RemoveSelectionCards: (state) => {
+    SelectedCardsRemove: (state) => {
       const selection = state.CardList.filter(c => c.selected);
       selection.sort((a, b) => {
         return state.CardList.indexOf(c => c.id === b.id) - state.CardList.indexOf(c => c.id === a.id);
       }).forEach(c => state.CardList.splice(state.CardList.indexOf(cc => cc.id === c.id), 1));
     },
-    RemoveCardByIds: (state, action) => {
+    SelectedCardsEdit: (state, action) => {
+      const selection = state.CardList.filter(c => c.selected);
+      selection.forEach(c => {
+        Object.keys(action.payload).forEach(key => {
+          c[key] = action.payload[key];
+        });
+      });
+    },
+    CardRemoveByIds: (state, action) => {
       state.CardList = state.CardList.filter(c => !action.payload.includes(c.id));
     },
   },

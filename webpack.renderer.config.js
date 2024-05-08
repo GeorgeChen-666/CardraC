@@ -4,6 +4,7 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 module.exports = {
   // Put your normal webpack config below here
   target: 'electron-renderer',
+  entry: './src/renderer/index.js',
   resolve:{
     extensions:['.js','.jsx','.json']
   },

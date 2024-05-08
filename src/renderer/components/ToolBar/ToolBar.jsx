@@ -18,12 +18,12 @@ import {
   NumberInputStepper,
   NumberIncrementStepper,
   NumberDecrementStepper,
+  Link
 } from '@chakra-ui/react';
 import { MdPictureAsPdf } from 'react-icons/md';
 import { SetupDialog } from './Setup/SetupDialog';
-import { Actions, store } from '../../store';
-// import { emptyImg, ExportPdf } from './ExportPdf';
-import { exportPdf, openImage, openMultiImage } from '../../functions';
+import { Actions, initialState, store } from '../../store';
+import { exportPdf, openImage, openMultiImage, openProject, saveProject } from '../../functions';
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { useTranslation } from "react-i18next";
 
@@ -34,26 +34,35 @@ export const ToolBar = () => {
     sides: state.pnp.Config.sides,
     globalBackground: state.pnp.Config.globalBackground,
   }), shallowEqual);
-  const { selectionLength } = useSelector((state) => ({
+  const { selectionLength, cardListLength } = useSelector((state) => ({
     selectionLength: state.pnp.CardList.filter(c => c.selected).length,
+    cardListLength: state.pnp.CardList.length
   }), shallowEqual);
-  const [bulkCount, setBulkCount] = useState(1);
+  const [repeat, setRepeat] = useState(1);
+  const [toIndex, setToIndex] = useState(1);
   const dispatch = useDispatch();
   return (<div>
       <Tooltip label={t('toolbar.btnAdd')}>
         <IconButton
           icon={<AiFillFileAdd size={'30'} />}
+          onClick={async() => {
+            dispatch(Actions.StateFill(initialState));
+          }}
         />
       </Tooltip>
       <Tooltip label={t('toolbar.btnOpen')}>
         <IconButton
           icon={<AiFillFolderOpen size={'30'} />}
+          onClick={async() => {
+            const projectData = await openProject();
+            dispatch(Actions.StateFill(projectData));
+          }}
         />
       </Tooltip>
       <Tooltip label={t('toolbar.btnSave')}>
         <IconButton
-          aria-label='save'
           icon={<AiFillSave size={'30'} />}
+          onClick={() => saveProject( { state: store.getState().pnp } )}
         />
       </Tooltip>
       <Tooltip label={t('toolbar.btnConfig')}>
@@ -68,16 +77,9 @@ export const ToolBar = () => {
         <IconButton
           icon={<MdPictureAsPdf size={'30'} />}
           onClick={async () => {
-            
-
-// Default export is a4 paper, portrait, using millimeters for units
-            const doc = new jsPDF();
-
-            // doc.text("Hello world!", 10, 10);
-            // doc.save("a4.pdf"); return;
-            dispatch(Actions.EditGlobal({ isInProgress: true }));
-            await exportPdf( { state: store.getState().pnp, onProgress: ($,value) => dispatch(Actions.EditGlobal({ progress: value })) } )
-            dispatch(Actions.EditGlobal({ isInProgress: false }))
+            dispatch(Actions.GlobalEdit({ isInProgress: true }));
+            await exportPdf( { state: store.getState().pnp, onProgress: ($,value) => dispatch(Actions.GlobalEdit({ progress: value })) } )
+            dispatch(Actions.GlobalEdit({ isInProgress: false }))
           }}
         />
       </Tooltip>
@@ -86,40 +88,40 @@ export const ToolBar = () => {
           icon={<Image boxSize='30px' src={Config.globalBackground?.path} />}
           onClick={async () => {
             const filePath = await openImage();
-            dispatch(Actions.EditConfig({ globalBackground: filePath }));
+            dispatch(Actions.ConfigEdit({ globalBackground: filePath }));
           }}
         />
       </Tooltip>
-      <Menu onOpen={() => setBulkCount(1)}>
+      <Menu onOpen={() => [setRepeat(1), setToIndex(1)]}>
         <MenuButton visibility={selectionLength === 0 ? 'hidden' : 'inline'} as={Button}
                     rightIcon={<IoIosArrowDown />}>
           {t('toolbar.bulkMenu.labelSelection')}
         </MenuButton>
         <MenuList>
           <MenuItem onClick={() => {
-            dispatch(Actions.RemoveSelectionCards());
+            dispatch(Actions.SelectedCardsRemove());
           }}>
             {t('toolbar.bulkMenu.menuRemove')}
           </MenuItem>
           <MenuItem onClick={async () => {
             const filePath = await openImage();
-            dispatch(Actions.FillSelectedCardBack(filePath));
+            dispatch(Actions.SelectedCardsEdit({back: filePath}));
           }}>
             {t('toolbar.bulkMenu.menuFillBackground')}
           </MenuItem>
           <MenuItem onClick={async () => {
             const filePaths = await openMultiImage();
-            dispatch(Actions.FillSelectedCardBackWithEachBack(filePaths));
+            dispatch(Actions.SelectedCardFillBackWithEachBack(filePaths));
           }}>
             {t('toolbar.bulkMenu.menuFillMultiBackground')}
           </MenuItem>
           <MenuItem>
             {t('toolbar.bulkMenu.menuSetCount')}
-            <NumberInput size='xs' maxW={16} value={bulkCount} min={1}
+            <NumberInput size='xs' maxW={16} value={repeat} min={1}
                          onClick={(e) => e.stopPropagation()}
                          onChange={($, value) => {
-                           setBulkCount(value);
-                           //dispatch(Actions.EditCardById({ id: data.id, repeat: value }));
+                           setRepeat(value);
+                           //dispatch(Actions.CardEditById({ id: data.id, repeat: value }));
                          }}>
               <NumberInputField />
               <NumberInputStepper>
@@ -127,17 +129,29 @@ export const ToolBar = () => {
                 <NumberDecrementStepper />
               </NumberInputStepper>
             </NumberInput>
-            {/*<Button colorScheme='teal' size='xs'>*/}
-            {/*  {t('toolbar.button.OK')}*/}
-            {/*</Button>*/}
+            <Link onClick={() => {
+              dispatch(Actions.SelectedCardsEdit({repeat}));
+            }}>{t('button.OK')}</Link>
           </MenuItem>
           <MenuItem onClick={() => {
-            dispatch(Actions.SwapSelectionCards());
+            dispatch(Actions.SelectedCardsSwap());
           }}>
             {t('toolbar.bulkMenu.menuSwap')}
           </MenuItem>
           <MenuItem>
             {t('toolbar.bulkMenu.menuMove')}
+            <NumberInput size='xs' maxW={16} value={toIndex} min={1} max={cardListLength}
+                         onClick={(e) => e.stopPropagation()}
+                         onChange={($, value) => {
+                           setToIndex(value);
+                         }}>
+              <NumberInputField />
+              <NumberInputStepper>
+                <NumberIncrementStepper />
+                <NumberDecrementStepper />
+              </NumberInputStepper>
+            </NumberInput>
+            <Link>{t('button.OK')}</Link>
           </MenuItem>
         </MenuList>
 
@@ -147,7 +161,7 @@ export const ToolBar = () => {
           {t('toolbar.lblSwitchView')}
         </FormLabel>
         <Switch size={'lg'} onChange={(e) => {
-          dispatch(Actions.EditGlobal({ isBackEditing: e.target.checked }));
+          dispatch(Actions.GlobalEdit({ isBackEditing: e.target.checked }));
         }} />
       </FormControl>)}
 
