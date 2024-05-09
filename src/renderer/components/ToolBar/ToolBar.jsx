@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';import { jsPDF } from "jspdf";
+import React, { useRef, useState } from 'react';
 import { IoIosArrowDown } from 'react-icons/io';
 import { AiFillFolderOpen, AiFillFileAdd, AiFillSetting, AiFillSave } from 'react-icons/ai';
 import {
@@ -34,12 +34,10 @@ export const ToolBar = () => {
     sides: state.pnp.Config.sides,
     globalBackground: state.pnp.Config.globalBackground,
   }), shallowEqual);
-  const { selectionLength, cardListLength } = useSelector((state) => ({
-    selectionLength: state.pnp.CardList.filter(c => c.selected).length,
-    cardListLength: state.pnp.CardList.length
+  const { selectionLength } = useSelector((state) => ({
+    selectionLength: state.pnp.CardList.filter(c => c.selected).length
   }), shallowEqual);
   const [repeat, setRepeat] = useState(1);
-  const [toIndex, setToIndex] = useState(1);
   const dispatch = useDispatch();
   return (<div>
       <Tooltip label={t('toolbar.btnAdd')}>
@@ -77,9 +75,12 @@ export const ToolBar = () => {
         <IconButton
           icon={<MdPictureAsPdf size={'30'} />}
           onClick={async () => {
-            dispatch(Actions.GlobalEdit({ isInProgress: true }));
-            await exportPdf( { state: store.getState().pnp, onProgress: ($,value) => dispatch(Actions.GlobalEdit({ progress: value })) } )
-            dispatch(Actions.GlobalEdit({ isInProgress: false }))
+            dispatch(Actions.GlobalEdit({ isInProgress: true, progress: 0 }));
+            await exportPdf( { state: store.getState().pnp, onProgress: value => {
+                dispatch(Actions.GlobalEdit({ progress: value }))
+              } } )
+            dispatch(Actions.GlobalEdit({ isInProgress: false }));
+            setTimeout(()=>alert(t('toolbar.lblExportSuccess')), 100)
           }}
         />
       </Tooltip>
@@ -92,7 +93,7 @@ export const ToolBar = () => {
           }}
         />
       </Tooltip>
-      <Menu onOpen={() => [setRepeat(1), setToIndex(1)]}>
+      <Menu onOpen={() => setRepeat(1)}>
         <MenuButton visibility={selectionLength === 0 ? 'hidden' : 'inline'} as={Button}
                     rightIcon={<IoIosArrowDown />}>
           {t('toolbar.bulkMenu.labelSelection')}
@@ -137,21 +138,6 @@ export const ToolBar = () => {
             dispatch(Actions.SelectedCardsSwap());
           }}>
             {t('toolbar.bulkMenu.menuSwap')}
-          </MenuItem>
-          <MenuItem>
-            {t('toolbar.bulkMenu.menuMove')}
-            <NumberInput size='xs' maxW={16} value={toIndex} min={1} max={cardListLength}
-                         onClick={(e) => e.stopPropagation()}
-                         onChange={($, value) => {
-                           setToIndex(value);
-                         }}>
-              <NumberInputField />
-              <NumberInputStepper>
-                <NumberIncrementStepper />
-                <NumberDecrementStepper />
-              </NumberInputStepper>
-            </NumberInput>
-            <Link>{t('button.OK')}</Link>
           </MenuItem>
         </MenuList>
 

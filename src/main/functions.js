@@ -34,14 +34,17 @@ export const saveDataToFile = async (data, filePath) => {
 
 export const registerRendererActionHandlers = (mainWindow) => {
   ipcMain.on('export-pdf', async (event, args) => {
-    const blob = await exportPdf(args.state, (progress) => {
-      mainWindow.webContents.send('export-pdf-progress', progress);
-    });
     const result = await dialog.showSaveDialog({
       title: 'Save PDF',
-      defaultPath: 'pnp.pdf'
+      defaultPath: 'pnp.pdf',
+      filters: [
+        { name: 'pdf', extensions: ['pdf'] }
+      ]
     });
     if (!result.canceled) {
+      const blob = await exportPdf(args.state, (progress) => {
+        mainWindow.webContents.send('export-pdf-progress', progress);
+      });
       const filePath = result.filePath;
       await saveDataToFile(blob, filePath);
       mainWindow.webContents.send('export-pdf-progress', 100);
@@ -74,7 +77,10 @@ export const registerRendererActionHandlers = (mainWindow) => {
     if(projectPath === '') {
       const result = await dialog.showSaveDialog({
         title: 'Save Project',
-        defaultPath: 'myProject.cpnp'
+        defaultPath: 'myProject.cpnp',
+        filters: [
+          { name: 'Project file', extensions: ['cpnp'] }
+        ]
       });
       if (result.canceled) { return; }
       else {

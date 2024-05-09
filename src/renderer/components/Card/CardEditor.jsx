@@ -24,6 +24,7 @@ import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import _ from 'lodash';
 import { useDrag, useDrop } from 'react-dnd';
 import { useTranslation } from 'react-i18next';
+import { openImage } from '../../functions';
 
 export default memo(({ data, index }) => {
   const { t } = useTranslation();
@@ -58,6 +59,13 @@ export default memo(({ data, index }) => {
       'isBackEditing',
     ])
   ), shallowEqual);
+  const {
+    faceData,
+    backData
+  } = useSelector((state) => ({
+    faceData: state.pnp.ImageStorage[data.face?.path],
+    backData: state.pnp.ImageStorage[data.back?.path],
+  }), shallowEqual);
   const dispatch = useDispatch();
   const onSelectCard = useCallback((event) => {
     if (event.shiftKey) {
@@ -98,23 +106,43 @@ export default memo(({ data, index }) => {
           onClick={e => e.stopPropagation()}
         />
         <MenuList>
-          <MenuItem onClick={(e) => { e.stopPropagation(); }}>
-            Background..
+          <MenuItem onClick={async (e) => {
+            e.stopPropagation();
+            const filePath = await openImage();
+            dispatch(Actions.CardEditById({id: data.id, face: filePath}));
+          }}>
+            {t('cardEditor.face')}
           </MenuItem>
-          <MenuItem onClick={(e) => { e.stopPropagation(); }}>
-            Duplicate
+          <MenuItem onClick={async (e) => {
+            e.stopPropagation();
+            dispatch(Actions.CardEditById({id: data.id, face: null}));
+          }}>
+            {t('cardEditor.clearFace')}
+          </MenuItem>
+          <MenuItem onClick={async (e) => {
+            e.stopPropagation();
+            const filePath = await openImage();
+            dispatch(Actions.CardEditById({id: data.id, back: filePath}));
+          }}>
+            {t('cardEditor.back')}
+          </MenuItem>
+          <MenuItem onClick={async (e) => {
+            e.stopPropagation();
+            dispatch(Actions.CardEditById({id: data.id, back: null}));
+          }}>
+            {t('cardEditor.clearBack')}
           </MenuItem>
         </MenuList>
       </Menu>
     </div>
     <div className={'CardMain'}>
       <Stack direction='row' justifyContent={'center'}>
-        <Image className={'CardImage'} boxSize={isBackEditing ? '50px' : '160px'} src={data.face?.path}
+        <Image className={'CardImage'} boxSize={isBackEditing ? '50px' : '160px'} src={`data:image/${data.ext};base64,${faceData}`}
                fallbackSrc={emptyImg.path} />
         {Config.sides === 'double sides' && (
           <Image className={'CardImage'}
                  boxSize={isBackEditing ? '160px' : '50px'}
-                 src={data.back?.path}
+                 src={`data:image/${data.ext};base64,${backData}`}
                  fallbackSrc={emptyImg.path}
           />
         )}

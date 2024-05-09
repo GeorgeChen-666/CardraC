@@ -36,7 +36,7 @@ const getPagedImageListByCardList = (state) => {
   return pagedImageList;
 };
 const drawPageElements = async (doc, pageData, state) => {
-  const { Config } = state;
+  const { Config, ImageStorage } = state;
   const hc = Config.columns;
   const vc = Config.rows;
   const scale = fixFloat(Config.scale / 100);
@@ -63,8 +63,6 @@ const drawPageElements = async (doc, pageData, state) => {
       offsetY = offsetY * -1;
     }
   }
-
-  console.log('page');
   for (let xx = 0; xx < hc; xx++) {
     for (let yy = 0; yy < vc; yy++) {
       let cardRotation = 0;
@@ -99,7 +97,7 @@ const drawPageElements = async (doc, pageData, state) => {
             doc.addImage(image.path, image.ext, imageXc, imageYc, cardW, cardH, image.path, 'NONE', cardRotation);
           } else {
             // const base64String = await readFileToBase64(image.path);
-            doc.addImage(image.data, image.ext, imageXc, imageYc, cardW, cardH, image.path, 'NONE', cardRotation);
+            doc.addImage(ImageStorage[image.path], image.ext, imageXc, imageYc, cardW, cardH, image.path, 'NONE', cardRotation);
           }
         } catch (e) {
           console.log('addImage error',e)

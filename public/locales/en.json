@@ -3,26 +3,30 @@
     "OK": "OK"
   },
   "toolbar" : {
-    "btnAdd" : "Create a new pnp file.",
-    "btnOpen" : "Open a pnp file.",
-    "btnSave" : "Save pnp file.",
-    "btnConfig" : "Settings config.",
-    "btnExport" : "Export pdf.",
-    "btnGlobalBackground" : "Global background.",
+    "btnAdd" : "Create a New PNP File.",
+    "btnOpen" : "Open a PNP File.",
+    "btnSave" : "Save PNP File.",
+    "btnConfig" : "Settings Config.",
+    "btnExport" : "Export PDF.",
+    "lblExportSuccess": "Export Success!",
+    "btnGlobalBackground" : "Global Default Background.",
     "lblSwitchView": "Switch View",
     "bulkMenu": {
       "labelSelection": "Selection ...",
       "menuRemove": "Remove",
       "menuFillBackground": "Fill Background",
-      "menuFillMultiBackground": "Fill multi background",
+      "menuFillMultiBackground": "Fill Multi Background",
       "menuSetCount": "Set Count",
-      "menuSwap": "Swap Face/Back",
-      "menuMove": "Move to ..."
+      "menuSwap": "Swap Face/Back"
     }
   },
   "cardEditor": {
-    "lblHere": "here...",
-    "btnRemove": "Remove image"
+    "lblHere": "Here...",
+    "btnRemove": "Remove image",
+    "face": "Face...",
+    "back": "Background...",
+    "clearFace": "Clear Face",
+    "clearBack": "Clear Background"
   },
   "configDialog": {
 

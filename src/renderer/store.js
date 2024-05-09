@@ -3,6 +3,7 @@ import { createSlice, configureStore } from '@reduxjs/toolkit';
 import _ from 'lodash';
 import logger from 'redux-logger';
 import { Provider } from 'react-redux';
+import { fillByObjectValue } from './functions';
 
 export const initialState = Object.freeze({
   Global: {
@@ -41,21 +42,45 @@ export const initialState = Object.freeze({
     globalBackground: null,
   },
   CardList: [],
+  ImageStorage: {},
 });
-
+const storeCardImage = (state) => {
+  const {CardList, ImageStorage} = state;
+  const usedImagePath = new Set();
+  CardList.forEach(card => {
+    const {face,back} = card;
+    usedImagePath.add(face?.path);
+    usedImagePath.add(back?.path);
+    if(face?.data) {
+      if(!Object.keys(ImageStorage).includes(face?.path)) {
+        ImageStorage[face?.path] = face?.data;
+      }
+      delete face?.data;
+    }
+    if(back?.data) {
+      if(!Object.keys(ImageStorage).includes(back?.path)) {
+        ImageStorage[back?.path] = back?.data;
+      }
+      delete back?.data;
+    }
+  });
+  Object.keys(ImageStorage).filter(key=> !usedImagePath.has(key)).forEach(key => delete ImageStorage[key])
+}
 export const pnpSlice = createSlice({
   name: 'pnp',
   initialState,
   reducers: {
     StateFill: (state, action) => {
-      Object.keys(action.payload).forEach(key => {
-        state[key] = action.payload[key];
-      });
+      fillByObjectValue(state, action.payload)
+      // Object.keys(action.payload).forEach(key => {
+      //   state[key] = action.payload[key];
+      // });
     },
     GlobalEdit: (state, action) => {
-      Object.keys(action.payload).forEach(key => {
-        state.Global[key] = action.payload[key];
-      });
+      fillByObjectValue(state.Global, action.payload)
+      // Object.keys(action.payload).forEach(key => {
+      //   state.Global[key] = action.payload[key];
+      // });
     },
     CardSelect: (state, action) => {
       const selectedId = action.payload;
@@ -88,9 +113,10 @@ export const pnpSlice = createSlice({
       }
     },
     ConfigEdit: (state, action) => {
-      Object.keys(action.payload).forEach(key => {
-        state.Config[key] = action.payload[key];
-      });
+      fillByObjectValue(state.Config, action.payload);
+      // Object.keys(action.payload).forEach(key => {
+      //   state.Config[key] = action.payload[key];
+      // });
     },
     CardAddByFaces: (state, action) => {
       state.CardList = state.CardList.concat(action.payload.map(p => ({
@@ -99,6 +125,7 @@ export const pnpSlice = createSlice({
         back: null,
         repeat: 1,
       })));
+      storeCardImage(state);
     },
     DragHoverMove: (state, action) => {
       const { to } = action.payload;
@@ -135,9 +162,11 @@ export const pnpSlice = createSlice({
     CardEditById: (state, action) => {
       const card = state.CardList.find(c => c.id === action.payload.id);
       if (card) {
-        Object.keys(action.payload).forEach(key => {
-          card[key] = action.payload[key];
-        });
+        fillByObjectValue(card, action.payload);
+        // Object.keys(action.payload).forEach(key => {
+        //   card[key] = action.payload[key];
+        // });
+        storeCardImage(state);
       }
     },
     SelectedCardsSwap: (state) => {
@@ -149,17 +178,21 @@ export const pnpSlice = createSlice({
       selection.sort((a, b) => {
         return state.CardList.indexOf(c => c.id === b.id) - state.CardList.indexOf(c => c.id === a.id);
       }).forEach(c => state.CardList.splice(state.CardList.indexOf(cc => cc.id === c.id), 1));
+      storeCardImage(state);
     },
     SelectedCardsEdit: (state, action) => {
       const selection = state.CardList.filter(c => c.selected);
       selection.forEach(c => {
-        Object.keys(action.payload).forEach(key => {
-          c[key] = action.payload[key];
-        });
+        fillByObjectValue(c, action.payload);
+        // Object.keys(action.payload).forEach(key => {
+        //   c[key] = action.payload[key];
+        // });
       });
+      storeCardImage(state);
     },
     CardRemoveByIds: (state, action) => {
       state.CardList = state.CardList.filter(c => !action.payload.includes(c.id));
+      storeCardImage(state);
     },
   },
 });

@@ -21,7 +21,7 @@ const createWindow = () => {
 
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
-  if(!isDev) {
+  if(isDev) {
     // Open the DevTools.
     mainWindow.webContents.openDevTools();
   } else {
