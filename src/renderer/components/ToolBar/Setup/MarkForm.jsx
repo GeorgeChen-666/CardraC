@@ -37,7 +37,7 @@ export const MarkForm = () => {
         </HStack>
       </RadioGroup>
     </Control>
-    <Control label={'Color'}>
+    {/* <Control label={'Color'}>
       <HStack>
         <Input name={'fCutlineColor'} width={'80px'} type={'color'} defaultValue={Config.fCutlineColor}
                onChange={(value) => dispatch(Actions.ConfigEdit({fCutlineColor:value}))} />
@@ -52,7 +52,7 @@ export const MarkForm = () => {
         </NumberInput>
         <span>pt</span>
       </HStack>
-    </Control>
+    </Control> */}
     <Control label={'Back Cutting Line'}>
       <RadioGroup defaultValue={Config.bCutLine}
                   onChange={(value) => dispatch(Actions.ConfigEdit({bCutLine:value}))}>
@@ -64,7 +64,7 @@ export const MarkForm = () => {
         </HStack>
       </RadioGroup>
     </Control>
-    <Control label={'Color'}>
+    {/* <Control label={'Color'}>
       <HStack>
         <Input width={'80px'} type={'color'}  defaultValue={Config.bCutlineColor}
                onChange={(value) => dispatch(Actions.ConfigEdit({bCutlineColor:value}))}/>
@@ -79,6 +79,6 @@ export const MarkForm = () => {
         </NumberInput>
         <span>pt</span>
       </HStack>
-    </Control>
+    </Control> */}
   </div>)
 }

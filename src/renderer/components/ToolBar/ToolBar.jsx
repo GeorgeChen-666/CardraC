@@ -18,14 +18,16 @@ import {
   NumberInputStepper,
   NumberIncrementStepper,
   NumberDecrementStepper,
-  Link
+  Link,
 } from '@chakra-ui/react';
 import { MdPictureAsPdf } from 'react-icons/md';
 import { SetupDialog } from './Setup/SetupDialog';
 import { Actions, initialState, store } from '../../store';
 import { exportPdf, openImage, openMultiImage, openProject, saveProject } from '../../functions';
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
-import { useTranslation } from "react-i18next";
+import { useTranslation } from 'react-i18next';
+import { GeneralButton } from './Buttons/GeneralButton';
+import { LangSelectButton } from './Buttons/LangSelectButton';
 
 export const ToolBar = () => {
   const { t } = useTranslation();
@@ -35,64 +37,59 @@ export const ToolBar = () => {
     globalBackground: state.pnp.Config.globalBackground,
   }), shallowEqual);
   const { selectionLength } = useSelector((state) => ({
-    selectionLength: state.pnp.CardList.filter(c => c.selected).length
+    selectionLength: state.pnp.CardList.filter(c => c.selected).length,
   }), shallowEqual);
   const [repeat, setRepeat] = useState(1);
   const dispatch = useDispatch();
   return (<div>
-      <Tooltip label={t('toolbar.btnAdd')}>
-        <IconButton
-          icon={<AiFillFileAdd size={'30'} />}
-          onClick={async() => {
-            dispatch(Actions.StateFill(initialState));
-          }}
-        />
-      </Tooltip>
-      <Tooltip label={t('toolbar.btnOpen')}>
-        <IconButton
-          icon={<AiFillFolderOpen size={'30'} />}
-          onClick={async() => {
-            const projectData = await openProject();
-            dispatch(Actions.StateFill(projectData));
-          }}
-        />
-      </Tooltip>
-      <Tooltip label={t('toolbar.btnSave')}>
-        <IconButton
-          icon={<AiFillSave size={'30'} />}
-          onClick={() => saveProject( { state: store.getState().pnp } )}
-        />
-      </Tooltip>
-      <Tooltip label={t('toolbar.btnConfig')}>
-        <IconButton
-          icon={<AiFillSetting size={'30'} />}
-          onClick={() => {
-            dialogRef.current?.openDialog();
-          }}
-        />
-      </Tooltip>
-      <Tooltip label={t('toolbar.btnExport')}>
-        <IconButton
-          icon={<MdPictureAsPdf size={'30'} />}
-          onClick={async () => {
-            dispatch(Actions.GlobalEdit({ isInProgress: true, progress: 0 }));
-            await exportPdf( { state: store.getState().pnp, onProgress: value => {
-                dispatch(Actions.GlobalEdit({ progress: value }))
-              } } )
-            dispatch(Actions.GlobalEdit({ isInProgress: false }));
-            setTimeout(()=>alert(t('toolbar.lblExportSuccess')), 100)
-          }}
-        />
-      </Tooltip>
-      <Tooltip label={t('toolbar.btnGlobalBackground')}>
-        <IconButton
-          icon={<Image boxSize='30px' src={Config.globalBackground?.path} />}
-          onClick={async () => {
-            const filePath = await openImage();
-            dispatch(Actions.ConfigEdit({ globalBackground: filePath }));
-          }}
-        />
-      </Tooltip>
+      <GeneralButton
+        label={t('toolbar.btnAdd')}
+        icon={<AiFillFileAdd size={'30'} />}
+        onClick={async () => {
+          dispatch(Actions.StateFill(initialState));
+        }}
+      />
+      <GeneralButton
+        label={t('toolbar.btnOpen')}
+        icon={<AiFillFolderOpen size={'30'} />}
+        onClick={async () => {
+          const projectData = await openProject();
+          dispatch(Actions.StateFill(projectData));
+        }}
+      />
+      <GeneralButton
+        label={t('toolbar.btnSave')}
+        icon={<AiFillSave size={'30'} />}
+        onClick={() => saveProject({ state: store.getState().pnp })}
+      />
+      <LangSelectButton label={t('toolbar.btnConfig')} />
+      <GeneralButton
+        label={t('toolbar.btnConfig')}
+        icon={<AiFillSetting size={'30'} />}
+        onClick={() => dialogRef.current?.openDialog()}
+      />
+      <GeneralButton
+        label={t('toolbar.btnExport')}
+        icon={<MdPictureAsPdf size={'30'} />}
+        onClick={async () => {
+          dispatch(Actions.GlobalEdit({ isInProgress: true, progress: 0 }));
+          await exportPdf({
+            state: store.getState().pnp, onProgress: value => {
+              dispatch(Actions.GlobalEdit({ progress: value }));
+            },
+          });
+          dispatch(Actions.GlobalEdit({ isInProgress: false }));
+          setTimeout(() => alert(t('toolbar.lblExportSuccess')), 100);
+        }}
+      />
+      <GeneralButton
+        label={t('toolbar.btnGlobalBackground')}
+        icon={<Image boxSize='30px' src={Config.globalBackground?.path} />}
+        onClick={async () => {
+          const filePath = await openImage();
+          dispatch(Actions.ConfigEdit({ globalBackground: filePath }));
+        }}
+      />
       <Menu onOpen={() => setRepeat(1)}>
         <MenuButton visibility={selectionLength === 0 ? 'hidden' : 'inline'} as={Button}
                     rightIcon={<IoIosArrowDown />}>
@@ -106,7 +103,7 @@ export const ToolBar = () => {
           </MenuItem>
           <MenuItem onClick={async () => {
             const filePath = await openImage();
-            dispatch(Actions.SelectedCardsEdit({back: filePath}));
+            dispatch(Actions.SelectedCardsEdit({ back: filePath }));
           }}>
             {t('toolbar.bulkMenu.menuFillBackground')}
           </MenuItem>
@@ -131,7 +128,7 @@ export const ToolBar = () => {
               </NumberInputStepper>
             </NumberInput>
             <Link onClick={() => {
-              dispatch(Actions.SelectedCardsEdit({repeat}));
+              dispatch(Actions.SelectedCardsEdit({ repeat }));
             }}>{t('button.OK')}</Link>
           </MenuItem>
           <MenuItem onClick={() => {

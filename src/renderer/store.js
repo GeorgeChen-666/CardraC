@@ -3,10 +3,12 @@ import { createSlice, configureStore } from '@reduxjs/toolkit';
 import _ from 'lodash';
 import logger from 'redux-logger';
 import { Provider } from 'react-redux';
-import { fillByObjectValue } from './functions';
+import { fillByObjectValue, loadConfig, saveConfig } from './functions';
 
 export const initialState = Object.freeze({
   Global: {
+    availableLangs: [],
+    currentLang: 'zh',
     projectPath: '',
     isInProgress: false,
     progress: 0,
@@ -77,7 +79,8 @@ export const pnpSlice = createSlice({
       // });
     },
     GlobalEdit: (state, action) => {
-      fillByObjectValue(state.Global, action.payload)
+      fillByObjectValue(state.Global, action.payload);
+      saveConfig({state});
       // Object.keys(action.payload).forEach(key => {
       //   state.Global[key] = action.payload[key];
       // });
@@ -212,3 +215,6 @@ export const StoreProvider = ({ children }) => {
     </Provider>
   );
 };
+
+const config = await loadConfig();
+store.dispatch(Actions.GlobalEdit({...config}))

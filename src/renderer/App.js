@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { shallowEqual, useSelector } from 'react-redux';
 import {
   ChakraProvider,
   Box,
@@ -6,15 +7,36 @@ import {
   Grid,
   theme,
 } from '@chakra-ui/react';
-import {StoreProvider} from './store'
 import {ToolBar} from './components/ToolBar/ToolBar';
 import {CardEditorList} from './components/Card/CardEditorList';
 import { Footer } from './components/Footer';
+import { i18nInstance } from './i18n';
+import { getResourcesPath } from './functions';
+import _ from 'lodash';
 
 function App() {
+  const [isI18nReady, setI18nReady] = useState(false);
+  const Global = useSelector((state) => (
+    _.pick(state.pnp.Global, [
+      'currentLang',
+      'availableLangs'
+    ])
+  ), shallowEqual);
+  useEffect(() => {
+    i18nInstance.init({
+      supportedLngs: Global.availableLangs,
+      lng: Global.currentLang,
+      fallbackLng: 'en',
+      backend: {
+        loadPath: getResourcesPath('/public/locales/{{lng}}.json'),
+      },
+    });
+    setI18nReady(true);
+  }, [])
+
   return (
-    <StoreProvider>
-      <ChakraProvider theme={theme}>
+    <>
+      {isI18nReady && (<ChakraProvider theme={theme}>
         <Box>
           <Grid
             templateAreas={`"header"
@@ -38,8 +60,8 @@ function App() {
             </GridItem>
           </Grid>
         </Box>
-      </ChakraProvider>
-    </StoreProvider>
+      </ChakraProvider>)}
+    </>
   );
 }
 

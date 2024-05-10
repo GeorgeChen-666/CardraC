@@ -84,3 +84,23 @@ export const openProject = () => new Promise((resolve)=>{
   }
   ipcRenderer.on('open-project-return', onFileOpen);
 });
+
+export const loadConfig = () => new Promise((resolve) => {
+  ipcRenderer.send('load-config');
+  const onDone = (event, data) => {
+    ipcRenderer.off('load-config-done', onDone);
+    resolve(data);
+  }
+  ipcRenderer.on('load-config-done', onDone);
+});
+
+export const saveConfig = ({ state }) => new Promise((resolve) => {
+  ipcRenderer.send('save-config', {
+    state: JSON.parse(JSON.stringify(state))
+  });
+  const onDone = (event, data) => {
+    ipcRenderer.off('save-config-done', onDone);
+    resolve(data);
+  }
+  ipcRenderer.on('save-config-done', onDone);
+});

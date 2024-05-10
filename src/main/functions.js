@@ -3,6 +3,9 @@ const { exportPdf } = require('./ExportPdf');
 const { dialog, ipcMain } = require('electron');
 const electron = require('electron');
 const _ = require('lodash');
+const Store = require('electron-store');
+
+const store = new Store();
 
 if (typeof electron === 'string') {
   throw new TypeError('Not running in an Electron environment!');
@@ -49,7 +52,7 @@ export const registerRendererActionHandlers = (mainWindow) => {
       await saveDataToFile(blob, filePath);
       mainWindow.webContents.send('export-pdf-progress', 100);
       mainWindow.webContents.send('export-pdf-done');
-    };
+    }
   });
 
   ipcMain.on('open-image', async (event, args) => {
@@ -104,5 +107,15 @@ export const registerRendererActionHandlers = (mainWindow) => {
       const toRenderData = await readFileToData(result.filePaths[0]);
       mainWindow.webContents.send(returnChannel, toRenderData);
     }
+  });
+
+  ipcMain.on('save-config', (event, args) => {
+    const { Global } = args.state;
+    store.set('config', _.pick(Global, ['currentLang']));
+  });
+  ipcMain.on('load-config', () => {
+    const config = store.get('config') || {};
+    config.availableLangs = fs.readdirSync((isDev?'.':'..') + '/public/locales/').map(p=>p?.split('.')?.[0] || '').filter(p=>!!p);
+    mainWindow.webContents.send('load-config-done', config);
   });
 }
