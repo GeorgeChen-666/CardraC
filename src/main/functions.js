@@ -1,6 +1,7 @@
 const fs = require('fs')
+const path = require('path')
 const { exportPdf } = require('./ExportPdf');
-const { dialog, ipcMain } = require('electron');
+const { app, dialog, ipcMain } = require('electron');
 const electron = require('electron');
 const _ = require('lodash');
 const Store = require('electron-store');
@@ -33,6 +34,13 @@ export const saveDataToFile = async (data, filePath) => {
     buffer = JSON.stringify(data);
   }
   await fs.writeFileSync(filePath, buffer);
+}
+
+const initLanguageJson = (lang) => {
+  const en = new Store({name: lang, cwd: 'locales'});
+  if(en.size === 0) {
+    en.set(require(`./locales/${lang}.json`));
+  }
 }
 
 export const registerRendererActionHandlers = (mainWindow) => {
@@ -111,11 +119,17 @@ export const registerRendererActionHandlers = (mainWindow) => {
 
   ipcMain.on('save-config', (event, args) => {
     const { Global } = args.state;
-    store.set('config', _.pick(Global, ['currentLang']));
+    store.set(_.pick(Global, ['currentLang']));
   });
   ipcMain.on('load-config', () => {
-    const config = store.get('config') || {};
-    config.availableLangs = fs.readdirSync((isDev?'.':'..') + '/public/locales/').map(p=>p?.split('.')?.[0] || '').filter(p=>!!p);
+    initLanguageJson('en');
+    initLanguageJson('zh')
+    const config = store.get() || {};
+    config.availableLangs = fs.readdirSync(path.join(app.getPath('userData'), 'locales')).map(p=>p?.split('.')?.[0] || '').filter(p=>!!p);
+    config.locales = {};
+    config.availableLangs.forEach(lang => {
+      config.locales[lang] = new Store({name: lang, cwd: 'locales'}).get();
+    })
     mainWindow.webContents.send('load-config-done', config);
   });
 }

@@ -7,8 +7,8 @@ import {
   Grid,
   theme,
 } from '@chakra-ui/react';
-import {ToolBar} from './components/ToolBar/ToolBar';
-import {CardEditorList} from './components/Card/CardEditorList';
+import { ToolBar } from './components/ToolBar/ToolBar';
+import { CardEditorList } from './components/Card/CardEditorList';
 import { Footer } from './components/Footer';
 import { i18nInstance } from './i18n';
 import { getResourcesPath } from './functions';
@@ -19,20 +19,21 @@ function App() {
   const Global = useSelector((state) => (
     _.pick(state.pnp.Global, [
       'currentLang',
-      'availableLangs'
+      'availableLangs',
+      'locales',
     ])
   ), shallowEqual);
   useEffect(() => {
     i18nInstance.init({
       supportedLngs: Global.availableLangs,
       lng: Global.currentLang,
-      fallbackLng: 'en',
-      backend: {
-        loadPath: getResourcesPath('/public/locales/{{lng}}.json'),
-      },
+      resources:
+        Global.availableLangs.map(lang => ({
+          [lang]: { translation: Global.locales[lang] }
+        })).reduce((l1, l2) => Object.assign(l1, l2), {}),
     });
     setI18nReady(true);
-  }, [])
+  }, []);
 
   return (
     <>
@@ -43,7 +44,7 @@ function App() {
                     "main"
                     "footer"`}
             gridTemplateRows={'50px 1fr 30px'}
-            height="100vh"
+            height='100vh'
             gap='1'
             color='blackAlpha.700'
             fontWeight='bold'

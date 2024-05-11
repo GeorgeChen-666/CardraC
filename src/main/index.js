@@ -25,7 +25,7 @@ const createWindow = () => {
     // Open the DevTools.
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.setAutoHideMenuBar(true);
+    mainWindow.menuBarVisible = false;
     mainWindow.webContents.on('context-menu', (e, params) => {
       e.preventDefault(); // 阻止默认的右键菜单
       // // 你可以在这里定义自己的菜单项
