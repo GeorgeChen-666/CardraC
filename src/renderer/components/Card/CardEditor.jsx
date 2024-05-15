@@ -32,7 +32,7 @@ export default memo(({ data, index }) => {
     accept: 'Card',
     hover({ id: draggedId }) {
       if (draggedId !== data.id) {
-        dispatch(Actions.DragHoverMove({to:index}));
+        dispatch(Actions.DragHoverMove({ to: index }));
       }
     },
     drop: () => {
@@ -61,10 +61,10 @@ export default memo(({ data, index }) => {
   ), shallowEqual);
   const {
     faceData,
-    backData
+    backData,
   } = useSelector((state) => ({
-    faceData: state.pnp.ImageStorage[data.face?.path?.replaceAll('\\','')],
-    backData: state.pnp.ImageStorage[data.back?.path?.replaceAll('\\','')],
+    faceData: state.pnp.ImageStorage[data.face?.path?.replaceAll('\\', '')],
+    backData: state.pnp.ImageStorage[data.back?.path?.replaceAll('\\', '')],
   }), shallowEqual);
   const dispatch = useDispatch();
   const onSelectCard = useCallback((event) => {
@@ -73,9 +73,10 @@ export default memo(({ data, index }) => {
     } else {
       dispatch(Actions.CardSelect(data.id));
     }
-  }, [data.id])
+  }, [data.id]);
   const isBackEditing = Global.isBackEditing;
-  return (<Card ref={node => previewRef(dropRef(node))} style={{ display: (isDragging ? 'none': 'unset') }} className={'Card'} size={'sm'} padding={2}
+  return (<Card ref={node => previewRef(dropRef(node))} style={{ display: (isDragging ? 'none' : 'unset') }}
+                className={'Card'} size={'sm'} padding={2}
                 onClick={onSelectCard}>
     <div className={'CardBar'}>
       <Menu>
@@ -90,8 +91,8 @@ export default memo(({ data, index }) => {
           }}
         />
         <span ref={dragRef} className={'CardDragHandler'}
-              onMouseDown={e=>{
-                if(!data.selected) {
+              onMouseDown={e => {
+                if (!data.selected) {
                   dispatch(Actions.CardSelect(data.id));
                 }
               }}
@@ -109,26 +110,26 @@ export default memo(({ data, index }) => {
           <MenuItem onClick={async (e) => {
             e.stopPropagation();
             const filePath = await openImage();
-            dispatch(Actions.CardEditById({id: data.id, face: filePath}));
+            dispatch(Actions.CardEditById({ id: data.id, face: filePath }));
           }}>
             {t('cardEditor.face')}
           </MenuItem>
           <MenuItem onClick={async (e) => {
             e.stopPropagation();
-            dispatch(Actions.CardEditById({id: data.id, face: null}));
+            dispatch(Actions.CardEditById({ id: data.id, face: null }));
           }}>
             {t('cardEditor.clearFace')}
           </MenuItem>
           <MenuItem onClick={async (e) => {
             e.stopPropagation();
             const filePath = await openImage();
-            dispatch(Actions.CardEditById({id: data.id, back: filePath}));
+            dispatch(Actions.CardEditById({ id: data.id, back: filePath }));
           }}>
             {t('cardEditor.back')}
           </MenuItem>
           <MenuItem onClick={async (e) => {
             e.stopPropagation();
-            dispatch(Actions.CardEditById({id: data.id, back: null}));
+            dispatch(Actions.CardEditById({ id: data.id, back: null }));
           }}>
             {t('cardEditor.clearBack')}
           </MenuItem>
@@ -137,7 +138,8 @@ export default memo(({ data, index }) => {
     </div>
     <div className={'CardMain'}>
       <Stack direction='row' justifyContent={'center'}>
-        <Image className={'CardImage'} boxSize={isBackEditing ? '50px' : '160px'} src={`data:image/${data.ext};base64,${faceData}`}
+        <Image className={'CardImage'} boxSize={isBackEditing ? '50px' : '160px'}
+               src={`data:image/${data.ext};base64,${faceData}`}
                fallbackSrc={emptyImg.path} />
         {Config.sides === 'double sides' && (
           <Image className={'CardImage'}
@@ -151,10 +153,10 @@ export default memo(({ data, index }) => {
     </div>
     <div className={'CardBar'}>
       <Checkbox isChecked={data.selected} onClick={onSelectCard}>#{index + 1}</Checkbox>
-      <NumberInput size='xs' maxW={16} value={data.repeat} min={1}
+      <NumberInput size='xs' maxW={16} value={data.repeat} min={1} max={999}
                    onClick={(e) => e.stopPropagation()}
                    onChange={($, value) => {
-                     dispatch(Actions.CardEditById({ id: data.id, repeat: value }));
+                     dispatch(Actions.CardEditById({ id: data.id, repeat: isNaN(value) ? 1 : value }));
                    }}>
         <NumberInputField />
         <NumberInputStepper>

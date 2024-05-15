@@ -6,7 +6,7 @@ import {
   NumberInputField,
   NumberInputStepper,
 } from '@chakra-ui/react';
-import React from 'react';
+import React, {useEffect} from 'react';
 import './styles.css';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import _ from 'lodash';
@@ -22,7 +22,8 @@ export const Control = (({ children, label, attrKey, type, onChange }) =>
   const Config = useSelector((state) => (
     _.pick(state.pnp.Config, [attrKey])
   ), shallowEqual);
-  const [value, setValue] = React.useState(Config[attrKey])
+  const [value, setValue] = React.useState('');
+  useEffect(() => setValue(Config[attrKey]),[Config[attrKey]])
   return (<FormControl className={'FormControl'}>
     <FormLabel textAlign={'right'} className={'FormLabel'}>{label}</FormLabel>
     {

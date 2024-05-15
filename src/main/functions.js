@@ -45,7 +45,7 @@ const initLanguageJson = (lang) => {
 
 export const registerRendererActionHandlers = (mainWindow) => {
   ipcMain.on('export-pdf', async (event, args) => {
-    const result = await dialog.showSaveDialog({
+    const result = await dialog.showSaveDialog(mainWindow,{
       title: 'Save PDF',
       defaultPath: 'pnp.pdf',
       filters: [
@@ -65,7 +65,7 @@ export const registerRendererActionHandlers = (mainWindow) => {
 
   ipcMain.on('open-image', async (event, args) => {
     const { properties = [], returnChannel } = args;
-    const result = await dialog.showOpenDialog({
+    const result = await dialog.showOpenDialog(mainWindow,{
       filters: [
         { name: 'Image File', extensions: ['jpg', 'png', 'gif'] }
       ],
@@ -86,7 +86,7 @@ export const registerRendererActionHandlers = (mainWindow) => {
     const { state } = args;
     let projectPath = state.Global.projectPath;
     if(projectPath === '') {
-      const result = await dialog.showSaveDialog({
+      const result = await dialog.showSaveDialog(mainWindow,{
         title: 'Save Project',
         defaultPath: 'myProject.cpnp',
         filters: [
@@ -105,7 +105,7 @@ export const registerRendererActionHandlers = (mainWindow) => {
 
   ipcMain.on('open-project', async (event, args) => {
     const { properties = [], returnChannel } = args;
-    const result = await dialog.showOpenDialog({
+    const result = await dialog.showOpenDialog(mainWindow,{
       filters: [
         { name: 'Project File', extensions: ['cpnp'] }
       ],

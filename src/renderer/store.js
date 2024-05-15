@@ -68,7 +68,7 @@ const storeCardImage = (state) => {
       delete back?.data;
     }
   });
-  if(Config.globalBackground) {
+  if(Config.globalBackground?.data) {
     const globalBackPathKey = Config.globalBackground?.path?.replaceAll('\\','');
     usedImagePath.add(globalBackPathKey);
     ImageStorage[globalBackPathKey] = Config.globalBackground?.data;

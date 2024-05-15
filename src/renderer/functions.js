@@ -22,27 +22,29 @@ export const fillByObjectValue = (source,value) => {
   }
 }
 
-export const openImage = () => new Promise((resolve) => {
+export const openImage = (key) => new Promise((resolve) => {
+  const returnKey = 'open-image-return' + key;
   ipcRenderer.send('open-image', {
-    returnChannel: 'open-image-return'
+    returnChannel: returnKey
   });
   const onFileOpen = (event, filePaths) => {
-    ipcRenderer.off('open-image-return', onFileOpen);
+    ipcRenderer.off(returnKey, onFileOpen);
     resolve(filePaths.map(p => ({...p, ext: p.path.split('.').pop()}))?.[0])
   }
-  ipcRenderer.on('open-image-return', onFileOpen);
+  ipcRenderer.on(returnKey, onFileOpen);
 });
 
-export const openMultiImage = () => new Promise((resolve)=>{
+export const openMultiImage = (key) => new Promise((resolve)=>{
+  const returnKey = 'open-multi-image-return' + key;
   ipcRenderer.send('open-image', {
     properties: ['multiSelections'],
-    returnChannel: 'open-image-return'
+    returnChannel: returnKey
   });
   const onFileOpen = (event, filePaths) => {
-    ipcRenderer.off('open-image-return', onFileOpen);
+    ipcRenderer.off(returnKey, onFileOpen);
     resolve(filePaths.map(p => ({...p, ext: p.path.split('.').pop()})))
   }
-  ipcRenderer.on('open-image-return', onFileOpen);
+  ipcRenderer.on(returnKey, onFileOpen);
 });
 
 export const exportPdf = ({ state, onProgress }) => new Promise((resolve)=>{
