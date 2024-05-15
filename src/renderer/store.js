@@ -106,6 +106,11 @@ export const pnpSlice = createSlice({
         state.Global.lastSelection = selectedId;
       }
     },
+    CardCtrlSelect: (state, action) => {
+      const selectedId = action.payload;
+      const selection = state.CardList.filter(c => c.selected);
+      
+    },
     CardShiftSelect: (state, action) => {
       const lastSelection = state.Global.lastSelection;
       const lastSelectionIndex = state.CardList.findIndex(c => c.id === lastSelection);

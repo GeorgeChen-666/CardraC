@@ -71,6 +71,8 @@ export default memo(({ data, index }) => {
   const onSelectCard = useCallback((event) => {
     if (event.shiftKey) {
       dispatch(Actions.CardShiftSelect(data.id));
+    } else if(event.ctrlKey) {
+      dispatch(Actions.CardCtrlSelect(data.id));
     } else {
       dispatch(Actions.CardSelect(data.id));
     }
