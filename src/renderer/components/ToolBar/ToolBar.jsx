@@ -86,7 +86,7 @@ export const ToolBar = () => {
         label={t('toolbar.btnGlobalBackground')}
         icon={<Image boxSize='30px' src={Config.globalBackground?.path} />}
         onClick={async () => {
-          const filePath = await openImage();
+          const filePath = await openImage('setGlobalBack');
           dispatch(Actions.ConfigEdit({ globalBackground: filePath }));
         }}
       />
@@ -102,13 +102,13 @@ export const ToolBar = () => {
             {t('toolbar.bulkMenu.menuRemove')}
           </MenuItem>
           <MenuItem onClick={async () => {
-            const filePath = await openImage();
+            const filePath = await openImage('fillBackground');
             dispatch(Actions.SelectedCardsEdit({ back: filePath }));
           }}>
             {t('toolbar.bulkMenu.menuFillBackground')}
           </MenuItem>
           <MenuItem onClick={async () => {
-            const filePaths = await openMultiImage();
+            const filePaths = await openMultiImage('SelectedCardFillBackWithEachBack');
             dispatch(Actions.SelectedCardFillBackWithEachBack(filePaths));
           }}>
             {t('toolbar.bulkMenu.menuFillMultiBackground')}

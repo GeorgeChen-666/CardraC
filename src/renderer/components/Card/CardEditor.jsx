@@ -27,6 +27,7 @@ import { useTranslation } from 'react-i18next';
 import { openImage } from '../../functions';
 
 export default memo(({ data, index }) => {
+  const dispatch = useDispatch();
   const { t } = useTranslation();
   const [, dropRef] = useDrop({
     accept: 'Card',
@@ -66,7 +67,7 @@ export default memo(({ data, index }) => {
     faceData: state.pnp.ImageStorage[data.face?.path?.replaceAll('\\', '')],
     backData: state.pnp.ImageStorage[data.back?.path?.replaceAll('\\', '')],
   }), shallowEqual);
-  const dispatch = useDispatch();
+  
   const onSelectCard = useCallback((event) => {
     if (event.shiftKey) {
       dispatch(Actions.CardShiftSelect(data.id));
@@ -109,7 +110,7 @@ export default memo(({ data, index }) => {
         <MenuList>
           <MenuItem onClick={async (e) => {
             e.stopPropagation();
-            const filePath = await openImage();
+            const filePath = await openImage('setCardFace');
             dispatch(Actions.CardEditById({ id: data.id, face: filePath }));
           }}>
             {t('cardEditor.face')}
@@ -122,7 +123,7 @@ export default memo(({ data, index }) => {
           </MenuItem>
           <MenuItem onClick={async (e) => {
             e.stopPropagation();
-            const filePath = await openImage();
+            const filePath = await openImage('setCardBack');
             dispatch(Actions.CardEditById({ id: data.id, back: filePath }));
           }}>
             {t('cardEditor.back')}

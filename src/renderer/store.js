@@ -139,6 +139,13 @@ export const pnpSlice = createSlice({
       })));
       storeCardImage(state);
     },
+    DragHoverCancel: (state) => {
+      const dragTargetId = 'dragTarget';
+      const targetIndex = state.CardList.findIndex(c => c.id === dragTargetId);
+      if(targetIndex !== -1) {
+        state.CardList.splice(targetIndex, 1);
+      }
+    },
     DragHoverMove: (state, action) => {
       const { to } = action.payload;
       const id = 'dragTarget';

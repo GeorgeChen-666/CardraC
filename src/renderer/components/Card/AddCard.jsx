@@ -18,7 +18,7 @@ export const AddCard = () => {
       variant='outline'
       onClick={async () => {
         if (process?.versions?.electron) {
-          const filePaths = await openMultiImage();
+          const filePaths = await openMultiImage('CardAddByFaces');
           dispatch(Actions.CardAddByFaces([...filePaths]));
           //dispatch({ type: Actions.AddCardByFace, payload: [...filePaths] });
         } else {
