@@ -63,8 +63,8 @@ export default memo(({ data, index }) => {
     faceData,
     backData
   } = useSelector((state) => ({
-    faceData: state.pnp.ImageStorage[data.face?.path],
-    backData: state.pnp.ImageStorage[data.back?.path],
+    faceData: state.pnp.ImageStorage[data.face?.path?.replaceAll('\\','')],
+    backData: state.pnp.ImageStorage[data.back?.path?.replaceAll('\\','')],
   }), shallowEqual);
   const dispatch = useDispatch();
   const onSelectCard = useCallback((event) => {

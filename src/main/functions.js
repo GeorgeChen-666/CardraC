@@ -98,7 +98,7 @@ export const registerRendererActionHandlers = (mainWindow) => {
         projectPath = result.filePath;
       }
     }
-    const projectData = _.pick(state, ['Config', 'CardList']);
+    const projectData = _.pick(state, ['Config', 'CardList', 'ImageStorage']);
     await saveDataToFile(projectData, projectPath);
     mainWindow.webContents.send('save-project-done');
   });

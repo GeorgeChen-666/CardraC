@@ -29,9 +29,9 @@ export const Control = (({ children, label, attrKey, type, onChange }) =>
       (()=>{
         if(type === ControlType.NumberInput) {
           return ((<NumberInput value={value}
-                                onChange={(valueString) => setValue(valueString)}
+                                onChange={(valueString) => setValue(valueString * 1)}
                                 onBlur={(e) => {
-            const value = e.target.value;
+            const value = e.target.value * 1;
             if(onChange) {
               onChange(value)
             } else {

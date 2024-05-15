@@ -47,25 +47,33 @@ export const initialState = Object.freeze({
   ImageStorage: {},
 });
 const storeCardImage = (state) => {
-  const {CardList, ImageStorage} = state;
+  const {CardList, ImageStorage, Config} = state;
   const usedImagePath = new Set();
   CardList.forEach(card => {
     const {face,back} = card;
-    usedImagePath.add(face?.path);
-    usedImagePath.add(back?.path);
+    const facePathKey  = face?.path.replaceAll('\\','');
+    const backPathKey  = back?.path.replaceAll('\\','');
+    usedImagePath.add(facePathKey);
+    usedImagePath.add(backPathKey);
     if(face?.data) {
-      if(!Object.keys(ImageStorage).includes(face?.path)) {
-        ImageStorage[face?.path] = face?.data;
+      if(!Object.keys(ImageStorage).includes(facePathKey)) {
+        ImageStorage[facePathKey] = face?.data;
       }
       delete face?.data;
     }
     if(back?.data) {
-      if(!Object.keys(ImageStorage).includes(back?.path)) {
-        ImageStorage[back?.path] = back?.data;
+      if(!Object.keys(ImageStorage).includes(backPathKey)) {
+        ImageStorage[backPathKey] = back?.data;
       }
       delete back?.data;
     }
   });
+  if(Config.globalBackground) {
+    const globalBackPathKey = Config.globalBackground?.path?.replaceAll('\\','');
+    usedImagePath.add(globalBackPathKey);
+    ImageStorage[globalBackPathKey] = Config.globalBackground?.data;
+    delete Config.globalBackground?.data;
+  }
   Object.keys(ImageStorage).filter(key=> !usedImagePath.has(key)).forEach(key => delete ImageStorage[key])
 }
 export const pnpSlice = createSlice({
@@ -117,6 +125,7 @@ export const pnpSlice = createSlice({
     },
     ConfigEdit: (state, action) => {
       fillByObjectValue(state.Config, action.payload);
+      storeCardImage(state);
       // Object.keys(action.payload).forEach(key => {
       //   state.Config[key] = action.payload[key];
       // });
