@@ -189,6 +189,7 @@ export const pnpSlice = createSlice({
       const backImageList = action.payload;
       const selection = state.CardList.filter(c => c.selected);
       selection.forEach((c, index) => (c.back = backImageList?.[index]));
+      storeCardImage(state);
     },
     CardEditById: (state, action) => {
       const card = state.CardList.find(c => c.id === action.payload.id);
