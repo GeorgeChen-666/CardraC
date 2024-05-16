@@ -57,17 +57,16 @@ export default memo(({ data, index }) => {
   ), shallowEqual);
   const Global = useSelector((state) => (
     _.pick(state.pnp.Global, [
-      'isBackEditing',
+      'isBackEditing'
     ])
   ), shallowEqual);
   const {
-    faceData,
-    backData,
+    faceUrl,
+    backUrl,
   } = useSelector((state) => ({
-    faceData: state.pnp.ImageStorage[data.face?.path?.replaceAll('\\', '')],
-    backData: state.pnp.ImageStorage[data.back?.path?.replaceAll('\\', '')],
+    faceUrl: state.pnp.Global.blobLinks[data.face?.path?.replaceAll('\\', '')],
+    backUrl: state.pnp.Global.blobLinks[data.back?.path?.replaceAll('\\', '')],
   }), shallowEqual);
-  
   const onSelectCard = useCallback((event) => {
     if (event.shiftKey) {
       dispatch(Actions.CardShiftSelect(data.id));
@@ -142,12 +141,12 @@ export default memo(({ data, index }) => {
     <div className={'CardMain'}>
       <Stack direction='row' justifyContent={'center'}>
         <Image className={'CardImage'} boxSize={isBackEditing ? '50px' : '160px'}
-               src={`data:image/${data.ext};base64,${faceData}`}
+               src={faceUrl}
                fallbackSrc={emptyImg.path} />
         {Config.sides === 'double sides' && (
           <Image className={'CardImage'}
                  boxSize={isBackEditing ? '160px' : '50px'}
-                 src={`data:image/${data.ext};base64,${backData}`}
+                 src={backUrl}
                  fallbackSrc={emptyImg.path}
           />
         )}

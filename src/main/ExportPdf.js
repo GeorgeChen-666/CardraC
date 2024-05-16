@@ -57,10 +57,10 @@ const drawPageElements = async (doc, pageData, state) => {
   const { imageList, type } = pageData;
   if (type === 'back') {
     if (landscape && flipWay === 1 || !landscape && flipWay === 2) {
-      offsetX = offsetX * -1;
+      offsetY = offsetY * -1;
     }
     if (landscape && flipWay === 2 || !landscape && flipWay === 1) {
-      offsetY = offsetY * -1;
+      offsetX = offsetX * -1;
     }
   }
   for (let xx = 0; xx < hc; xx++) {

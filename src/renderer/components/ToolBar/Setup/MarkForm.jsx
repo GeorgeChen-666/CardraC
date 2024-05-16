@@ -21,14 +21,16 @@ export const MarkForm = () => {
       'fCutlineThinkness',
       'bCutLine',
       'bCutlineColor',
-      'bCutlineThinkness'
+      'bCutlineThinkness',
+      'sides'
     ])
   ), shallowEqual);
   const dispatch = useDispatch();
   return (<div className={'FormPanel'}>
     <Control label={'Front Cutting Line'}>
-      <RadioGroup defaultValue={Config.fCutLine}
-                  onChange={(value) => dispatch(Actions.ConfigEdit({fCutLine:value}))}>
+      <RadioGroup
+        defaultValue={Config.fCutLine}
+        onChange={(value) => dispatch(Actions.ConfigEdit({fCutLine:value}))}>
         <HStack>
           <Radio value={'0'}>None</Radio>
           <Radio value={'1'}>Normal</Radio>
@@ -53,7 +55,7 @@ export const MarkForm = () => {
         <span>pt</span>
       </HStack>
     </Control> */}
-    <Control label={'Back Cutting Line'}>
+    {Config.sides === 'double sides' && <Control label={'Back Cutting Line'}>
       <RadioGroup defaultValue={Config.bCutLine}
                   onChange={(value) => dispatch(Actions.ConfigEdit({bCutLine:value}))}>
         <HStack>
@@ -63,7 +65,7 @@ export const MarkForm = () => {
           <Radio value={'3'}>Complete</Radio>
         </HStack>
       </RadioGroup>
-    </Control>
+    </Control>}
     {/* <Control label={'Color'}>
       <HStack>
         <Input width={'80px'} type={'color'}  defaultValue={Config.bCutlineColor}

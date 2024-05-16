@@ -6,6 +6,19 @@ export const getResourcesPath = (path) => (isDev?'':'..') + path;
 
 export const isObject = data => typeof data === 'object' && data?.constructor === Object
 
+export function base64ImageToBlob(base64Data, ext) {
+  const contentType = 'image/' + ext
+  const raw = window.atob(base64Data);
+  const rawLength = raw.length;
+  const uInt8Array = new Uint8Array(rawLength);
+
+  for (let i = 0; i < rawLength; ++i) {
+    uInt8Array[i] = raw.charCodeAt(i);
+  }
+
+  return new Blob([uInt8Array], {type: contentType});
+}
+
 export const fillByObjectValue = (source,value) => {
   if(isObject(source) && isObject(value)) {
     Object.keys(value).forEach(key => {

@@ -3,7 +3,7 @@ import { createSlice, configureStore } from '@reduxjs/toolkit';
 import _ from 'lodash';
 import logger from 'redux-logger';
 import { Provider } from 'react-redux';
-import { fillByObjectValue, loadConfig, saveConfig } from './functions';
+import { fillByObjectValue, loadConfig, saveConfig, base64ImageToBlob } from './functions';
 
 export const initialState = Object.freeze({
   Global: {
@@ -15,6 +15,7 @@ export const initialState = Object.freeze({
     lastSelection: null,
     isBackEditing: false,
     selections: [],
+    blobLinks: {},
   },
   Config: {
     pageSize: 'A4:210,297',
@@ -47,41 +48,47 @@ export const initialState = Object.freeze({
   ImageStorage: {},
 });
 const storeCardImage = (state) => {
-  const {CardList, ImageStorage, Config} = state;
+  const {CardList, ImageStorage, Config, Global: {blobLinks}} = state;
   const usedImagePath = new Set();
+  const storeImage = image => {
+    const imagePathKey = image?.path.replaceAll('\\','');
+    if(image?.data) {
+      if(!Object.keys(ImageStorage).includes(imagePathKey)) {
+        ImageStorage[imagePathKey] = image?.data;
+      }
+      delete image?.data;
+    }
+    if(!Object.keys(blobLinks).includes(imagePathKey)) {
+      ImageStorage[imagePathKey] && (blobLinks[imagePathKey] = URL.createObjectURL(base64ImageToBlob(ImageStorage[imagePathKey], image?.ext)));
+    }
+  }
   CardList.forEach(card => {
     const {face,back} = card;
     const facePathKey  = face?.path.replaceAll('\\','');
     const backPathKey  = back?.path.replaceAll('\\','');
     usedImagePath.add(facePathKey);
     usedImagePath.add(backPathKey);
-    if(face?.data) {
-      if(!Object.keys(ImageStorage).includes(facePathKey)) {
-        ImageStorage[facePathKey] = face?.data;
-      }
-      delete face?.data;
-    }
-    if(back?.data) {
-      if(!Object.keys(ImageStorage).includes(backPathKey)) {
-        ImageStorage[backPathKey] = back?.data;
-      }
-      delete back?.data;
-    }
+    storeImage(face);
+    storeImage(back);
   });
-  if(Config.globalBackground?.data) {
+
+  if(Config.globalBackground?.path) {
     const globalBackPathKey = Config.globalBackground?.path?.replaceAll('\\','');
     usedImagePath.add(globalBackPathKey);
-    ImageStorage[globalBackPathKey] = Config.globalBackground?.data;
-    delete Config.globalBackground?.data;
+    storeImage(Config.globalBackground);
   }
-  Object.keys(ImageStorage).filter(key=> !usedImagePath.has(key)).forEach(key => delete ImageStorage[key])
+
+  Object.keys(ImageStorage).filter(key=> !usedImagePath.has(key)).forEach(key => delete ImageStorage[key]);
+  Object.keys(blobLinks).filter(key=> !usedImagePath.has(key)).forEach(key => delete blobLinks[key]);
+
 }
 export const pnpSlice = createSlice({
   name: 'pnp',
   initialState,
   reducers: {
     StateFill: (state, action) => {
-      fillByObjectValue(state, action.payload)
+      fillByObjectValue(state, action.payload);
+      storeCardImage(state);
       // Object.keys(action.payload).forEach(key => {
       //   state[key] = action.payload[key];
       // });
@@ -108,8 +115,8 @@ export const pnpSlice = createSlice({
     },
     CardCtrlSelect: (state, action) => {
       const selectedId = action.payload;
-      const selection = state.CardList.filter(c => c.selected);
-      
+      const selectedCard = state.CardList.find(c => c.id === selectedId);
+      selectedCard.selected = !selectedCard.selected
     },
     CardShiftSelect: (state, action) => {
       const lastSelection = state.Global.lastSelection;

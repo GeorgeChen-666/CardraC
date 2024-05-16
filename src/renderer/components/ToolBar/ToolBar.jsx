@@ -82,14 +82,14 @@ export const ToolBar = () => {
           setTimeout(() => alert(t('toolbar.lblExportSuccess')), 100);
         }}
       />
-      <GeneralButton
+      {Config.sides === 'double sides' && <GeneralButton
         label={t('toolbar.btnGlobalBackground')}
         icon={<Image boxSize='30px' src={Config.globalBackground?.path} />}
         onClick={async () => {
           const filePath = await openImage('setGlobalBack');
           dispatch(Actions.ConfigEdit({ globalBackground: filePath }));
         }}
-      />
+      />}
       <Menu onOpen={() => setRepeat(1)}>
         <MenuButton visibility={selectionLength === 0 ? 'hidden' : 'inline'} as={Button}
                     rightIcon={<IoIosArrowDown />}>
