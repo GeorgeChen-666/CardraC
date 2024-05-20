@@ -246,4 +246,5 @@ export const StoreProvider = ({ children }) => {
 };
 
 const config = await loadConfig();
-store.dispatch(Actions.GlobalEdit({...config}))
+store.dispatch(Actions.GlobalEdit({...config.Global}));
+store.dispatch(Actions.ConfigEdit({...config.Config}));

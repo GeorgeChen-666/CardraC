@@ -11,8 +11,10 @@ import './styles.css';
 import { Actions } from '../../../store';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import _ from 'lodash';
+import { useTranslation } from 'react-i18next';
 
 export const CardForm = () => {
+  const { t } = useTranslation();
   const Config = useSelector((state) => (
     _.pick(state.pnp.Config, [
       'columns',
@@ -48,22 +50,25 @@ export const CardForm = () => {
     Config.landscape
   ]);
   return (<div className={'FormPanel'}>
-    <Control label={'Width'} attrKey={'cardWidth'} type={ControlType.NumberInput}>
+    <Control label={t('configDialog.cardWidth')} attrKey={'cardWidth'} type={ControlType.NumberInput}>
       mm
     </Control>
-    <Control label={'Height'} attrKey={'cardHeight'} type={ControlType.NumberInput}>
+    <Control label={t('configDialog.cardHeight')} attrKey={'cardHeight'} type={ControlType.NumberInput}>
       mm
     </Control>
-    <Control label={'Margin X'} attrKey={'marginX'} type={ControlType.NumberInput}>
+    <Control label={t('configDialog.marginX')} attrKey={'marginX'} type={ControlType.NumberInput}>
       mm
     </Control>
-    <Control label={'Margin Y'} attrKey={'marginY'} type={ControlType.NumberInput}>
+    <Control label={t('configDialog.marginY')} attrKey={'marginY'} type={ControlType.NumberInput}>
       mm
     </Control>
-    <Control label={'Bleed'} attrKey={'bleed'} type={ControlType.NumberInput}>
+    <Control label={t('configDialog.bleed')} attrKey={'bleed'} type={ControlType.NumberInput}>
       mm
     </Control>
-    <Control label={'Columns/Rows'}>
+    <Control label={t('configDialog.scale')} attrKey={'scale'} type={ControlType.NumberInput}>
+      %
+    </Control>
+    <Control label={t('configDialog.columns_rows')}>
       <HStack>
         <NumberInput isDisabled={Config.autoColumnsRows} width={'90px'} value={Config.columns} onChange={(s, v) => {
           dispatch(Actions.ConfigEdit({columns:v}));
@@ -85,7 +90,7 @@ export const CardForm = () => {
         </NumberInput>
         <Checkbox value={'true'} isChecked={Config.autoColumnsRows}
                   onChange={(event) => dispatch(Actions.ConfigEdit({autoColumnsRows:event.target.checked}))}
-        >Auto</Checkbox>
+        >{t('configDialog.auto')}</Checkbox>
       </HStack>
     </Control>
   </div>)

@@ -31,8 +31,8 @@ export const Control = (({ children, label, attrKey, type, onChange }) => {
           return (
             <NumberInput
               value={value}
-              onChange={(valueString) =>
-                (valueString === '' || valueString === '-') ? setValue(valueString) : setValue(valueString * 1)
+              onChange={(valueString, numberValue) =>
+                setValue(valueString)
               }
               onBlur={(e) => {
                 const value = e.target.value * 1 || 0;

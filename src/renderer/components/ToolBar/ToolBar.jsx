@@ -2,12 +2,10 @@ import React, { useRef, useState } from 'react';
 import { IoIosArrowDown } from 'react-icons/io';
 import { AiFillFolderOpen, AiFillFileAdd, AiFillSetting, AiFillSave } from 'react-icons/ai';
 import {
-  Tooltip,
   Menu,
   MenuButton,
   MenuList,
   MenuItem,
-  IconButton,
   FormControl,
   FormLabel,
   Switch,

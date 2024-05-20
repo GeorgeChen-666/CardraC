@@ -15,8 +15,10 @@ import { LayoutForm } from './LayoutForm';
 import { CardForm } from './CardForm';
 import { MarkForm } from './MarkForm';
 import { ConfigOverview } from './ConfigOverview';
+import { useTranslation } from 'react-i18next';
 
 export const SetupDialog = forwardRef(({}, ref) => {
+  const { t } = useTranslation();
   const { isOpen, onOpen, onClose } = useDisclosure();
   useImperativeHandle(ref, () => ({
     openDialog: onOpen,
@@ -26,15 +28,15 @@ export const SetupDialog = forwardRef(({}, ref) => {
     <Modal closeOnOverlayClick={false} isOpen={isOpen} onClose={onClose} size={'5xl'} isCentered>
       <ModalOverlay />
       <ModalContent>
-        <ModalHeader padding={4}>Setup</ModalHeader>
+        <ModalHeader padding={4}>{t('configDialog.setup')}</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
           {/* <ConfigOverview /> */}
           <Tabs orientation={'vertical'} height={400}>
             <TabList>
-              <Tab alignSelf={'end'}>Layout</Tab>
-              <Tab alignSelf={'end'}>Card</Tab>
-              <Tab alignSelf={'end'}>Mark</Tab>
+              <Tab alignSelf={'end'}>{t('configDialog.layout')}</Tab>
+              <Tab alignSelf={'end'}>{t('configDialog.card')}</Tab>
+              <Tab alignSelf={'end'}>{t('configDialog.mark')}</Tab>
             </TabList>
 
             <TabPanels>

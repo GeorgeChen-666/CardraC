@@ -12,8 +12,10 @@ import './styles.css';
 import { Actions } from '../../../store';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import _ from 'lodash';
+import { useTranslation } from 'react-i18next';
 
 export const MarkForm = () => {
+  const { t } = useTranslation();
   const Config = useSelector((state) => (
     _.pick(state.pnp.Config, [
       'fCutLine',
@@ -27,15 +29,15 @@ export const MarkForm = () => {
   ), shallowEqual);
   const dispatch = useDispatch();
   return (<div className={'FormPanel'}>
-    <Control label={'Front Cutting Line'}>
+    <Control label={t('configDialog.fCutLine')}>
       <RadioGroup
         defaultValue={Config.fCutLine}
         onChange={(value) => dispatch(Actions.ConfigEdit({fCutLine:value}))}>
         <HStack>
-          <Radio value={'0'}>None</Radio>
-          <Radio value={'1'}>Normal</Radio>
-          <Radio value={'2'}>Cross</Radio>
-          <Radio value={'3'}>Complete</Radio>
+          <Radio value={'0'}>{t('configDialog.none')}</Radio>
+          <Radio value={'1'}>{t('configDialog.normal')}</Radio>
+          <Radio value={'2'}>{t('configDialog.cross')}</Radio>
+          <Radio value={'3'}>{t('configDialog.complete')}</Radio>
         </HStack>
       </RadioGroup>
     </Control>
@@ -55,14 +57,14 @@ export const MarkForm = () => {
         <span>pt</span>
       </HStack>
     </Control> */}
-    {Config.sides === 'double sides' && <Control label={'Back Cutting Line'}>
+    {Config.sides === 'double sides' && <Control label={t('configDialog.bCutLine')}>
       <RadioGroup defaultValue={Config.bCutLine}
                   onChange={(value) => dispatch(Actions.ConfigEdit({bCutLine:value}))}>
         <HStack>
-          <Radio value={'0'}>None</Radio>
-          <Radio value={'1'}>Normal</Radio>
-          <Radio value={'2'}>Cross</Radio>
-          <Radio value={'3'}>Complete</Radio>
+          <Radio value={'0'}>{t('configDialog.none')}</Radio>
+          <Radio value={'1'}>{t('configDialog.normal')}</Radio>
+          <Radio value={'2'}>{t('configDialog.cross')}</Radio>
+          <Radio value={'3'}>{t('configDialog.complete')}</Radio>
         </HStack>
       </RadioGroup>
     </Control>}

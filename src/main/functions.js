@@ -38,7 +38,7 @@ export const saveDataToFile = async (data, filePath) => {
 
 const initLanguageJson = (lang) => {
   const en = new Store({name: lang, cwd: 'locales'});
-  if(en.size === 0) {
+  if(en.size === 0 || isDev) {
     en.set(require(`./locales/${lang}.json`));
   }
 }
@@ -118,17 +118,19 @@ export const registerRendererActionHandlers = (mainWindow) => {
   });
 
   ipcMain.on('save-config', (event, args) => {
-    const { Global } = args.state;
-    store.set(_.pick(Global, ['currentLang']));
+    const { Global, Config } = args.state;
+    store.set({ Global: _.pick(Global, ['currentLang']) });
+    store.set({ Config });
   });
   ipcMain.on('load-config', () => {
     initLanguageJson('en');
     initLanguageJson('zh')
     const config = store.get() || {};
-    config.availableLangs = fs.readdirSync(path.join(app.getPath('userData'), 'locales')).map(p=>p?.split('.')?.[0] || '').filter(p=>!!p);
-    config.locales = {};
-    config.availableLangs.forEach(lang => {
-      config.locales[lang] = new Store({name: lang, cwd: 'locales'}).get();
+    config.Global = config.Global || {};
+    config.Global.availableLangs = fs.readdirSync(path.join(app.getPath('userData'), 'locales')).map(p=>p?.split('.')?.[0] || '').filter(p=>!!p);
+    config.Global.locales = {};
+    config.Global.availableLangs.forEach(lang => {
+      config.Global.locales[lang] = new Store({name: lang, cwd: 'locales'}).get();
     })
     mainWindow.webContents.send('load-config-done', config);
   });
