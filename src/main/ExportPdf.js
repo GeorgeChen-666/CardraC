@@ -20,12 +20,12 @@ const getPagedImageListByCardList = (state) => {
   const pagedImageList = [];
   const sides = Config.sides;
   const size = Config.rows * Config.columns;
-  if(sides === 'brochure') {
-    const repeat = 4 - repeatCardList.length % 4;
+  if (sides === 'brochure') {
+    const repeat = (4 - repeatCardList.length % 4) % 4;
     repeatCardList = repeatCardList.concat(new Array(repeat));
     const tempPairList = [];
     for (let i = 0; i < repeatCardList.length / 2; i++) {
-      tempPairList.push([repeatCardList[i * 2],repeatCardList[i * 2 + 1]]);
+      tempPairList.push([repeatCardList[i * 2], repeatCardList[i * 2 + 1]]);
     }
     const tempPairList2 = [];
     for (let i = 0; i < tempPairList.length / 2; i++) {
@@ -79,7 +79,10 @@ const drawPageElements = async (doc, pageData, state) => {
   const maxHeight = fixFloat(doc.getPageHeight(0));
 
   const landscape = Config.landscape;
-  const flipWay = ['none', 'long-edge binding', 'short-edge binding'].indexOf(Config.flip);
+  let flipWay = ['none', 'long-edge binding', 'short-edge binding'].indexOf(Config.flip);
+  if (Config.sides === 'brochure') {
+    flipWay = landscape ? 2 : 1;
+  }
   const { imageList, type } = pageData;
   if (type === 'back') {
     if (landscape && flipWay === 1 || !landscape && flipWay === 2) {
@@ -123,7 +126,7 @@ const drawPageElements = async (doc, pageData, state) => {
             doc.addImage(image.path, image.ext, imageXc, imageYc, cardW, cardH, image.path, 'NONE', cardRotation);
           } else {
             // const base64String = await readFileToBase64(image.path);
-            doc.addImage(ImageStorage[image.path?.replaceAll('\\','')], image.ext, imageXc, imageYc, cardW, cardH, image.path, 'NONE', cardRotation);
+            doc.addImage(ImageStorage[image.path?.replaceAll('\\', '')], image.ext, imageXc, imageYc, cardW, cardH, image.path, 'NONE', cardRotation);
           }
         } catch (e) {
           console.log('addImage error', e);

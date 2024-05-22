@@ -89,16 +89,10 @@ export const pnpSlice = createSlice({
     StateFill: (state, action) => {
       fillByObjectValue(state, action.payload);
       storeCardImage(state);
-      // Object.keys(action.payload).forEach(key => {
-      //   state[key] = action.payload[key];
-      // });
     },
     GlobalEdit: (state, action) => {
       fillByObjectValue(state.Global, action.payload);
       saveConfig({state});
-      // Object.keys(action.payload).forEach(key => {
-      //   state.Global[key] = action.payload[key];
-      // });
     },
     CardSelect: (state, action) => {
       const selectedId = action.payload;
@@ -125,11 +119,7 @@ export const pnpSlice = createSlice({
       if (lastSelectionIndex + currentSelectionIndex > -1) {
         state.CardList.forEach((c, i) => {
           const ia = [lastSelectionIndex, currentSelectionIndex];
-          if (i >= Math.min(...ia) && i <= Math.max(...ia)) {
-            c.selected = true;
-          } else {
-            c.selected = false;
-          }
+          c.selected = i >= Math.min(...ia) && i <= Math.max(...ia);
         });
       } else {
         state.CardList.forEach(c => c.selected = false);
@@ -138,9 +128,7 @@ export const pnpSlice = createSlice({
     ConfigEdit: (state, action) => {
       fillByObjectValue(state.Config, action.payload);
       storeCardImage(state);
-      // Object.keys(action.payload).forEach(key => {
-      //   state.Config[key] = action.payload[key];
-      // });
+      saveConfig({state});
     },
     CardAddByFaces: (state, action) => {
       state.CardList = state.CardList.concat(action.payload.map(p => ({
@@ -195,9 +183,6 @@ export const pnpSlice = createSlice({
       const card = state.CardList.find(c => c.id === action.payload.id);
       if (card) {
         fillByObjectValue(card, action.payload);
-        // Object.keys(action.payload).forEach(key => {
-        //   card[key] = action.payload[key];
-        // });
         storeCardImage(state);
       }
     },
@@ -216,9 +201,6 @@ export const pnpSlice = createSlice({
       const selection = state.CardList.filter(c => c.selected);
       selection.forEach(c => {
         fillByObjectValue(c, action.payload);
-        // Object.keys(action.payload).forEach(key => {
-        //   c[key] = action.payload[key];
-        // });
       });
       storeCardImage(state);
     },
