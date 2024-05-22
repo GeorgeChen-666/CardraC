@@ -89,6 +89,7 @@ export const pnpSlice = createSlice({
     StateFill: (state, action) => {
       fillByObjectValue(state, action.payload);
       storeCardImage(state);
+      saveConfig({state});
     },
     GlobalEdit: (state, action) => {
       fillByObjectValue(state.Global, action.payload);
