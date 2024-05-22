@@ -15,24 +15,50 @@ const getLocateByCenterBase = (x, y, doc, pageIndex = 1) => {
 };
 const getPagedImageListByCardList = (state) => {
   const { CardList, Config } = state;
-  const repeatCardList = CardList.reduce((arr, cv) => arr.concat(new Array(cv.repeat).fill(cv)), []);
+  let repeatCardList = CardList.reduce((arr, cv) => arr.concat(new Array(cv.repeat).fill(cv)), []);
 
   const pagedImageList = [];
   const sides = Config.sides;
   const size = Config.rows * Config.columns;
-  for (let i = 0; i < repeatCardList.length; i += size) {
-    const result = repeatCardList.slice(i, i + size);
-    pagedImageList.push({
-      imageList: result.map(c => c.face),
-      type: 'face',
-    });
-    if (sides === 'double sides') {
+  if(sides === 'brochure') {
+    const repeat = 4 - repeatCardList.length % 4;
+    repeatCardList = repeatCardList.concat(new Array(repeat));
+    const tempPairList = [];
+    for (let i = 0; i < repeatCardList.length / 2; i++) {
+      tempPairList.push([repeatCardList[i * 2],repeatCardList[i * 2 + 1]]);
+    }
+    const tempPairList2 = [];
+    for (let i = 0; i < tempPairList.length / 2; i++) {
+      tempPairList2.push(tempPairList[tempPairList.length - i - 1].reverse());
+      tempPairList2.push(tempPairList[i]);
+    }
+    for (let i = 0; i < tempPairList2.length; i += size) {
+      const result = tempPairList2.slice(i, i + size);
       pagedImageList.push({
-        imageList: result.map(c => c.back || Config.globalBackground || emptyImg),
+        imageList: result.map(c => c[0]?.face || emptyImg),
+        type: 'face',
+      });
+      pagedImageList.push({
+        imageList: result.map(c => c[1]?.face || emptyImg),
         type: 'back',
       });
     }
+  } else {
+    for (let i = 0; i < repeatCardList.length; i += size) {
+      const result = repeatCardList.slice(i, i + size);
+      pagedImageList.push({
+        imageList: result.map(c => c.face),
+        type: 'face',
+      });
+      if (sides === 'double sides') {
+        pagedImageList.push({
+          imageList: result.map(c => c.back || Config.globalBackground || emptyImg),
+          type: 'back',
+        });
+      }
+    }
   }
+
   return pagedImageList;
 };
 const drawPageElements = async (doc, pageData, state) => {

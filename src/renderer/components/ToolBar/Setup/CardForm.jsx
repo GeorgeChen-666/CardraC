@@ -3,10 +3,10 @@ import {
   NumberIncrementStepper,
   NumberInput,
   NumberInputField,
-  NumberInputStepper
+  NumberInputStepper,
 } from '@chakra-ui/react';
 import React, { useEffect } from 'react';
-import {Control, ControlType} from './Control';
+import { Control, ControlType } from './Control';
 import './styles.css';
 import { Actions } from '../../../store';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
@@ -27,15 +27,16 @@ export const CardForm = () => {
       'bleed',
       'landscape',
       'pageWidth',
-      'pageHeight'
+      'pageHeight',
+      'sides'
     ])
   ), shallowEqual);
   const dispatch = useDispatch();
   useEffect(() => {
-    if(Config.autoColumnsRows) {
-      const pageWidth = Config.landscape? Config.pageHeight: Config.pageWidth;
-      const pageHeight = Config.landscape? Config.pageWidth: Config.pageHeight;
-      const autoColumns = parseInt(pageWidth / (Config.cardWidth + Config.marginX));
+    if (Config.autoColumnsRows) {
+      const pageWidth = Config.landscape ? Config.pageHeight : Config.pageWidth;
+      const pageHeight = Config.landscape ? Config.pageWidth : Config.pageHeight;
+      const autoColumns = Config.sides === 'brochure' ? 2 : parseInt(pageWidth / (Config.cardWidth + Config.marginX));
       const autoRows = parseInt(pageHeight / (Config.cardHeight + Config.marginY));
       dispatch(Actions.ConfigEdit({ columns: autoColumns, rows: autoRows }));
     }
@@ -47,7 +48,8 @@ export const CardForm = () => {
     Config.cardHeight,
     Config.marginX,
     Config.marginY,
-    Config.landscape
+    Config.landscape,
+    Config.sides
   ]);
   return (<div className={'FormPanel'}>
     <Control label={t('configDialog.cardWidth')} attrKey={'cardWidth'} type={ControlType.NumberInput}>
@@ -70,17 +72,9 @@ export const CardForm = () => {
     </Control>
     <Control label={t('configDialog.columns_rows')}>
       <HStack>
-        <NumberInput isDisabled={Config.autoColumnsRows} width={'90px'} value={Config.columns} onChange={(s, v) => {
-          dispatch(Actions.ConfigEdit({columns:v}));
-        }} mr={8}>
-          <NumberInputField />
-          <NumberInputStepper>
-            <NumberIncrementStepper />
-            <NumberDecrementStepper />
-          </NumberInputStepper>
-        </NumberInput>
-        <NumberInput isDisabled={Config.autoColumnsRows} width={'90px'} value={Config.rows} onChange={(s, v) => {
-          dispatch(Actions.ConfigEdit({rows:v}));
+        <NumberInput isDisabled={Config.autoColumnsRows} width={'90px'}
+                     value={Config.landscape ? Config.rows : Config.columns} onChange={(s, v) => {
+          dispatch(Actions.ConfigEdit({ [Config.landscape ? 'rows' : 'columns']: v }));
         }} mr={4}>
           <NumberInputField />
           <NumberInputStepper>
@@ -88,10 +82,20 @@ export const CardForm = () => {
             <NumberDecrementStepper />
           </NumberInputStepper>
         </NumberInput>
+        <NumberInput isDisabled={Config.autoColumnsRows} width={'90px'}
+                     value={Config.landscape ? Config.columns : Config.rows} onChange={(s, v) => {
+          dispatch(Actions.ConfigEdit({ [Config.landscape ? 'columns' : 'rows']: v }));
+        }} mr={8}>
+          <NumberInputField />
+          <NumberInputStepper>
+            <NumberIncrementStepper />
+            <NumberDecrementStepper />
+          </NumberInputStepper>
+        </NumberInput>
         <Checkbox value={'true'} isChecked={Config.autoColumnsRows}
-                  onChange={(event) => dispatch(Actions.ConfigEdit({autoColumnsRows:event.target.checked}))}
+                  onChange={(event) => dispatch(Actions.ConfigEdit({ autoColumnsRows: event.target.checked }))}
         >{t('configDialog.auto')}</Checkbox>
       </HStack>
     </Control>
-  </div>)
-}
+  </div>);
+};
