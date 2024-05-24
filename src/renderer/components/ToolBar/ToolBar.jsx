@@ -20,7 +20,7 @@ import {
 } from '@chakra-ui/react';
 import { MdPictureAsPdf } from 'react-icons/md';
 import { SetupDialog } from './Setup/SetupDialog';
-import { Actions, initialState, store } from '../../store';
+import { Actions, initialState, store, reloadImageFromFile } from '../../store';
 import { exportPdf, openImage, openMultiImage, openProject, saveProject } from '../../functions';
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { useTranslation } from 'react-i18next';
@@ -53,6 +53,7 @@ export const ToolBar = () => {
         onClick={async () => {
           const projectData = await openProject();
           dispatch(Actions.StateFill(projectData));
+          await reloadImageFromFile();
         }}
       />
       <GeneralButton

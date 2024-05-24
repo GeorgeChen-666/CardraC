@@ -1,3 +1,5 @@
+import { readFileToData } from './functions';
+
 const { app, BrowserWindow } = require('electron');
 const { registerRendererActionHandlers, isDev } = require('./functions');
 
@@ -40,6 +42,12 @@ const createWindow = () => {
 
   registerRendererActionHandlers(mainWindow);
 
+  const filePath = process.argv.slice(2).find(arg => arg.endsWith('.cpnp'))
+  if (filePath) {
+    readFileToData(result.filePaths[0]).then(toRenderData => {
+      mainWindow.webContents.send('open-project-return', toRenderData);
+    });
+  }
 };
 
 // This method will be called when Electron has finished

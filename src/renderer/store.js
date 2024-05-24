@@ -4,6 +4,7 @@ import _ from 'lodash';
 import logger from 'redux-logger';
 import { Provider } from 'react-redux';
 import { fillByObjectValue, loadConfig, saveConfig, base64ImageToBlob } from './functions';
+import { readFileToData } from '../main/functions';
 
 export const initialState = Object.freeze({
   Global: {
@@ -47,10 +48,39 @@ export const initialState = Object.freeze({
   CardList: [],
   ImageStorage: {},
 });
+
+export const reloadImageFromFile = async () => {
+  const state = store.getState();
+  const {CardList, Config, Global: {blobLinks}} = state.pnp;
+  const ImageCache = {};
+  const blobLinksCache = {};
+  const loadImage = async(image) => {
+    if(!image) return;
+    try {
+      const imagePathKey = image?.path.replaceAll('\\','');
+      ImageCache[imagePathKey] = await readFileToData(image?.path ,'base64');
+      ImageCache[imagePathKey] && (blobLinksCache[imagePathKey] = URL.createObjectURL(base64ImageToBlob(ImageCache[imagePathKey], image?.ext)));
+    } catch (e) {
+
+    }
+
+  }
+  for(let card of CardList) {
+    const {face,back} = card;
+    await loadImage(face);
+    await loadImage(back);
+  }
+  if(Config.globalBackground?.path) {
+    await loadImage(Config.globalBackground);
+  }
+  store.dispatch(Actions.UpdateStorage(ImageCache));
+  store.dispatch(Actions.GlobalEdit({ blobLinks: blobLinksCache }));
+}
 const storeCardImage = (state) => {
   const {CardList, ImageStorage, Config, Global: {blobLinks}} = state;
   const usedImagePath = new Set();
   const storeImage = image => {
+    if(!image) return;
     const imagePathKey = image?.path.replaceAll('\\','');
     if(image?.data) {
       if(!Object.keys(ImageStorage).includes(imagePathKey)) {
@@ -80,8 +110,8 @@ const storeCardImage = (state) => {
 
   Object.keys(ImageStorage).filter(key=> !usedImagePath.has(key)).forEach(key => delete ImageStorage[key]);
   Object.keys(blobLinks).filter(key=> !usedImagePath.has(key)).forEach(key => delete blobLinks[key]);
-
 }
+
 export const pnpSlice = createSlice({
   name: 'pnp',
   initialState,
@@ -209,6 +239,12 @@ export const pnpSlice = createSlice({
       state.CardList = state.CardList.filter(c => !action.payload.includes(c.id));
       storeCardImage(state);
     },
+    UpdateStorage: (state, action) => {
+      const ImageCache = action.payload;
+      Object.keys(ImageCache).forEach(key => {
+        state.ImageStorage[key] = ImageCache[key];
+      })
+    }
   },
 });
 export const Actions = pnpSlice.actions;

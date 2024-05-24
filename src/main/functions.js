@@ -16,7 +16,7 @@ const {env} = process; // eslint-disable-line n/prefer-global/process
 const isEnvSet = 'ELECTRON_IS_DEV' in env;
 const getFromEnv = Number.parseInt(env.ELECTRON_IS_DEV, 10) === 1;
 
-export const isDev = isEnvSet ? getFromEnv : !electron.app.isPackaged;
+export const isDev = isEnvSet ? getFromEnv : !electron?.app?.isPackaged;
 
 export const readFileToData = async (filePath, format = '') => {
   const data = await fs.readFileSync(filePath);
