@@ -126,10 +126,10 @@ const drawPageElements = async (doc, pageData, state) => {
             doc.addImage(image.path, image.ext, imageXc, imageYc, cardW, cardH, image.path, 'NONE', cardRotation);
           } else {
             // const base64String = await readFileToBase64(image.path);
-            doc.addImage(ImageStorage[image.path?.replaceAll('\\', '')], image.ext, imageXc, imageYc, cardW, cardH, image.path, 'NONE', cardRotation);
+            doc.addImage(ImageStorage[image.path?.replaceAll('\\', '')], image.ext, imageXc, imageYc, cardW, cardH, image.path, 'MEDIUM', cardRotation);
           }
         } catch (e) {
-          console.log('addImage error', e);
+          //console.log('addImage error', e);
         }
       }
       if (Config.fCutLine === '2' || Config.fCutLine === '3') {
@@ -185,7 +185,7 @@ export const exportPdf = async (state, onProgress) => {
   const { Config } = state;
   const format = (Config.pageSize.split(':')[0]).toLowerCase();
   const orientation = Config.landscape ? 'landscape' : 'portrait';
-  const doc = new jsPDF({ format, orientation });
+  const doc = new jsPDF({ format, orientation, compress: true });
   const pagedImageList = getPagedImageListByCardList(state);
   const pageJobs = pagedImageList.map((pageData, index) => async () => {
     index > 0 && doc.addPage();

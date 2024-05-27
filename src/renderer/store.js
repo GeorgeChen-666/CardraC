@@ -123,7 +123,7 @@ export const pnpSlice = createSlice({
     },
     GlobalEdit: (state, action) => {
       fillByObjectValue(state.Global, action.payload);
-      saveConfig({state});
+      //saveConfig({state});
     },
     CardSelect: (state, action) => {
       const selectedId = action.payload;
