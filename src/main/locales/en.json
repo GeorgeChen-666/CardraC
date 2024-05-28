@@ -62,6 +62,7 @@
     "normal": "Normal",
     "cross": "Cross",
     "complete": "Complete",
+    "lineWeight": "Line Weight",
     "color": "Color"
   },
   "footer": {

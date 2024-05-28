@@ -16,7 +16,7 @@ export const ControlType = Object.freeze({
   NumberInput: 'NumberInput',
 });
 
-export const Control = (({ children, label, attrKey, type, onChange }) => {
+export const Control = (({ children, label, attrKey, type, onChange, style }) => {
   const dispatch = useDispatch();
   const Config = useSelector((state) => (
     _.pick(state.pnp.Config, [attrKey])
@@ -30,6 +30,7 @@ export const Control = (({ children, label, attrKey, type, onChange }) => {
         if (type === ControlType.NumberInput) {
           return (
             <NumberInput
+              style={style}
               value={value}
               onChange={(valueString, numberValue) =>
                 setValue(valueString)

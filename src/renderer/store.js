@@ -39,7 +39,7 @@ export const initialState = Object.freeze({
     autoColumnsRows: true,
     fCutLine: '1',
     bCutLine: '1',
-    cutlineThinkness: 3,
+    cutlineThinkness: 1.5,
     cutlineColor: '#000000',
     globalBackground: null,
   },

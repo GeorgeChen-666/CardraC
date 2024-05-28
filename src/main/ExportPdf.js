@@ -78,6 +78,8 @@ const drawPageElements = async (doc, pageData, state) => {
   const normalMarks = new Set();
   const maxWidth = fixFloat(doc.getPageWidth(0));
   const maxHeight = fixFloat(doc.getPageHeight(0));
+  const cutlineThinkness = Config.cutlineThinkness;
+  const cutlineColor = Config.cutlineColor;
 
   const landscape = Config.landscape;
   let flipWay = ['none', 'long-edge binding', 'short-edge binding'].indexOf(Config.flip);
@@ -163,6 +165,8 @@ const drawPageElements = async (doc, pageData, state) => {
 
     }
   }
+  doc.setLineWidth(cutlineThinkness);
+  doc.setDrawColor(cutlineColor);
   normalMarks.forEach(nm => {
     const [loc1, loc2] = nm.split('-');
     const [x1, y1] = loc1.split(',');

@@ -7,7 +7,7 @@ import {
   Input, FormLabel,
 } from '@chakra-ui/react';
 import React from 'react';
-import {Control} from './Control';
+import { Control, ControlType } from './Control';
 import './styles.css';
 import { Actions } from '../../../store';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
@@ -55,17 +55,13 @@ export const MarkForm = () => {
     <Control label={t('configDialog.color')}>
       <HStack>
         <Input name={'cutlineColor'} width={'80px'} type={'color'} defaultValue={Config.cutlineColor}
-               onChange={(value) => dispatch(Actions.ConfigEdit({cutlineColor:value}))} />
-        <FormLabel textAlign={'right'} className={'FormPanel'}>Thinckness</FormLabel>
-        <NumberInput width={'90px'} defaultValue={Config.cutlineThinkness}
-                     onChange={($, value) => dispatch(Actions.ConfigEdit({cutlineThinkness:value}))}>
-          <NumberInputField />
-          <NumberInputStepper>
-            <NumberIncrementStepper />
-            <NumberDecrementStepper />
-          </NumberInputStepper>
-        </NumberInput>
-        <span>pt</span>
+               onChange={(e) => dispatch(Actions.ConfigEdit({cutlineColor:e.target.value}))} />
+        <Control
+          label={t('configDialog.lineWeight')}
+          attrKey={'lineWeight'}
+          type={ControlType.NumberInput}
+          style={{ width: '90px' }}
+        >pt</Control>
       </HStack>
     </Control>
   </div>)
