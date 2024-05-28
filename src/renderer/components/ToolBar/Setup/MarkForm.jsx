@@ -41,22 +41,6 @@ export const MarkForm = () => {
         </HStack>
       </RadioGroup>
     </Control>
-    {/* <Control label={'Color'}>
-      <HStack>
-        <Input name={'fCutlineColor'} width={'80px'} type={'color'} defaultValue={Config.fCutlineColor}
-               onChange={(value) => dispatch(Actions.ConfigEdit({fCutlineColor:value}))} />
-        <FormLabel textAlign={'right'} className={'FormPanel'}>Thinckness</FormLabel>
-        <NumberInput width={'90px'} defaultValue={Config.fCutlineThinkness}
-                     onChange={($, value) => dispatch(Actions.ConfigEdit({fCutlineThinkness:value}))}>
-          <NumberInputField />
-          <NumberInputStepper>
-            <NumberIncrementStepper />
-            <NumberDecrementStepper />
-          </NumberInputStepper>
-        </NumberInput>
-        <span>pt</span>
-      </HStack>
-    </Control> */}
     {Config.sides === 'double sides' && <Control label={t('configDialog.bCutLine')}>
       <RadioGroup defaultValue={Config.bCutLine}
                   onChange={(value) => dispatch(Actions.ConfigEdit({bCutLine:value}))}>
@@ -68,13 +52,13 @@ export const MarkForm = () => {
         </HStack>
       </RadioGroup>
     </Control>}
-    {/* <Control label={'Color'}>
+    <Control label={t('configDialog.color')}>
       <HStack>
-        <Input width={'80px'} type={'color'}  defaultValue={Config.bCutlineColor}
-               onChange={(value) => dispatch(Actions.ConfigEdit({bCutlineColor:value}))}/>
+        <Input name={'cutlineColor'} width={'80px'} type={'color'} defaultValue={Config.cutlineColor}
+               onChange={(value) => dispatch(Actions.ConfigEdit({cutlineColor:value}))} />
         <FormLabel textAlign={'right'} className={'FormPanel'}>Thinckness</FormLabel>
-        <NumberInput width={'90px'} defaultValue={Config.bCutlineThinkness}
-                     onChange={($, value) => dispatch(Actions.ConfigEdit({bCutlineThinkness:value}))}>
+        <NumberInput width={'90px'} defaultValue={Config.cutlineThinkness}
+                     onChange={($, value) => dispatch(Actions.ConfigEdit({cutlineThinkness:value}))}>
           <NumberInputField />
           <NumberInputStepper>
             <NumberIncrementStepper />
@@ -83,6 +67,6 @@ export const MarkForm = () => {
         </NumberInput>
         <span>pt</span>
       </HStack>
-    </Control> */}
+    </Control>
   </div>)
 }

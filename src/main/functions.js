@@ -134,4 +134,9 @@ export const registerRendererActionHandlers = (mainWindow) => {
     })
     mainWindow.webContents.send('load-config-done', config);
   });
+  ipcMain.on('base64-to-buffer', (event, args) => {
+    const buffer = Buffer.from(args.base64Data, 'base64');
+    const decodedString = buffer.toString('binary');
+    mainWindow.webContents.send(args.returnChannel, decodedString);
+  });
 }

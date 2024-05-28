@@ -61,7 +61,8 @@
     "none": "无",
     "normal": "常规",
     "cross": "十字标",
-    "complete": "完整"
+    "complete": "完整",
+    "color": "颜色"
   },
   "footer": {
     "files": "文件数",

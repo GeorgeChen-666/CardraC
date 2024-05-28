@@ -20,6 +20,7 @@ const createWindow = () => {
       webSecurity: false
     },
   });
+  const renderLog = (...args) => setTimeout(() => mainWindow.webContents.send('console', args), 2000) ;
 
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
@@ -27,26 +28,24 @@ const createWindow = () => {
     // Open the DevTools.
     mainWindow.webContents.openDevTools();
   } else {
+    //mainWindow.webContents.openDevTools();
     mainWindow.menuBarVisible = false;
     mainWindow.webContents.on('context-menu', (e, params) => {
       e.preventDefault(); // 阻止默认的右键菜单
-      // // 你可以在这里定义自己的菜单项
-      // const menu = Menu.buildFromTemplate([
-      //   { label: '自定义项' }
-      // ]);
-      // menu.popup({ window: mainWindow });
     });
   }
 
 
 
   registerRendererActionHandlers(mainWindow);
-
-  const filePath = process.argv.slice(2).find(arg => arg.endsWith('.cpnp'))
+  const filePath = process.argv.find(arg => arg.endsWith('.cpnp'))
   if (filePath) {
-    readFileToData(result.filePaths[0]).then(toRenderData => {
-      mainWindow.webContents.send('open-project-return', toRenderData);
-    });
+    setTimeout(()=>{
+      readFileToData(filePath).then(toRenderData => {
+        renderLog(filePath, toRenderData);
+        mainWindow.webContents.send('open-project-file', toRenderData);
+      });
+    },100)
   }
 };
 

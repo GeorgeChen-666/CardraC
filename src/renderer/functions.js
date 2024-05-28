@@ -6,18 +6,26 @@ export const getResourcesPath = (path) => (isDev?'':'..') + path;
 
 export const isObject = data => typeof data === 'object' && data?.constructor === Object
 
-export function base64ImageToBlob(base64Data, ext) {
-  const contentType = 'image/' + ext
-  const raw = window.atob(base64Data);
-  const rawLength = raw.length;
-  const uInt8Array = new Uint8Array(rawLength);
-
-  for (let i = 0; i < rawLength; ++i) {
-    uInt8Array[i] = raw.charCodeAt(i);
+export const base64ImageToBlob = (base64Data, ext) => new Promise((resolve) => {
+  const returnKey = 'base64-to-buffer-return';
+  ipcRenderer.send('base64-to-buffer', {
+    base64Data,
+    returnChannel: returnKey
+  });
+  const onEvent = (event, returnValue) => {
+    ipcRenderer.off(returnKey, onEvent);
+    const contentType = 'image/' + ext;
+    const raw = returnValue;
+    const rawLength = raw.length;
+    const uInt8Array = new Uint8Array(rawLength);
+    for (let i = 0; i < rawLength; ++i) {
+      uInt8Array[i] = raw.charCodeAt(i);
+    }
+    resolve(new Blob([uInt8Array], {type: contentType}));
   }
+  ipcRenderer.on(returnKey, onEvent);
+});
 
-  return new Blob([uInt8Array], {type: contentType});
-}
 
 export const fillByObjectValue = (source,value) => {
   if(isObject(source) && isObject(value)) {
@@ -34,6 +42,14 @@ export const fillByObjectValue = (source,value) => {
     });
   }
 }
+ipcRenderer.on('console', (ev,...args) => console.log(...args));
+export const onOpenProjectFile = (dispatch, Actions, cb) => {
+  ipcRenderer.on('open-project-file', async (event, data) => {
+    dispatch(Actions.StateFill(JSON.parse(data)));
+    cb();
+  });
+}
+
 
 export const openImage = (key) => new Promise((resolve) => {
   const returnKey = 'open-image-return' + key;
@@ -94,6 +110,7 @@ export const openProject = () => new Promise((resolve)=>{
     returnChannel: 'open-project-return'
   });
   const onFileOpen = (event, data) => {
+    debugger;
     ipcRenderer.off('open-project-return', onFileOpen);
     resolve(JSON.parse(data));
   }

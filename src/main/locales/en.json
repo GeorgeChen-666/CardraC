@@ -61,7 +61,8 @@
     "none": "None",
     "normal": "Normal",
     "cross": "Cross",
-    "complete": "Complete"
+    "complete": "Complete",
+    "color": "Color"
   },
   "footer": {
     "files": "Files",

@@ -3,7 +3,7 @@ import { createSlice, configureStore } from '@reduxjs/toolkit';
 import _ from 'lodash';
 import logger from 'redux-logger';
 import { Provider } from 'react-redux';
-import { fillByObjectValue, loadConfig, saveConfig, base64ImageToBlob } from './functions';
+import { fillByObjectValue, loadConfig, saveConfig, base64ImageToBlob, onOpenProjectFile } from './functions';
 import { readFileToData } from '../main/functions';
 
 export const initialState = Object.freeze({
@@ -38,11 +38,9 @@ export const initialState = Object.freeze({
     rows: 2,
     autoColumnsRows: true,
     fCutLine: '1',
-    fCutlineThinkness: 3,
-    fCutlineColor: '#000000',
     bCutLine: '1',
-    bCutlineThinkness: 3,
-    bCutlineColor: '#000000',
+    cutlineThinkness: 3,
+    cutlineColor: '#000000',
     globalBackground: null,
   },
   CardList: [],
@@ -51,7 +49,7 @@ export const initialState = Object.freeze({
 
 export const reloadImageFromFile = async () => {
   const state = store.getState();
-  const {CardList, Config, Global: {blobLinks}} = state.pnp;
+  const {CardList, Config} = state.pnp;
   const ImageCache = {};
   const blobLinksCache = {};
   const loadImage = async(image) => {
@@ -59,9 +57,10 @@ export const reloadImageFromFile = async () => {
     try {
       const imagePathKey = image?.path.replaceAll('\\','');
       ImageCache[imagePathKey] = await readFileToData(image?.path ,'base64');
-      ImageCache[imagePathKey] && (blobLinksCache[imagePathKey] = URL.createObjectURL(base64ImageToBlob(ImageCache[imagePathKey], image?.ext)));
+      const newBlob = await base64ImageToBlob(ImageCache[imagePathKey], image?.ext);
+      ImageCache[imagePathKey] && (blobLinksCache[imagePathKey] = URL.createObjectURL(newBlob));
     } catch (e) {
-
+      console.log(e);
     }
 
   }
@@ -76,8 +75,9 @@ export const reloadImageFromFile = async () => {
   store.dispatch(Actions.UpdateStorage(ImageCache));
   store.dispatch(Actions.GlobalEdit({ blobLinks: blobLinksCache }));
 }
+//ugly code
 const storeCardImage = (state) => {
-  const {CardList, ImageStorage, Config, Global: {blobLinks}} = state;
+  const {CardList, ImageStorage, Config} = state;
   const usedImagePath = new Set();
   const storeImage = image => {
     if(!image) return;
@@ -87,9 +87,6 @@ const storeCardImage = (state) => {
         ImageStorage[imagePathKey] = image?.data;
       }
       delete image?.data;
-    }
-    if(!Object.keys(blobLinks).includes(imagePathKey)) {
-      ImageStorage[imagePathKey] && (blobLinks[imagePathKey] = URL.createObjectURL(base64ImageToBlob(ImageStorage[imagePathKey], image?.ext)));
     }
   }
   CardList.forEach(card => {
@@ -109,9 +106,29 @@ const storeCardImage = (state) => {
   }
 
   Object.keys(ImageStorage).filter(key=> !usedImagePath.has(key)).forEach(key => delete ImageStorage[key]);
-  Object.keys(blobLinks).filter(key=> !usedImagePath.has(key)).forEach(key => delete blobLinks[key]);
+  updateBlobLinks(state);
 }
-
+//ugly code
+const updateBlobLinks = async (state) => {
+  const {ImageStorage, Global: {blobLinks}} = state;
+  const _BlobLinks = JSON.parse(JSON.stringify(blobLinks));
+  const _ImageStorage = JSON.parse(JSON.stringify(ImageStorage));
+  Object.keys(_BlobLinks).filter(key=> !Object.keys(_ImageStorage).includes(key)).forEach(key => {
+    URL.revokeObjectURL(_BlobLinks[key]);
+    delete _BlobLinks[key];
+  });
+  for(const imagePathKey of Object.keys(_ImageStorage)) {
+    if(!Object.keys(_BlobLinks).includes(imagePathKey)) {
+      //
+      const ext = imagePathKey.split('.').pop();
+      const newBlob = await base64ImageToBlob(_ImageStorage[imagePathKey], ext);
+      _ImageStorage[imagePathKey] && (_BlobLinks[imagePathKey] = URL.createObjectURL(newBlob));
+    }
+  }
+  setTimeout(() => {
+    store.dispatch(Actions.GlobalEdit({blobLinks:_BlobLinks}));
+  }, 100)
+}
 export const pnpSlice = createSlice({
   name: 'pnp',
   initialState,
@@ -267,3 +284,4 @@ export const StoreProvider = ({ children }) => {
 const config = await loadConfig();
 store.dispatch(Actions.GlobalEdit({...config.Global}));
 store.dispatch(Actions.ConfigEdit({...config.Config}));
+onOpenProjectFile(store.dispatch, Actions, () => reloadImageFromFile())
