@@ -1,4 +1,5 @@
 const { jsPDF } = require('jspdf');
+const { compressImage } = require('./functions');
 
 export const emptyImg = {
   path: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
@@ -125,8 +126,8 @@ const drawPageElements = async (doc, pageData, state) => {
           if (image === emptyImg) {
             doc.addImage(image.path, image.ext, imageXc, imageYc, cardW, cardH, image.path, 'NONE', cardRotation);
           } else {
-            // const base64String = await readFileToBase64(image.path);
-            doc.addImage(ImageStorage[image.path?.replaceAll('\\', '')], image.ext, imageXc, imageYc, cardW, cardH, image.path, 'MEDIUM', cardRotation);
+            const base64String = ImageStorage[image.path?.replaceAll('\\', '')];
+            doc.addImage(base64String, image.ext, imageXc, imageYc, cardW, cardH, image.path, 'MEDIUM', cardRotation);
           }
         } catch (e) {
           //console.log('addImage error', e);
@@ -187,13 +188,19 @@ export const exportPdf = async (state, onProgress) => {
   const orientation = Config.landscape ? 'landscape' : 'portrait';
   const doc = new jsPDF({ format, orientation, compress: true });
   const pagedImageList = getPagedImageListByCardList(state);
-  const pageJobs = pagedImageList.map((pageData, index) => async () => {
+  // const pageJobs = pagedImageList.map((pageData, index) => async () => {
+  //   index > 0 && doc.addPage();
+  //   await drawPageElements(doc, pageData, state);
+  //   onProgress(parseInt((index / pagedImageList.length) * 100));
+  // });
+  // for (const job of pageJobs) {
+  //   await job();
+  // }
+  for(const index in pagedImageList) {
+    const pageData = pagedImageList[index];
     index > 0 && doc.addPage();
     await drawPageElements(doc, pageData, state);
     onProgress(parseInt((index / pagedImageList.length) * 100));
-  });
-  for (const job of pageJobs) {
-    await job();
   }
   return doc.output('blob');
 };

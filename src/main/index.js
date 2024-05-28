@@ -1,7 +1,7 @@
 import { readFileToData } from './functions';
 
 const { app, BrowserWindow } = require('electron');
-const { registerRendererActionHandlers, isDev } = require('./functions');
+const { registerRendererActionHandlers, isDev } = require('./ActionHandlers')
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {

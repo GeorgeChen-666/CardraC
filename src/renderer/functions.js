@@ -1,10 +1,33 @@
 import { ipcRenderer } from 'electron';
+import Compressor  from 'compressorjs';
 
 export const isDev = 'ELECTRON_IS_DEV' in process?.env;
 
 export const getResourcesPath = (path) => (isDev?'':'..') + path;
 
 export const isObject = data => typeof data === 'object' && data?.constructor === Object
+
+export const compressImage = (data, contentType) => new Promise((resolve) => {
+  base64ImageToBlob(data, contentType).then(imageBlob => {
+    new Compressor(imageBlob, {
+      quality: 0.6,
+      maxWidth: 1600,
+      convertSize: 5000000,
+      success(result) {
+        console.log(`from ${imageBlob.size} to ${result.size}`)
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const base64String = event.target.result;
+          resolve(base64String);
+        };
+        reader.readAsDataURL(result);
+      },
+      error(err) {
+        console.log(err.message);
+      },
+    });
+  })
+});
 
 export const base64ImageToBlob = (base64Data, ext) => new Promise((resolve) => {
   const returnKey = 'base64-to-buffer-return';
@@ -77,9 +100,25 @@ export const openMultiImage = (key) => new Promise((resolve)=>{
 });
 
 export const exportPdf = ({ state, onProgress }) => new Promise((resolve)=>{
-  ipcRenderer.send('export-pdf', {
-    state: JSON.parse(JSON.stringify(state))
-  });
+  const newState = JSON.parse(JSON.stringify(state));
+  const { ImageStorage } = newState;
+
+  (async () => {
+    for(const key of Object.keys(ImageStorage)) {
+      const base64String = ImageStorage[key];
+      if(base64String?.length > 1024 * 1024 * 1.3) {
+        const ext = key.split('.').pop();
+        const newImage = await compressImage(base64String, ext);
+        ImageStorage[key] = newImage;
+      }
+    }
+
+    ipcRenderer.send('export-pdf', {
+      state: newState
+    });
+  })()
+
+
 
   if(onProgress) {
     const onMainProgress = ($,value) => {
@@ -110,7 +149,6 @@ export const openProject = () => new Promise((resolve)=>{
     returnChannel: 'open-project-return'
   });
   const onFileOpen = (event, data) => {
-    debugger;
     ipcRenderer.off('open-project-return', onFileOpen);
     resolve(JSON.parse(data));
   }
