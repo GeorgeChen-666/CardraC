@@ -101,7 +101,7 @@ export const openMultiImage = (key) => new Promise((resolve)=>{
 
 export const exportPdf = ({ state, onProgress }) => new Promise((resolve)=>{
   const newState = JSON.parse(JSON.stringify(state));
-  const { ImageStorage } = newState;
+  const { ImageStorage } = window;
 
   (async () => {
     for(const key of Object.keys(ImageStorage)) {

@@ -1,5 +1,4 @@
 const { jsPDF } = require('jspdf');
-const { compressImage } = require('./functions');
 
 export const emptyImg = {
   path: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
@@ -78,7 +77,7 @@ const drawPageElements = async (doc, pageData, state) => {
   const normalMarks = new Set();
   const maxWidth = fixFloat(doc.getPageWidth(0));
   const maxHeight = fixFloat(doc.getPageHeight(0));
-  const cutlineThinkness = Config.cutlineThinkness;
+  const lineWeight = Config.lineWeight;
   const cutlineColor = Config.cutlineColor;
 
   const landscape = Config.landscape;
@@ -129,7 +128,7 @@ const drawPageElements = async (doc, pageData, state) => {
             doc.addImage(image.path, image.ext, imageXc, imageYc, cardW, cardH, image.path, 'NONE', cardRotation);
           } else {
             const base64String = ImageStorage[image.path?.replaceAll('\\', '')];
-            doc.addImage(base64String, image.ext, imageXc, imageYc, cardW, cardH, image.path, 'MEDIUM', cardRotation);
+            doc.addImage(base64String, image.ext, imageXc, imageYc, cardW, cardH, image.path, 'FAST', cardRotation);
           }
         } catch (e) {
           //console.log('addImage error', e);
@@ -165,7 +164,7 @@ const drawPageElements = async (doc, pageData, state) => {
 
     }
   }
-  doc.setLineWidth(cutlineThinkness);
+  doc.setLineWidth(lineWeight * 0.3527);
   doc.setDrawColor(cutlineColor);
   normalMarks.forEach(nm => {
     const [loc1, loc2] = nm.split('-');

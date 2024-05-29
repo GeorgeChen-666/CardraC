@@ -39,14 +39,13 @@ export const initialState = Object.freeze({
     autoColumnsRows: true,
     fCutLine: '1',
     bCutLine: '1',
-    cutlineThinkness: 1.5,
+    lineWeight: 1.5,
     cutlineColor: '#000000',
     globalBackground: null,
   },
   CardList: [],
-  ImageStorage: {},
 });
-
+window.ImageStorage = {};
 export const reloadImageFromFile = async () => {
   const state = store.getState();
   const {CardList, Config} = state.pnp;
@@ -77,7 +76,8 @@ export const reloadImageFromFile = async () => {
 }
 //ugly code
 const storeCardImage = (state) => {
-  const {CardList, ImageStorage, Config} = state;
+  const {CardList, Config} = state;
+  const { ImageStorage } = window;
   const usedImagePath = new Set();
   const storeImage = image => {
     if(!image) return;
@@ -110,19 +110,19 @@ const storeCardImage = (state) => {
 }
 //ugly code
 const updateBlobLinks = async (state) => {
-  const {ImageStorage, Global: {blobLinks}} = state;
+  const {Global: {blobLinks}} = state;
+  const { ImageStorage } = window;
   const _BlobLinks = JSON.parse(JSON.stringify(blobLinks));
-  const _ImageStorage = JSON.parse(JSON.stringify(ImageStorage));
-  Object.keys(_BlobLinks).filter(key=> !Object.keys(_ImageStorage).includes(key)).forEach(key => {
+  Object.keys(_BlobLinks).filter(key=> !Object.keys(ImageStorage).includes(key)).forEach(key => {
     URL.revokeObjectURL(_BlobLinks[key]);
     delete _BlobLinks[key];
   });
-  for(const imagePathKey of Object.keys(_ImageStorage)) {
+  for(const imagePathKey of Object.keys(ImageStorage)) {
     if(!Object.keys(_BlobLinks).includes(imagePathKey)) {
       //
       const ext = imagePathKey.split('.').pop();
-      const newBlob = await base64ImageToBlob(_ImageStorage[imagePathKey], ext);
-      _ImageStorage[imagePathKey] && (_BlobLinks[imagePathKey] = URL.createObjectURL(newBlob));
+      const newBlob = await base64ImageToBlob(ImageStorage[imagePathKey], ext);
+      ImageStorage[imagePathKey] && (_BlobLinks[imagePathKey] = URL.createObjectURL(newBlob));
     }
   }
   setTimeout(() => {
@@ -134,6 +134,9 @@ export const pnpSlice = createSlice({
   initialState,
   reducers: {
     StateFill: (state, action) => {
+      const { ImageStorage } = action.payload;
+      fillByObjectValue(window.ImageStorage, ImageStorage);
+      delete action.payload.ImageStorage;
       fillByObjectValue(state, action.payload);
       storeCardImage(state);
       saveConfig({state});
@@ -259,7 +262,7 @@ export const pnpSlice = createSlice({
     UpdateStorage: (state, action) => {
       const ImageCache = action.payload;
       Object.keys(ImageCache).forEach(key => {
-        state.ImageStorage[key] = ImageCache[key];
+        window.ImageStorage[key] = ImageCache[key];
       })
     }
   },
