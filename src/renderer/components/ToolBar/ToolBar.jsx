@@ -72,13 +72,13 @@ export const ToolBar = () => {
         icon={<MdPictureAsPdf size={'30'} />}
         onClick={async () => {
           dispatch(Actions.GlobalEdit({ isInProgress: true, progress: 0 }));
-          await exportPdf({
+          const isSuccess = await exportPdf({
             state: store.getState().pnp, onProgress: value => {
               dispatch(Actions.GlobalEdit({ progress: value }));
             },
           });
           dispatch(Actions.GlobalEdit({ isInProgress: false }));
-          setTimeout(() => alert(t('toolbar.lblExportSuccess')), 100);
+          isSuccess && setTimeout(() => alert(t('toolbar.lblExportSuccess')), 100);
         }}
       />
       {Config.sides === 'double sides' && <GeneralButton

@@ -63,7 +63,8 @@
     "cross": "Cross",
     "complete": "Complete",
     "lineWeight": "Line Weight",
-    "color": "Color"
+    "color": "Color",
+    "avoidDislocation": "Avoid Dislocation"
   },
   "footer": {
     "files": "Files",

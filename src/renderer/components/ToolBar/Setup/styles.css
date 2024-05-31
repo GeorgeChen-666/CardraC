@@ -4,11 +4,16 @@
     width: 120px;
     margin-bottom: 0!important;
 }
+.FormControl > .FormControl > .FormLabel {
+    width: auto;
+    margin-left: 10px;
+}
 .FormControl {
     display: flex;
     flex-direction: row;
     align-items: center;
     height: 52px;
+    width: auto!important;
 }
 
 .FormPanel {

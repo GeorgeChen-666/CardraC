@@ -65,6 +65,14 @@ export const fillByObjectValue = (source,value) => {
     });
   }
 }
+
+
+const mergeState = (state) => {
+  const newState = JSON.parse(JSON.stringify(state));
+  const { ImageStorage } = window;
+  return {...newState, ImageStorage};
+}
+
 ipcRenderer.on('console', (ev,...args) => console.log(...args));
 export const onOpenProjectFile = (dispatch, Actions, cb) => {
   ipcRenderer.on('open-project-file', async (event, data) => {
@@ -100,9 +108,7 @@ export const openMultiImage = (key) => new Promise((resolve)=>{
 });
 
 export const exportPdf = ({ state, onProgress }) => new Promise((resolve)=>{
-  const newState = JSON.parse(JSON.stringify(state));
-  const { ImageStorage } = window;
-
+  const newState = mergeState(state);
   (async () => {
     for(const key of Object.keys(ImageStorage)) {
       const base64String = ImageStorage[key];
@@ -118,8 +124,6 @@ export const exportPdf = ({ state, onProgress }) => new Promise((resolve)=>{
     });
   })()
 
-
-
   if(onProgress) {
     const onMainProgress = ($,value) => {
       onProgress(value);
@@ -129,16 +133,17 @@ export const exportPdf = ({ state, onProgress }) => new Promise((resolve)=>{
     }
     ipcRenderer.on('export-pdf-progress', onMainProgress);
   }
-  const onMainDone = () => {
-    resolve();
+  const onMainDone = ($, value) => {
+    resolve(value);
     ipcRenderer.off('export-pdf-done', onMainDone);
   }
   ipcRenderer.on('export-pdf-done', onMainDone);
 });
 
 export const saveProject = ({ state }) => new Promise((resolve)=>{
+  const newState = mergeState(state);
   ipcRenderer.send('save-project', {
-    state: JSON.parse(JSON.stringify(state))
+    state: newState
   });
   ipcRenderer.on('save-project-done', resolve);
   ipcRenderer.off('save-project-done', resolve);
@@ -159,14 +164,16 @@ export const loadConfig = () => new Promise((resolve) => {
   ipcRenderer.send('load-config');
   const onDone = (event, data) => {
     ipcRenderer.off('load-config-done', onDone);
+
     resolve(data);
   }
   ipcRenderer.on('load-config-done', onDone);
 });
 
 export const saveConfig = ({ state }) => new Promise((resolve) => {
+  const newState = mergeState(state);
   ipcRenderer.send('save-config', {
-    state: JSON.parse(JSON.stringify(state))
+    state: newState
   });
   const onDone = (event, data) => {
     ipcRenderer.off('save-config-done', onDone);

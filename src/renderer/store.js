@@ -42,6 +42,7 @@ export const initialState = Object.freeze({
     lineWeight: 1.5,
     cutlineColor: '#000000',
     globalBackground: null,
+    avoidDislocation: false
   },
   CardList: [],
 });
@@ -143,7 +144,7 @@ export const pnpSlice = createSlice({
     },
     GlobalEdit: (state, action) => {
       fillByObjectValue(state.Global, action.payload);
-      //saveConfig({state});
+      saveConfig({state});
     },
     CardSelect: (state, action) => {
       const selectedId = action.payload;

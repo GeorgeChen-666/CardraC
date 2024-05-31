@@ -24,7 +24,11 @@ export const Control = (({ children, label, attrKey, type, onChange, style }) =>
   const [value, setValue] = React.useState('');
   useEffect(() => setValue(Config[attrKey]), [Config[attrKey]]);
   return (<FormControl className={'FormControl'}>
-    <FormLabel textAlign={'right'} className={'FormLabel'}>{label}</FormLabel>
+    <FormLabel
+      textAlign={'right'}
+      className={'FormLabel'}
+      style={{ marginRight: label ? '12px' : '0' }}
+    >{label || ''}</FormLabel>
     {
       (() => {
         if (type === ControlType.NumberInput) {

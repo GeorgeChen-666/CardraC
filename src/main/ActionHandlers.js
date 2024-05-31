@@ -33,14 +33,16 @@ export const registerRendererActionHandlers = (mainWindow) => {
         { name: 'pdf', extensions: ['pdf'] }
       ]
     });
-    if (!result.canceled) {
+    if (result.canceled) {
+      mainWindow.webContents.send('export-pdf-done', false);
+    }
+    else {
       const blob = await exportPdf(args.state, (progress) => {
         mainWindow.webContents.send('export-pdf-progress', progress);
       });
       const filePath = result.filePath;
       await saveDataToFile(blob, filePath);
-      mainWindow.webContents.send('export-pdf-progress', 100);
-      mainWindow.webContents.send('export-pdf-done');
+      mainWindow.webContents.send('export-pdf-done', true);
     }
   });
 
@@ -80,7 +82,7 @@ export const registerRendererActionHandlers = (mainWindow) => {
       }
     }
     const projectData = _.pick(state, ['Config', 'CardList']);
-    await saveDataToFile({ ...projectData, ImageStorage: window.ImageStorage }, projectPath);
+    await saveDataToFile({ ...projectData, ImageStorage: state.ImageStorage }, projectPath);
     mainWindow.webContents.send('save-project-done');
   });
 
@@ -99,9 +101,14 @@ export const registerRendererActionHandlers = (mainWindow) => {
   });
 
   ipcMain.on('save-config', (event, args) => {
-    const { Global, Config } = args.state;
+    const { Global, Config, ImageStorage } = args.state;
     store.set({ Global: _.pick(Global, ['currentLang']) });
     store.set({ Config });
+    if(Config.globalBackground?.path) {
+      const storageKey = Config.globalBackground?.path.replaceAll('\\','');
+      store.set({ ImageStorage: { [storageKey]: ImageStorage[storageKey] } });
+    }
+
   });
   ipcMain.on('load-config', () => {
     initLanguageJson('en');

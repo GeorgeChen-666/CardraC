@@ -58,14 +58,30 @@ export const CardForm = () => {
     <Control label={t('configDialog.cardHeight')} attrKey={'cardHeight'} type={ControlType.NumberInput}>
       mm
     </Control>
-    <Control label={t('configDialog.marginX')} attrKey={'marginX'} type={ControlType.NumberInput}>
+    <Control
+      label={`${t('configDialog.marginX')} / ${t('configDialog.marginY')}`}
+      attrKey={'marginX'}
+      type={ControlType.NumberInput}
+      style={{ width: '90px' }}
+    >
       mm
+      <Control attrKey={'marginY'} type={ControlType.NumberInput} style={{ width: '90px' }}>
+        mm
+      </Control>
     </Control>
-    <Control label={t('configDialog.marginY')} attrKey={'marginY'} type={ControlType.NumberInput}>
+
+    <Control
+      label={t('configDialog.bleed')}
+      attrKey={'bleed'}
+      type={ControlType.NumberInput}
+      style={{ width: '90px' }}
+    >
       mm
-    </Control>
-    <Control label={t('configDialog.bleed')} attrKey={'bleed'} type={ControlType.NumberInput}>
-      mm
+      <Control label={t('configDialog.avoidDislocation')}>
+        <Checkbox value={'true'} isChecked={Config.avoidDislocation}
+                  onChange={(event) => dispatch(Actions.ConfigEdit({ avoidDislocation: event.target.checked }))}
+        ></Checkbox>
+      </Control>
     </Control>
     <Control label={t('configDialog.scale')} attrKey={'scale'} type={ControlType.NumberInput}>
       %

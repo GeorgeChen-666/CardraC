@@ -63,7 +63,8 @@
     "cross": "十字标",
     "complete": "完整",
     "lineWeight": "线粗",
-    "color": "颜色"
+    "color": "颜色",
+    "avoidDislocation": "牌背防错位"
   },
   "footer": {
     "files": "文件数",
