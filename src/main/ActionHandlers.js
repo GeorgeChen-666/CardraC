@@ -54,12 +54,18 @@ export const registerRendererActionHandlers = (mainWindow) => {
       ],
       properties: ['openFile', ...properties],
     });
-    if (!result.canceled) {
+    if (result.canceled) {
+      mainWindow.webContents.send(returnChannel, []);
+    }
+    else {
       const toRenderData = [];
       const jobList = result.filePaths.map(path => readFileToData(path, 'base64'));
       for(let jobIndex in jobList) {
+        const path = result.filePaths[jobIndex];
         const base64String = await jobList[jobIndex];
-        toRenderData.push({ path: result.filePaths[jobIndex], data: base64String })
+        const ext = path.split('.').pop();
+        const data = `data:image/${ext};base64,${base64String}`
+        toRenderData.push({ path, data })
       }
       mainWindow.webContents.send(returnChannel, toRenderData);
     }

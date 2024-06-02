@@ -17,6 +17,7 @@ export const CardForm = () => {
   const { t } = useTranslation();
   const Config = useSelector((state) => (
     _.pick(state.pnp.Config, [
+      'avoidDislocation',
       'columns',
       'rows',
       'cardWidth',

@@ -107,29 +107,29 @@ const storeCardImage = (state) => {
   }
 
   Object.keys(ImageStorage).filter(key=> !usedImagePath.has(key)).forEach(key => delete ImageStorage[key]);
-  updateBlobLinks(state);
+  //updateBlobLinks(state);
 }
 //ugly code
-const updateBlobLinks = async (state) => {
-  const {Global: {blobLinks}} = state;
-  const { ImageStorage } = window;
-  const _BlobLinks = JSON.parse(JSON.stringify(blobLinks));
-  Object.keys(_BlobLinks).filter(key=> !Object.keys(ImageStorage).includes(key)).forEach(key => {
-    URL.revokeObjectURL(_BlobLinks[key]);
-    delete _BlobLinks[key];
-  });
-  for(const imagePathKey of Object.keys(ImageStorage)) {
-    if(!Object.keys(_BlobLinks).includes(imagePathKey)) {
-      //
-      const ext = imagePathKey.split('.').pop();
-      const newBlob = await base64ImageToBlob(ImageStorage[imagePathKey], ext);
-      ImageStorage[imagePathKey] && (_BlobLinks[imagePathKey] = URL.createObjectURL(newBlob));
-    }
-  }
-  setTimeout(() => {
-    store.dispatch(Actions.GlobalEdit({blobLinks:_BlobLinks}));
-  }, 100)
-}
+// const updateBlobLinks = async (state) => {
+//   const {Global: {blobLinks}} = state;
+//   const { ImageStorage } = window;
+//   const _BlobLinks = JSON.parse(JSON.stringify(blobLinks));
+//   Object.keys(_BlobLinks).filter(key=> !Object.keys(ImageStorage).includes(key)).forEach(key => {
+//     URL.revokeObjectURL(_BlobLinks[key]);
+//     delete _BlobLinks[key];
+//   });
+//   for(const imagePathKey of Object.keys(ImageStorage)) {
+//     if(!Object.keys(_BlobLinks).includes(imagePathKey)) {
+//       //
+//       const ext = imagePathKey.split('.').pop();
+//       const newBlob = await base64ImageToBlob(ImageStorage[imagePathKey], ext);
+//       ImageStorage[imagePathKey] && (_BlobLinks[imagePathKey] = URL.createObjectURL(newBlob));
+//     }
+//   }
+//   setTimeout(() => {
+//     store.dispatch(Actions.GlobalEdit({blobLinks:_BlobLinks}));
+//   }, 100)
+// }
 export const pnpSlice = createSlice({
   name: 'pnp',
   initialState,

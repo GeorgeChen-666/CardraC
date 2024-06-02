@@ -60,13 +60,20 @@ export default memo(({ data, index }) => {
       'isBackEditing'
     ])
   ), shallowEqual);
-  const {
+  // const {
+  //   faceUrl,
+  //   backUrl,
+  // } = useSelector((state) => ({
+  //   faceUrl: state.pnp.Global.blobLinks[data.face?.path?.replaceAll('\\', '')],
+  //   backUrl: state.pnp.Global.blobLinks[data.back?.path?.replaceAll('\\', '')],
+  // }), shallowEqual);
+  const [
     faceUrl,
     backUrl,
-  } = useSelector((state) => ({
-    faceUrl: state.pnp.Global.blobLinks[data.face?.path?.replaceAll('\\', '')],
-    backUrl: state.pnp.Global.blobLinks[data.back?.path?.replaceAll('\\', '')],
-  }), shallowEqual);
+  ] = [
+    ImageStorage[data.face?.path?.replaceAll('\\', '')],
+    ImageStorage[data.back?.path?.replaceAll('\\', '')],
+  ];
   const onSelectCard = useCallback((event) => {
     if (event.shiftKey) {
       dispatch(Actions.CardShiftSelect(data.id));
@@ -142,12 +149,12 @@ export default memo(({ data, index }) => {
       <Stack direction='row' justifyContent={'center'}>
         <Image className={'CardImage'} boxSize={isBackEditing ? '50px' : '160px'}
                src={faceUrl}
-               fallbackSrc={emptyImg.path} />
+                />
         {Config.sides === 'double sides' && (
           <Image className={'CardImage'}
                  boxSize={isBackEditing ? '160px' : '50px'}
                  src={backUrl}
-                 fallbackSrc={emptyImg.path}
+                 
           />
         )}
 

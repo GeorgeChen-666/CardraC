@@ -23,7 +23,7 @@ export const compressImage = (data, contentType) => new Promise((resolve) => {
         reader.readAsDataURL(result);
       },
       error(err) {
-        console.log(err.message);
+        resolve(data);
       },
     });
   })
@@ -89,7 +89,10 @@ export const openImage = (key) => new Promise((resolve) => {
   });
   const onFileOpen = (event, filePaths) => {
     ipcRenderer.off(returnKey, onFileOpen);
-    resolve(filePaths.map(p => ({...p, ext: p.path.split('.').pop()}))?.[0])
+    resolve(filePaths.map(p => {
+      const ext = p.path.split('.').pop();
+      return ({...p, ext});
+    })?.[0])
   }
   ipcRenderer.on(returnKey, onFileOpen);
 });
@@ -102,7 +105,10 @@ export const openMultiImage = (key) => new Promise((resolve)=>{
   });
   const onFileOpen = (event, filePaths) => {
     ipcRenderer.off(returnKey, onFileOpen);
-    resolve(filePaths.map(p => ({...p, ext: p.path.split('.').pop()})))
+    resolve(filePaths.map(p => {
+      const ext = p.path.split('.').pop();
+      return ({...p, ext });
+    }))
   }
   ipcRenderer.on(returnKey, onFileOpen);
 });
