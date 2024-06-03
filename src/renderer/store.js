@@ -3,8 +3,14 @@ import { createSlice, configureStore } from '@reduxjs/toolkit';
 import _ from 'lodash';
 import logger from 'redux-logger';
 import { Provider } from 'react-redux';
-import { fillByObjectValue, loadConfig, saveConfig, base64ImageToBlob, onOpenProjectFile } from './functions';
-import { readFileToData } from '../main/functions';
+import {
+  fillByObjectValue,
+  loadConfig,
+  saveConfig,
+  base64ImageToBlob,
+  onOpenProjectFile,
+  loadLocalFile,
+} from './functions';
 
 export const initialState = Object.freeze({
   Global: {
@@ -48,6 +54,7 @@ export const initialState = Object.freeze({
 });
 window.ImageStorage = {};
 export const reloadImageFromFile = async () => {
+  console.log('===================')
   const state = store.getState();
   const {CardList, Config} = state.pnp;
   const ImageCache = {};
@@ -56,8 +63,8 @@ export const reloadImageFromFile = async () => {
     if(!image) return;
     try {
       const imagePathKey = image?.path.replaceAll('\\','');
-      ImageCache[imagePathKey] = await readFileToData(image?.path ,'base64');
-      const newBlob = await base64ImageToBlob(ImageCache[imagePathKey], image?.ext);
+      ImageCache[imagePathKey] = await loadLocalFile(image?.path);
+      const newBlob = await base64ImageToBlob({...image, data: ImageCache[imagePathKey]});
       ImageCache[imagePathKey] && (blobLinksCache[imagePathKey] = URL.createObjectURL(newBlob));
     } catch (e) {
       console.log(e);

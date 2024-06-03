@@ -64,8 +64,9 @@ export const registerRendererActionHandlers = (mainWindow) => {
         const path = result.filePaths[jobIndex];
         const base64String = await jobList[jobIndex];
         const ext = path.split('.').pop();
-        const data = `data:image/${ext};base64,${base64String}`
-        toRenderData.push({ path, data })
+        const data = `data:image/${ext};base64,${base64String}`;
+        const { mtime } = fs.statSync(path);
+        toRenderData.push({ path, data, mtime: mtime.getTime() })
       }
       mainWindow.webContents.send(returnChannel, toRenderData);
     }
@@ -127,6 +128,16 @@ export const registerRendererActionHandlers = (mainWindow) => {
       config.Global.locales[lang] = new Store({name: lang, cwd: 'locales'}).get();
     })
     mainWindow.webContents.send('load-config-done', config);
+  });
+  ipcMain.on('file-to-object', (event, args) => {
+    const base64String = readFileToData(args.path, 'base64');
+    const { mtime } = fs.statSync(args.path);
+    mainWindow.webContents.send(args.returnChannel, {
+      data: base64String,
+      path: args.path,
+      ext: args.path.split('.').pop(),
+      mdate: mtime.getTime()
+    });
   });
   ipcMain.on('base64-to-buffer', (event, args) => {
     const decodedString = base64ToBuffer(args.base64Data);

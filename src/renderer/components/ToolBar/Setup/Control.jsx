@@ -10,7 +10,7 @@ import React, { useEffect } from 'react';
 import './styles.css';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import _ from 'lodash';
-import { Actions } from '../../../store';
+import { Actions } from '/src/renderer/store';
 
 export const ControlType = Object.freeze({
   NumberInput: 'NumberInput',
