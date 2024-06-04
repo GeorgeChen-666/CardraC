@@ -24,7 +24,7 @@ import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import _ from 'lodash';
 import { useDrag, useDrop } from 'react-dnd';
 import { useTranslation } from 'react-i18next';
-import { openImage } from '../../functions';
+import { getImageSrc, openImage } from '../../functions';
 
 export default memo(({ data, index }) => {
   const dispatch = useDispatch();
@@ -60,19 +60,12 @@ export default memo(({ data, index }) => {
       'isBackEditing'
     ])
   ), shallowEqual);
-  // const {
-  //   faceUrl,
-  //   backUrl,
-  // } = useSelector((state) => ({
-  //   faceUrl: state.pnp.Global.blobLinks[data.face?.path?.replaceAll('\\', '')],
-  //   backUrl: state.pnp.Global.blobLinks[data.back?.path?.replaceAll('\\', '')],
-  // }), shallowEqual);
   const [
     faceUrl,
     backUrl,
   ] = [
-    ImageStorage[data.face?.path?.replaceAll('\\', '')],
-    ImageStorage[data.back?.path?.replaceAll('\\', '')],
+    getImageSrc(data?.face),
+    getImageSrc(data?.back),
   ];
   const onSelectCard = useCallback((event) => {
     if (event.shiftKey) {

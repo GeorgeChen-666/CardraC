@@ -129,15 +129,22 @@ export const registerRendererActionHandlers = (mainWindow) => {
     })
     mainWindow.webContents.send('load-config-done', config);
   });
-  ipcMain.on('file-to-object', (event, args) => {
-    const base64String = readFileToData(args.path, 'base64');
-    const { mtime } = fs.statSync(args.path);
-    mainWindow.webContents.send(args.returnChannel, {
-      data: base64String,
-      path: args.path,
-      ext: args.path.split('.').pop(),
-      mdate: mtime.getTime()
-    });
+  ipcMain.on('file-to-object', async (event, args) => {
+    const { path, mtime: cardMtime} = args;
+    const { mtime } = fs.statSync(path);
+    if(cardMtime !== mtime) {
+      const base64String = await readFileToData(args.path, 'base64');
+      mainWindow.webContents.send(args.returnChannel, {
+        data: base64String,
+        path: args.path,
+        ext: args.path.split('.').pop(),
+        mdate: mtime.getTime()
+      });
+    }
+    else {
+      mainWindow.webContents.send(args.returnChannel);
+    }
+
   });
   ipcMain.on('base64-to-buffer', (event, args) => {
     const decodedString = base64ToBuffer(args.base64Data);

@@ -21,7 +21,7 @@ import {
 import { MdPictureAsPdf } from 'react-icons/md';
 import { SetupDialog } from './Setup/SetupDialog';
 import { Actions, initialState, store, reloadImageFromFile } from '../../store';
-import { exportPdf, openImage, openMultiImage, openProject, saveProject } from '../../functions';
+import { exportPdf, getImageSrc, openImage, openMultiImage, openProject, saveProject } from '../../functions';
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { GeneralButton } from './Buttons/GeneralButton';
@@ -83,7 +83,7 @@ export const ToolBar = () => {
       />
       {Config.sides === 'double sides' && <GeneralButton
         label={t('toolbar.btnGlobalBackground')}
-        icon={<Image boxSize='30px' src={Config.globalBackground?.path} />}
+        icon={<Image boxSize='30px' src={getImageSrc(Config.globalBackground)} />}
         onClick={async () => {
           const filePath = await openImage('setGlobalBack');
           dispatch(Actions.ConfigEdit({ globalBackground: filePath }));

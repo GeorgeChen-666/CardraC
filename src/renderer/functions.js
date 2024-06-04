@@ -1,32 +1,46 @@
 import { ipcRenderer } from 'electron';
 import Compressor  from 'compressorjs';
+export const emptyImg = {
+  path: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
+    '12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg==',
+  ext: 'png',
+};
 
 export const isDev = 'ELECTRON_IS_DEV' in process?.env;
+
+function isPromise(obj) {
+  return !!obj && typeof obj.then === 'function' && typeof obj.catch === 'function';
+}
 
 export const getResourcesPath = (path) => (isDev?'':'..') + path;
 
 export const isObject = data => typeof data === 'object' && data?.constructor === Object
 
-export const compressImage = (imageBlob, contentType) => new Promise((resolve) => {
-  new Compressor(imageBlob, {
-    quality: 0.6,
-    maxWidth: 1600,
-    convertSize: 5000000,
-    success(result) {
-      console.log(`from ${imageBlob.size} to ${result.size}`)
-      const reader = new FileReader();
-      reader.onload = function(event) {
-        const base64String = event.target.result;
-        resolve(base64String);
-      };
-      reader.readAsDataURL(result);
-    },
-    error(err) {
-      console.log('compress error', err);
-      resolve(data);
-    },
-  });
-});
+export const getImageSrc = imageData => imageData?.cardData || ImageStorage[imageData?.path?.replaceAll('\\', '')] || emptyImg.path
+
+export const compressImage = async (imageData, maxWidth = 1600) => {
+  const imageBlob = await base64ImageToBlob(imageData);
+  return await new Promise((resolve) => {
+    new Compressor(imageBlob, {
+      quality: 0.6,
+      maxWidth,
+      convertSize: 5000000,
+      success(result) {
+        console.log(`from ${imageBlob.size} to ${result.size}`)
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const base64String = event.target.result;
+          resolve(base64String);
+        };
+        reader.readAsDataURL(result);
+      },
+      error(err) {
+        console.log('compress error', err);
+        resolve(imageData.data);
+      },
+    });
+  })
+};
 
 export const base64ImageToBlob = (imageData) => new Promise((resolve) => {
   const base64Data = imageData.data.split(';base64,')[1];
@@ -72,17 +86,8 @@ const mergeState = (state) => {
   const { ImageStorage } = window;
   return {...newState, ImageStorage};
 }
-export const loadLocalFile = (path) => new Promise((resolve) => {
-  const returnKey = 'file-to-object-return' + path;
-  ipcRenderer.send('file-to-object', {
-    returnChannel: returnKey,
-    path
-  });
-  const onFileOpen = (event, imageData) => {
-    resolve(imageData)
-  }
-  ipcRenderer.on(returnKey, onFileOpen);
-});
+
+
 ipcRenderer.on('console', (ev,...args) => console.log(...args));
 export const onOpenProjectFile = (dispatch, Actions, cb) => {
   ipcRenderer.on('open-project-file', async (event, data) => {
@@ -91,120 +96,73 @@ export const onOpenProjectFile = (dispatch, Actions, cb) => {
   });
 }
 
+export const loadLocalFile = ({ path }) => callMain('file-to-object', { path });
 
-export const openImage = (key) => new Promise((resolve) => {
-  const returnKey = 'open-image-return' + key;
-  ipcRenderer.send('open-image', {
-    returnChannel: returnKey
-  });
-  const onFileOpen = (event, imageDatas) => {
-    ipcRenderer.off(returnKey, onFileOpen);
-    const imageData = imageDatas[0];
+export const openImage = (key) => callMain('open-image', {
+  returnChannel: 'open-image-return' + key
+}, async imageDatas => {
+  if(imageDatas.length === 0) return
+  const imageData = imageDatas[0];
+  imageData.ext = imageData.path.split('.').pop();
+  imageData.data = await compressImage(imageData);
+  imageData.cardData = await compressImage(imageData, 300);
+  return imageData;
+});
+
+export const openMultiImage = (key) => callMain('open-image', {
+  properties: ['multiSelections'],
+  returnChannel: 'open-multi-image-return' + key
+}, async imageDatas => {
+  const newImageDatas = [...imageDatas];
+  for(const imageData of newImageDatas) {
     imageData.ext = imageData.path.split('.').pop()
-    base64ImageToBlob(imageData).then(imageBlob=> {
-      compressImage(imageBlob, imageData.ext).then(compressedImageData => {
-        imageData.data = compressedImageData;
-        resolve(imageData);
-      });
-    });
+    imageData.data = await compressImage(imageData)
+    imageData.cardData = await compressImage(imageData, 300)
   }
-  ipcRenderer.on(returnKey, onFileOpen);
+  return newImageDatas;
 });
 
-export const openMultiImage = (key) => new Promise((resolve)=>{
-  const returnKey = 'open-multi-image-return' + key;
-  ipcRenderer.send('open-image', {
-    properties: ['multiSelections'],
-    returnChannel: returnKey
-  });
-  const onFileOpen = (event, imageDatas) => {
-    ipcRenderer.off(returnKey, onFileOpen);
-    const jobs = imageDatas.map(async imageData => {
-      imageData.ext = imageData.path.split('.').pop();
-      const imageBlob = await base64ImageToBlob(imageData);
-      return await compressImage(imageBlob, imageData.ext);
-    });
-    Promise.all(jobs).then(compressedImageDatas => {
-      compressedImageDatas.forEach((d,i) => {
-        imageDatas[i].data = d;
-      });
-      resolve(imageDatas)
-    })
-  }
-  ipcRenderer.on(returnKey, onFileOpen);
-});
-
-export const exportPdf = ({ state, onProgress }) => new Promise((resolve)=>{
-  const newState = mergeState(state);
-  (async () => {
-    for(const key of Object.keys(ImageStorage)) {
-      const base64String = ImageStorage[key];
-      if(base64String?.length > 1024 * 1024 * 1.3) {
-        const ext = key.split('.').pop();
-        const newImage = await compressImage(base64String, ext);
-        ImageStorage[key] = newImage;
-      }
-    }
-
-    ipcRenderer.send('export-pdf', {
-      state: newState
-    });
-  })()
-
+export const exportPdf = ({ state, onProgress }) => {
+  const key = 'export-pdf';
   if(onProgress) {
     const onMainProgress = ($,value) => {
       onProgress(value);
       if(value >= 100) {
-        ipcRenderer.off('export-pdf-progress', onMainProgress);
+        ipcRenderer.off(`${key}-progress`, onMainProgress);
       }
     }
-    ipcRenderer.on('export-pdf-progress', onMainProgress);
+    ipcRenderer.on(`${key}-progress`, onMainProgress);
   }
-  const onMainDone = ($, value) => {
-    resolve(value);
-    ipcRenderer.off('export-pdf-done', onMainDone);
-  }
-  ipcRenderer.on('export-pdf-done', onMainDone);
+  return callMain(key, { state: mergeState(state) })
+};
+
+export const saveProject = ({ state }) => callMain('save-project', { state: mergeState(state) });
+
+export const openProject = () => callMain('open-project', {
+  properties: [],
 });
 
-export const saveProject = ({ state }) => new Promise((resolve)=>{
-  const newState = mergeState(state);
-  ipcRenderer.send('save-project', {
-    state: newState
-  });
-  ipcRenderer.on('save-project-done', resolve);
-  ipcRenderer.off('save-project-done', resolve);
-});
-export const openProject = () => new Promise((resolve)=>{
-  ipcRenderer.send('open-project', {
-    properties: [],
-    returnChannel: 'open-project-return'
-  });
-  const onFileOpen = (event, data) => {
-    ipcRenderer.off('open-project-return', onFileOpen);
-    resolve(JSON.parse(data));
-  }
-  ipcRenderer.on('open-project-return', onFileOpen);
-});
+export const loadConfig = () => callMain('load-config');
 
-export const loadConfig = () => new Promise((resolve) => {
-  ipcRenderer.send('load-config');
+export const saveConfig = ({ state }) => callMain('save-config', { state: mergeState(state) });
+
+const callMain = (key, params, transform = d => d) => new Promise((resolve) => {
+  const returnKey = params?.returnChannel || `${key}-done`
+  ipcRenderer.send(key, {
+    returnChannel: returnKey,
+    ...params
+  });
+
   const onDone = (event, data) => {
-    ipcRenderer.off('load-config-done', onDone);
-
-    resolve(data);
+    ipcRenderer.off(returnKey, onDone);
+    const newData = transform(data);
+    if(isPromise(newData)) {
+      newData.then(nd=>{
+        resolve(nd);
+      })
+    } else {
+      resolve(newData);
+    }
   }
-  ipcRenderer.on('load-config-done', onDone);
-});
-
-export const saveConfig = ({ state }) => new Promise((resolve) => {
-  const newState = mergeState(state);
-  ipcRenderer.send('save-config', {
-    state: newState
-  });
-  const onDone = (event, data) => {
-    ipcRenderer.off('save-config-done', onDone);
-    resolve(data);
-  }
-  ipcRenderer.on('save-config-done', onDone);
-});
+  ipcRenderer.on(returnKey, onDone);
+})

@@ -20,7 +20,6 @@ export const AddCard = () => {
         if (process?.versions?.electron) {
           const imageData = await openMultiImage('CardAddByFaces');
           dispatch(Actions.CardAddByFaces([...imageData]));
-          //dispatch({ type: Actions.AddCardByFace, payload: [...filePaths] });
         } else {
           inputRef.current?.click();
         }

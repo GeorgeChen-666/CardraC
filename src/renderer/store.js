@@ -7,9 +7,9 @@ import {
   fillByObjectValue,
   loadConfig,
   saveConfig,
-  base64ImageToBlob,
+  compressImage,
   onOpenProjectFile,
-  loadLocalFile,
+  loadLocalFile, base64ImageToBlob,
 } from './functions';
 
 export const initialState = Object.freeze({
@@ -58,14 +58,15 @@ export const reloadImageFromFile = async () => {
   const state = store.getState();
   const {CardList, Config} = state.pnp;
   const ImageCache = {};
-  const blobLinksCache = {};
   const loadImage = async(image) => {
     if(!image) return;
     try {
       const imagePathKey = image?.path.replaceAll('\\','');
-      ImageCache[imagePathKey] = await loadLocalFile(image?.path);
-      const newBlob = await base64ImageToBlob({...image, data: ImageCache[imagePathKey]});
-      ImageCache[imagePathKey] && (blobLinksCache[imagePathKey] = URL.createObjectURL(newBlob));
+      const imageData = await loadLocalFile(image);
+      if(imageData && image.mtime !== imageData.mtime) {
+        ImageCache[imagePathKey] = await compressImage(imageData);
+        return await compressImage(imageData, 300);
+      }
     } catch (e) {
       console.log(e);
     }
@@ -73,14 +74,16 @@ export const reloadImageFromFile = async () => {
   }
   for(let card of CardList) {
     const {face,back} = card;
-    await loadImage(face);
-    await loadImage(back);
+    const cardDataFace = await loadImage(face);
+    cardDataFace && (card.cardData = cardDataFace);
+    const cardDataBack = await loadImage(back);
+    cardDataBack && (card.cardData = cardDataBack);
   }
   if(Config.globalBackground?.path) {
-    await loadImage(Config.globalBackground);
+    const cardDataBG = await loadImage(Config.globalBackground);
+    cardDataBG && (Config.globalBackground.cardData = cardDataBG);
   }
   store.dispatch(Actions.UpdateStorage(ImageCache));
-  store.dispatch(Actions.GlobalEdit({ blobLinks: blobLinksCache }));
 }
 //ugly code
 const storeCardImage = (state) => {
