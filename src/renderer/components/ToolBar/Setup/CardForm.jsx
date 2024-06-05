@@ -37,8 +37,8 @@ export const CardForm = () => {
     if (Config.autoColumnsRows) {
       const pageWidth = Config.landscape ? Config.pageHeight : Config.pageWidth;
       const pageHeight = Config.landscape ? Config.pageWidth : Config.pageHeight;
-      const autoColumns = Config.sides === 'brochure' ? 2 : parseInt(pageWidth / (Config.cardWidth + Config.marginX));
-      const autoRows = parseInt(pageHeight / (Config.cardHeight + Config.marginY));
+      const autoColumns = Config.sides === 'brochure' && !Config.landscape ? 2 : parseInt(pageWidth / (Config.cardWidth + Config.marginX));
+      const autoRows = Config.sides === 'brochure' && Config.landscape ? 2 : parseInt(pageHeight / (Config.cardHeight + Config.marginY));
       dispatch(Actions.ConfigEdit({ columns: autoColumns, rows: autoRows }));
     }
   }, [
