@@ -31,7 +31,7 @@ export const SetupDialog = forwardRef(({}, ref) => {
         <ModalHeader padding={4}>{t('configDialog.setup')}</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
-          {/* <ConfigOverview /> */}
+           <ConfigOverview />
           <Tabs orientation={'vertical'} height={400}>
             <TabList>
               <Tab alignSelf={'end'}>{t('configDialog.layout')}</Tab>

@@ -34,4 +34,17 @@
 
 .ConfigOverviewPage {
     background-color: #fff;
+    align-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 90px;
+    flex-wrap: wrap;
+}
+
+.ConfigOverviewPage div{
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    background-color: aliceblue;
 }
