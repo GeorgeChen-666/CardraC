@@ -112,7 +112,7 @@ export default memo(({ data, index }) => {
           <MenuItem onClick={async (e) => {
             e.stopPropagation();
             const filePath = await openImage('setCardFace');
-            dispatch(Actions.CardEditById({ id: data.id, face: filePath }));
+            filePath && dispatch(Actions.CardEditById({ id: data.id, face: filePath }));
           }}>
             {t('cardEditor.face')}
           </MenuItem>
@@ -125,7 +125,7 @@ export default memo(({ data, index }) => {
           <MenuItem onClick={async (e) => {
             e.stopPropagation();
             const filePath = await openImage('setCardBack');
-            dispatch(Actions.CardEditById({ id: data.id, back: filePath }));
+            filePath && dispatch(Actions.CardEditById({ id: data.id, back: filePath }));
           }}>
             {t('cardEditor.back')}
           </MenuItem>

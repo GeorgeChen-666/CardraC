@@ -102,13 +102,13 @@ export const ToolBar = () => {
           </MenuItem>
           <MenuItem onClick={async () => {
             const filePath = await openImage('fillBackground');
-            dispatch(Actions.SelectedCardsEdit({ back: filePath }));
+            filePath && dispatch(Actions.SelectedCardsEdit({ back: filePath }));
           }}>
             {t('toolbar.bulkMenu.menuFillBackground')}
           </MenuItem>
           <MenuItem onClick={async () => {
             const filePaths = await openMultiImage('SelectedCardFillBackWithEachBack');
-            dispatch(Actions.SelectedCardFillBackWithEachBack(filePaths));
+            filePaths?.length > 0 && dispatch(Actions.SelectedCardFillBackWithEachBack(filePaths));
           }}>
             {t('toolbar.bulkMenu.menuFillMultiBackground')}
           </MenuItem>

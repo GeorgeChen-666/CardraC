@@ -47,7 +47,11 @@ export const ConfigOverview = () => {
 
   return (<div className={'ConfigOverview'}>
     <div className={'ConfigOverviewPage'}>
-      <div style={{ width: `${boxCardWidth}px`, height:`${boxCardHeight}px` }}></div>
+      <div style={{ width: `${boxCardWidth}px`, height: `${boxCardHeight}px` }}></div>
+      <div style={{ width: `${boxCardWidth}px`, height: `${boxCardHeight}px` }}></div>
+      <div style={{ width: `${boxCardWidth}px`, height: `${boxCardHeight}px` }}></div>
+      <div style={{ width: `${boxCardWidth}px`, height: `${boxCardHeight}px` }}></div>
+      <div style={{ width: `${boxCardWidth}px`, height: `${boxCardHeight}px` }}></div>
       <div style={{ width: `${boxCardWidth}px`, height: `${boxCardHeight}px` }}></div>
       <div style={{ width: `${boxCardWidth}px`, height: `${boxCardHeight}px` }}></div>
       <div style={{ width: `${boxCardWidth}px`, height: `${boxCardHeight}px` }}></div>
