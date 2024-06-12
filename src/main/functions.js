@@ -1,6 +1,5 @@
 const fs = require('fs');
 
-
 export const readFileToData = async (filePath, format = '') => {
   const data = await fs.readFileSync(filePath);
   const formatedData = format ? data.toString(format) : data.toString();

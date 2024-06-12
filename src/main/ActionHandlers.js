@@ -102,8 +102,20 @@ export const registerRendererActionHandlers = (mainWindow) => {
       properties: ['openFile', ...properties],
     });
     if (!result.canceled) {
-      const toRenderData = await readFileToData(result.filePaths[0]);
-      mainWindow.webContents.send(returnChannel, toRenderData);
+      //const toRenderData = await readFileToData(result.filePaths[0]);
+      const readStream = fs.createReadStream(result.filePaths[0]);
+      let resultString = '';
+      readStream.on('data', (chunk) => {
+        resultString += chunk;
+      });
+
+      readStream.on('end', () => {
+        mainWindow.webContents.send(returnChannel, resultString);
+      });
+      readStream.on('error', (err) => {
+        console.log(err);
+      });
+
     }
   });
 

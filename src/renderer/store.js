@@ -56,7 +56,7 @@ window.ImageStorage = {};
 export const reloadImageFromFile = async () => {
   console.log('===================')
   const state = store.getState();
-  const {CardList, Config} = state.pnp;
+  const {CardList, Config} = JSON.parse(JSON.stringify(state.pnp));
   const ImageCache = {};
   const loadImage = async(image) => {
     if(!image) return;
@@ -75,14 +75,15 @@ export const reloadImageFromFile = async () => {
   for(let card of CardList) {
     const {face,back} = card;
     const cardDataFace = await loadImage(face);
-    cardDataFace && (card.cardData = cardDataFace);
+    cardDataFace && (card.face.cardData = cardDataFace);
     const cardDataBack = await loadImage(back);
-    cardDataBack && (card.cardData = cardDataBack);
+    cardDataBack && (card.back.cardData = cardDataBack);
   }
   if(Config.globalBackground?.path) {
     const cardDataBG = await loadImage(Config.globalBackground);
     cardDataBG && (Config.globalBackground.cardData = cardDataBG);
   }
+  store.dispatch(Actions.StateFill({ CardList, Config: { globalBackground: Config.globalBackground } }));
   store.dispatch(Actions.UpdateStorage(ImageCache));
 }
 //ugly code
@@ -146,7 +147,7 @@ export const pnpSlice = createSlice({
   reducers: {
     StateFill: (state, action) => {
       const { ImageStorage } = action.payload;
-      fillByObjectValue(window.ImageStorage, ImageStorage);
+      ImageStorage && fillByObjectValue(window.ImageStorage, ImageStorage);
       delete action.payload.ImageStorage;
       fillByObjectValue(state, action.payload);
       storeCardImage(state);
