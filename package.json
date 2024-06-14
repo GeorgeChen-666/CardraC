@@ -43,7 +43,6 @@
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.5",
     "@reduxjs/toolkit": "^2.2.3",
-    "compressorjs": "^1.2.1",
     "electron-squirrel-startup": "^1.0.0",
     "electron-store": "^8.2.0",
     "framer-motion": "^6.5.1",
@@ -60,6 +59,7 @@
     "react-icons": "^3.11.0",
     "react-redux": "^9.1.1",
     "redux-logger": "^3.0.6",
+    "sharp": "^0.33.4",
     "web-vitals": "^2.1.4"
   }
 }

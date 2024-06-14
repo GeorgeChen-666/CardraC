@@ -1,5 +1,4 @@
 import { ipcRenderer } from 'electron';
-import Compressor from 'compressorjs';
 
 export const emptyImg = {
   path: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
@@ -17,31 +16,7 @@ export const getResourcesPath = (path) => (isDev ? '' : '..') + path;
 
 export const isObject = data => typeof data === 'object' && data?.constructor === Object;
 
-export const getImageSrc = imageData => imageData?.cardData || ImageStorage[imageData?.path?.replaceAll('\\', '')] || emptyImg.path;
-
-export const compressImage = async (imageData, maxWidth = 1600) => {
-  const imageBlob = await base64ImageToBlob(imageData);
-  return await new Promise((resolve) => {
-    new Compressor(imageBlob, {
-      quality: 0.6,
-      maxWidth,
-      convertSize: 5000000,
-      success(result) {
-        console.log(`from ${imageBlob.size} to ${result.size}`);
-        const reader = new FileReader();
-        reader.onload = function(event) {
-          const base64String = event.target.result;
-          resolve(base64String);
-        };
-        reader.readAsDataURL(result);
-      },
-      error(err) {
-        console.log('compress error', err);
-        resolve(imageData.data);
-      },
-    });
-  });
-};
+export const getImageSrc = imageData => OverviewStorage[imageData?.path?.replaceAll('\\', '')] || ImageStorage[imageData?.path?.replaceAll('\\', '')] || emptyImg.path;
 
 export const base64ImageToBlob = (imageData) => new Promise((resolve) => {
   const base64Data = imageData.data.split(';base64,')[1] || imageData.data;
@@ -84,20 +59,21 @@ export const fillByObjectValue = (source, value) => {
 
 const mergeState = (state) => {
   const newState = JSON.parse(JSON.stringify(state));
-  const { ImageStorage } = window;
-  return { ...newState, ImageStorage };
+  const { ImageStorage, OverviewStorage } = window;
+  return { ...newState, ImageStorage, OverviewStorage };
 };
 
 
 ipcRenderer.on('console', (ev, ...args) => console.log(...args));
 export const onOpenProjectFile = (dispatch, Actions, cb) => {
   ipcRenderer.on('open-project-file', async (event, data) => {
-    dispatch(Actions.StateFill(JSON.parse(data)));
-    cb();
+    const newState = JSON.parse(data)
+    await cb(newState);
+    dispatch(Actions.StateFill(newState));
   });
 };
 
-export const loadLocalFile = ({ path }) => callMain('file-to-object', { path });
+export const reloadLocalImage = ({ path, mtime }) => callMain('reload-local-image', { path, mtime });
 
 export const openImage = (key) => callMain('open-image', {
   returnChannel: 'open-image-return' + key,
@@ -105,8 +81,11 @@ export const openImage = (key) => callMain('open-image', {
   if (imageDatas.length === 0) return;
   const imageData = imageDatas[0];
   imageData.ext = imageData.path.split('.').pop();
-  imageData.data = await compressImage(imageData);
-  imageData.cardData = await compressImage(imageData, 300);
+  const imagePathKey = imageData?.path.replaceAll('\\','');
+  window.ImageStorage[imagePathKey] = imageData.data;
+  window.OverviewStorage[imagePathKey] = imageData.overviewData;
+  delete imageData.data;
+  delete imageData.overviewData;
   return imageData;
 });
 
@@ -117,8 +96,11 @@ export const openMultiImage = (key) => callMain('open-image', {
   const newImageDatas = [...imageDatas];
   for (const imageData of newImageDatas) {
     imageData.ext = imageData.path.split('.').pop();
-    imageData.data = await compressImage(imageData);
-    imageData.cardData = await compressImage(imageData, 300);
+    const imagePathKey = imageData?.path.replaceAll('\\','');
+    window.ImageStorage[imagePathKey] = imageData.data;
+    window.OverviewStorage[imagePathKey] = imageData.overviewData;
+    delete imageData.data;
+    delete imageData.overviewData;
   }
   return newImageDatas;
 });

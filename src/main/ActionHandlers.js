@@ -1,3 +1,4 @@
+const { readCompressedImage } = require('./functions');
 const { base64ToBuffer, readFileToData, saveDataToFile } = require('./functions');
 const fs = require('fs')
 const path = require('path')
@@ -16,6 +17,13 @@ const {env} = process; // eslint-disable-line n/prefer-global/process
 const isEnvSet = 'ELECTRON_IS_DEV' in env;
 const getFromEnv = Number.parseInt(env.ELECTRON_IS_DEV, 10) === 1;
 export const isDev = isEnvSet ? getFromEnv : !electron?.app?.isPackaged;
+const pathToImageData = async path => {
+  const ext = path.split('.').pop();
+  const data = await readCompressedImage(path, { format: ext });
+  const overviewData = await readCompressedImage(path, { maxWidth: 200 });
+  const { mtime } = fs.statSync(path);
+  return ({ path, data, overviewData, mtime: mtime.getTime() });
+}
 
 const store = new Store();
 const initLanguageJson = (lang) => {
@@ -59,15 +67,19 @@ export const registerRendererActionHandlers = (mainWindow) => {
     }
     else {
       const toRenderData = [];
-      const jobList = result.filePaths.map(path => readFileToData(path, 'base64'));
-      for(let jobIndex in jobList) {
-        const path = result.filePaths[jobIndex];
-        const base64String = await jobList[jobIndex];
-        const ext = path.split('.').pop();
-        const data = `data:image/${ext};base64,${base64String}`;
-        const { mtime } = fs.statSync(path);
-        toRenderData.push({ path, data, mtime: mtime.getTime() })
+      for(const path of result.filePaths) {
+        toRenderData.push(await pathToImageData(path))
       }
+      // const jobList = result.filePaths.map(path => readFileToData(path, 'base64'));
+      // for(let jobIndex in jobList) {
+      //   const path = result.filePaths[jobIndex];
+      //   const base64String = await jobList[jobIndex];
+      //   const ext = path.split('.').pop();
+      //   const data = `data:image/${ext};base64,${base64String}`;
+      //   const { mtime } = fs.statSync(path);
+      //   readCompressedImage(path);
+      //   toRenderData.push({ path, data, mtime: mtime.getTime() })
+      // }
       mainWindow.webContents.send(returnChannel, toRenderData);
     }
   });
@@ -89,7 +101,7 @@ export const registerRendererActionHandlers = (mainWindow) => {
       }
     }
     const projectData = _.pick(state, ['Config', 'CardList']);
-    await saveDataToFile({ ...projectData, ImageStorage: state.ImageStorage }, projectPath);
+    await saveDataToFile({ ...projectData, ImageStorage: state.ImageStorage, OverviewStorage: state.OverviewStorage }, projectPath);
     mainWindow.webContents.send('save-project-done');
   });
 
@@ -120,14 +132,10 @@ export const registerRendererActionHandlers = (mainWindow) => {
   });
 
   ipcMain.on('save-config', (event, args) => {
-    const { Global, Config, ImageStorage } = args.state;
+    const { Global, Config } = args.state;
+    delete Config.globalBackground;
     store.set({ Global: _.pick(Global, ['currentLang']) });
     store.set({ Config });
-    if(Config.globalBackground?.path) {
-      const storageKey = Config.globalBackground?.path.replaceAll('\\','');
-      store.set({ ImageStorage: { [storageKey]: ImageStorage[storageKey] } });
-    }
-
   });
   ipcMain.on('load-config', () => {
     initLanguageJson('en');
@@ -141,17 +149,11 @@ export const registerRendererActionHandlers = (mainWindow) => {
     })
     mainWindow.webContents.send('load-config-done', config);
   });
-  ipcMain.on('file-to-object', async (event, args) => {
+  ipcMain.on('reload-local-image', async (event, args) => {
     const { path, mtime: cardMtime} = args;
     const { mtime } = fs.statSync(path);
     if(cardMtime !== mtime) {
-      const base64String = await readFileToData(args.path, 'base64');
-      mainWindow.webContents.send(args.returnChannel, {
-        data: base64String,
-        path: args.path,
-        ext: args.path.split('.').pop(),
-        mdate: mtime.getTime()
-      });
+      mainWindow.webContents.send(args.returnChannel, await pathToImageData(path));
     }
     else {
       mainWindow.webContents.send(args.returnChannel);

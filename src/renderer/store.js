@@ -7,9 +7,8 @@ import {
   fillByObjectValue,
   loadConfig,
   saveConfig,
-  compressImage,
   onOpenProjectFile,
-  loadLocalFile, base64ImageToBlob,
+  reloadLocalImage,
 } from './functions';
 
 export const initialState = Object.freeze({
@@ -52,20 +51,22 @@ export const initialState = Object.freeze({
   },
   CardList: [],
 });
+window.OverviewStorage = {};
 window.ImageStorage = {};
-export const reloadImageFromFile = async () => {
-  console.log('===================')
-  const state = store.getState();
-  const {CardList, Config} = JSON.parse(JSON.stringify(state.pnp));
-  const ImageCache = {};
+export const reloadImageFromFile = async (state) => {
+  const {CardList, Config} = state;
   const loadImage = async(image) => {
-    if(!image) return;
+    if(!image || !image?.path) return;
     try {
       const imagePathKey = image?.path.replaceAll('\\','');
-      const imageData = await loadLocalFile(image);
-      if(imageData && image.mtime !== imageData.mtime) {
-        ImageCache[imagePathKey] = await compressImage(imageData);
-        return await compressImage(imageData, 300);
+      const imageParam = {...image};
+      if(!window.ImageStorage[imagePathKey] || !window.OverviewStorage[imagePathKey]) {
+        delete imageParam.mtime; //force reload
+      }
+      const imageData = await reloadLocalImage(imageParam);
+      if(imageData) {
+        window.ImageStorage[imagePathKey] = imageData.data;
+        window.OverviewStorage[imagePathKey] = imageData.overviewData;
       }
     } catch (e) {
       console.log(e);
@@ -74,51 +75,33 @@ export const reloadImageFromFile = async () => {
   }
   for(let card of CardList) {
     const {face,back} = card;
-    const cardDataFace = await loadImage(face);
-    cardDataFace && (card.face.cardData = cardDataFace);
-    const cardDataBack = await loadImage(back);
-    cardDataBack && (card.back.cardData = cardDataBack);
+    await loadImage(face);
+    await loadImage(back)
   }
   if(Config.globalBackground?.path) {
-    const cardDataBG = await loadImage(Config.globalBackground);
-    cardDataBG && (Config.globalBackground.cardData = cardDataBG);
+    await loadImage(Config.globalBackground)
   }
-  store.dispatch(Actions.StateFill({ CardList, Config: { globalBackground: Config.globalBackground } }));
-  store.dispatch(Actions.UpdateStorage(ImageCache));
 }
 //ugly code
 const storeCardImage = (state) => {
   const {CardList, Config} = state;
-  const { ImageStorage } = window;
+  const { ImageStorage, OverviewStorage } = window;
   const usedImagePath = new Set();
-  const storeImage = image => {
-    if(!image) return;
-    const imagePathKey = image?.path.replaceAll('\\','');
-    if(image?.data) {
-      if(!Object.keys(ImageStorage).includes(imagePathKey)) {
-        ImageStorage[imagePathKey] = image?.data;
-      }
-      delete image?.data;
-    }
-  }
   CardList.forEach(card => {
     const {face,back} = card;
     const facePathKey  = face?.path.replaceAll('\\','');
     const backPathKey  = back?.path.replaceAll('\\','');
     usedImagePath.add(facePathKey);
     usedImagePath.add(backPathKey);
-    storeImage(face);
-    storeImage(back);
   });
 
   if(Config.globalBackground?.path) {
     const globalBackPathKey = Config.globalBackground?.path?.replaceAll('\\','');
     usedImagePath.add(globalBackPathKey);
-    storeImage(Config.globalBackground);
   }
 
   Object.keys(ImageStorage).filter(key=> !usedImagePath.has(key)).forEach(key => delete ImageStorage[key]);
-  //updateBlobLinks(state);
+  Object.keys(OverviewStorage).filter(key=> !usedImagePath.has(key)).forEach(key => delete OverviewStorage[key]);
 }
 //ugly code
 // const updateBlobLinks = async (state) => {
@@ -146,9 +129,11 @@ export const pnpSlice = createSlice({
   initialState,
   reducers: {
     StateFill: (state, action) => {
-      const { ImageStorage } = action.payload;
-      ImageStorage && fillByObjectValue(window.ImageStorage, ImageStorage);
+      const { ImageStorage, OverviewStorage } = action.payload;
+      ImageStorage && (window.ImageStorage = {}) && fillByObjectValue(window.ImageStorage, ImageStorage);
+      OverviewStorage && (window.OverviewStorage = {}) && fillByObjectValue(window.OverviewStorage, OverviewStorage);
       delete action.payload.ImageStorage;
+      delete action.payload.OverviewStorage;
       fillByObjectValue(state, action.payload);
       storeCardImage(state);
       saveConfig({state});
@@ -221,7 +206,7 @@ export const pnpSlice = createSlice({
     SelectedCardsMove: (state, action) => {
       const dragTargetId = 'dragTarget';
       const selection = state.CardList.filter(c => c.selected);
-      const orderedSelection = selection.sort((a, b) => {
+      const orderedSelection = selection.toSorted((a, b) => {
         return state.CardList.findIndex(c => c.id === b.id) - state.CardList.findIndex(c => c.id === a.id);
       })
       orderedSelection.forEach(c => {
@@ -255,7 +240,7 @@ export const pnpSlice = createSlice({
     },
     SelectedCardsRemove: (state) => {
       const selection = state.CardList.filter(c => c.selected);
-      selection.sort((a, b) => {
+      selection.toSorted((a, b) => {
         return state.CardList.indexOf(c => c.id === b.id) - state.CardList.indexOf(c => c.id === a.id);
       }).forEach(c => state.CardList.splice(state.CardList.indexOf(cc => cc.id === c.id), 1));
       storeCardImage(state);
@@ -270,12 +255,6 @@ export const pnpSlice = createSlice({
     CardRemoveByIds: (state, action) => {
       state.CardList = state.CardList.filter(c => !action.payload.includes(c.id));
       storeCardImage(state);
-    },
-    UpdateStorage: (state, action) => {
-      const ImageCache = action.payload;
-      Object.keys(ImageCache).forEach(key => {
-        window.ImageStorage[key] = ImageCache[key];
-      })
     }
   },
 });
@@ -299,4 +278,4 @@ export const StoreProvider = ({ children }) => {
 const config = await loadConfig();
 store.dispatch(Actions.GlobalEdit({...config.Global}));
 store.dispatch(Actions.ConfigEdit({...config.Config}));
-onOpenProjectFile(store.dispatch, Actions, () => reloadImageFromFile())
+onOpenProjectFile(store.dispatch, Actions, reloadImageFromFile)
