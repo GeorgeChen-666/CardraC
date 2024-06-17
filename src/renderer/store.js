@@ -56,7 +56,7 @@ window.ImageStorage = {};
 export const reloadImageFromFile = async (state) => {
   const {CardList, Config} = state;
   const loadImage = async(image) => {
-    if(!image || !image?.path) return;
+    if(!image || !image?.path) return false;
     try {
       const imagePathKey = image?.path.replaceAll('\\','');
       const imageParam = {...image};
@@ -67,6 +67,7 @@ export const reloadImageFromFile = async (state) => {
       if(imageData) {
         window.ImageStorage[imagePathKey] = imageData.data;
         window.OverviewStorage[imagePathKey] = imageData.overviewData;
+        return true
       }
     } catch (e) {
       console.log(e);
@@ -74,9 +75,11 @@ export const reloadImageFromFile = async (state) => {
 
   }
   for(let card of CardList) {
-    const {face,back} = card;
-    await loadImage(face);
-    await loadImage(back)
+    const {face,back, id} = card;
+    const [isFaceChanged, isBackChanged] = [await loadImage(face), await loadImage(back)]
+    if(isFaceChanged || isBackChanged) {
+      store.dispatch(Actions.CardEditById({ id, _newId: crypto.randomUUID() }))
+    }
   }
   if(Config.globalBackground?.path) {
     await loadImage(Config.globalBackground)
@@ -103,27 +106,7 @@ const storeCardImage = (state) => {
   Object.keys(ImageStorage).filter(key=> !usedImagePath.has(key)).forEach(key => delete ImageStorage[key]);
   Object.keys(OverviewStorage).filter(key=> !usedImagePath.has(key)).forEach(key => delete OverviewStorage[key]);
 }
-//ugly code
-// const updateBlobLinks = async (state) => {
-//   const {Global: {blobLinks}} = state;
-//   const { ImageStorage } = window;
-//   const _BlobLinks = JSON.parse(JSON.stringify(blobLinks));
-//   Object.keys(_BlobLinks).filter(key=> !Object.keys(ImageStorage).includes(key)).forEach(key => {
-//     URL.revokeObjectURL(_BlobLinks[key]);
-//     delete _BlobLinks[key];
-//   });
-//   for(const imagePathKey of Object.keys(ImageStorage)) {
-//     if(!Object.keys(_BlobLinks).includes(imagePathKey)) {
-//       //
-//       const ext = imagePathKey.split('.').pop();
-//       const newBlob = await base64ImageToBlob(ImageStorage[imagePathKey], ext);
-//       ImageStorage[imagePathKey] && (_BlobLinks[imagePathKey] = URL.createObjectURL(newBlob));
-//     }
-//   }
-//   setTimeout(() => {
-//     store.dispatch(Actions.GlobalEdit({blobLinks:_BlobLinks}));
-//   }, 100)
-// }
+
 export const pnpSlice = createSlice({
   name: 'pnp',
   initialState,
@@ -229,6 +212,10 @@ export const pnpSlice = createSlice({
     },
     CardEditById: (state, action) => {
       const card = state.CardList.find(c => c.id === action.payload.id);
+      const { _newId } = action.payload;
+      if(_newId) {
+        action.payload.id = _newId;
+      }
       if (card) {
         fillByObjectValue(card, action.payload);
         storeCardImage(state);

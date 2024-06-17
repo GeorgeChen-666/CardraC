@@ -75,13 +75,15 @@ const drawPageElements = async (doc, pageData, state) => {
   let bleedY = bleed;
   let offsetX = 1 * Config.offsetX;
   let offsetY = 1 * Config.offsetY;
-  const crossMarks = new Set();
-  const normalMarks = new Set();
+
   const maxWidth = fixFloat(doc.getPageWidth(0));
   const maxHeight = fixFloat(doc.getPageHeight(0));
   const lineWeight = Config.lineWeight;
   const cutlineColor = Config.cutlineColor;
   const avoidDislocation = Config.avoidDislocation;
+
+  doc.setLineWidth(lineWeight * 0.3527);
+  doc.setDrawColor(cutlineColor);
 
   const landscape = Config.landscape;
   let flipWay = ['none', 'long-edge binding', 'short-edge binding'].indexOf(Config.flip);
@@ -133,27 +135,26 @@ const drawPageElements = async (doc, pageData, state) => {
         imageXc = imageXc + offsetX;
         imageYc = imageYc + offsetY;
       }
-      if (image) {
-        try {
-          if (image === emptyImg) {
-            doc.addImage(image.path, image.ext, imageXc, imageYc, cardW, cardH, image.path, 'NONE', cardRotation);
-          } else {
-            const base64String = ImageStorage[image.path?.replaceAll('\\', '')];
-            doc.addImage(base64String, image.ext, imageXc, imageYc, cardW, cardH, image.path, 'FAST', cardRotation);
-          }
-        } catch (e) {
-          console.log('addImage error', e);
-        }
-      }
+
       if (Config.fCutLine === '2' || Config.fCutLine === '3') {
         //add cross mark loc
+        const crossMarks = new Set();
         crossMarks.add(`${cardXc + bleedX + offsetX},${cardYc + bleedY + offsetY}`);
         crossMarks.add(`${cardXc + cardW - bleedX + offsetX},${cardYc + cardH - bleedY + offsetY}`);
         crossMarks.add(`${cardXc + bleedX + offsetX},${cardYc + cardH - bleedY + offsetY}`);
         crossMarks.add(`${cardXc + cardW - bleedX + offsetX},${cardYc + bleedY + offsetY}`);
+        crossMarks.forEach(cm => {
+          const [x, y] = cm.split(',');
+          try {
+            doc.line(parseFloat(x) - fixFloat(2 * scale), parseFloat(y), parseFloat(x) + fixFloat(2 * scale), parseFloat(y));
+            doc.line(parseFloat(x), parseFloat(y) - fixFloat(2 * scale), parseFloat(x), parseFloat(y) + fixFloat(2 * scale));
+          } catch (e) {
+          }
+        });
       }
 
       if (Config.fCutLine === '1' || Config.fCutLine === '3') {
+        const normalMarks = new Set();
         //add normal mark loc
         if (cx === 0) {
           normalMarks.add(`0,${cardYc + bleedY + offsetY}-${cardXc + bleedX + offsetX},${cardYc + bleedY + offsetY}`);
@@ -171,29 +172,31 @@ const drawPageElements = async (doc, pageData, state) => {
           normalMarks.add(`${cardXc + bleedX + offsetX},${cardYc + cardH - bleedY + offsetY}-${cardXc + bleedX + offsetX},${maxHeight}`);
           normalMarks.add(`${cardXc + cardW - bleedX + offsetX},${cardYc + cardH - bleedY + offsetY}-${cardXc + cardW - bleedX + offsetX},${maxHeight}`);
         }
+        normalMarks.forEach(nm => {
+          const [loc1, loc2] = nm.split('-');
+          const [x1, y1] = loc1.split(',');
+          const [x2, y2] = loc2.split(',');
+          try {
+            doc.line(parseFloat(x1), parseFloat(y1), parseFloat(x2), parseFloat(y2));
+          } catch (e) {
+          }
+        });
       }
 
+      if (image) {
+        try {
+          if (image === emptyImg) {
+            doc.addImage(image.path, image.ext, imageXc, imageYc, cardW, cardH, image.path, 'NONE', cardRotation);
+          } else {
+            const base64String = ImageStorage[image.path?.replaceAll('\\', '')];
+            doc.addImage(base64String, image.ext, imageXc, imageYc, cardW, cardH, image.path, 'FAST', cardRotation);
+          }
+        } catch (e) {
+          console.log('addImage error', e);
+        }
+      }
     }
   }
-  doc.setLineWidth(lineWeight * 0.3527);
-  doc.setDrawColor(cutlineColor);
-  normalMarks.forEach(nm => {
-    const [loc1, loc2] = nm.split('-');
-    const [x1, y1] = loc1.split(',');
-    const [x2, y2] = loc2.split(',');
-    try {
-      doc.line(parseFloat(x1), parseFloat(y1), parseFloat(x2), parseFloat(y2));
-    } catch (e) {
-    }
-  });
-  crossMarks.forEach(cm => {
-    const [x, y] = cm.split(',');
-    try {
-      doc.line(parseFloat(x) - fixFloat(2 * scale), parseFloat(y), parseFloat(x) + fixFloat(2 * scale), parseFloat(y));
-      doc.line(parseFloat(x), parseFloat(y) - fixFloat(2 * scale), parseFloat(x), parseFloat(y) + fixFloat(2 * scale));
-    } catch (e) {
-    }
-  });
 };
 
 export const exportPdf = async (state, onProgress) => {

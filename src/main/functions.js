@@ -6,7 +6,7 @@ export const readCompressedImage = async (path, options = {}) => {
   options.format = options.format === 'jpg' ? 'jpeg' : 'png';
   const {
     maxWidth = 1000,
-    quality = 60,
+    quality = 80,
     format= 'webp'
   } = options;
 

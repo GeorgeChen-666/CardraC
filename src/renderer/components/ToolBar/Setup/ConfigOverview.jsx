@@ -19,7 +19,7 @@ export const ConfigOverview = () => {
     ])
   ), shallowEqual);
   const [boxCardSize, setBoxCardSize] = useState(`0,0`);
-  const [boxCardWidth, boxCardHeight] = boxCardSize.split(',');
+  let [boxCardWidth, boxCardHeight] = boxCardSize.split(',');
   useEffect(() => {
     setTimeout(() => {
       const boxDiv = document.getElementsByClassName('ConfigOverview')?.[0];
@@ -32,15 +32,15 @@ export const ConfigOverview = () => {
         overviewDiv.style.gap = `${Config.marginY * boxScale}px ${Config.marginX * boxScale}px`;
         overviewDiv.style.height = `${Config.pageWidth * boxScale}px`;
         overviewDiv.style.width = `${Config.pageHeight * boxScale}px`;
-        setBoxCardSize(`${Config.cardWidth / boxScale},${Config.cardHeight / boxScale}`);
+        setBoxCardSize(`${Config.cardWidth * boxScale},${Config.cardHeight * boxScale}`);
 
       } else {
         overviewDiv.style.gap = `${Config.marginX * boxScale}px ${Config.marginY * boxScale}px`;
         overviewDiv.style.height = `${Config.pageHeight * boxScale}px`;
         overviewDiv.style.width = `${Config.pageWidth * boxScale}px`;
-        setBoxCardSize(`${Config.cardHeight / boxScale},${Config.cardWidth / boxScale}`);
-        const padding = (boxWidth - Config.cardWidth / boxScale * Config.columns - Config.marginX * boxScale * Math.max(0, Config.columns - 1)) / 2;
-        overviewDiv.style.padding = `0 ${padding}px`;
+        setBoxCardSize(`${Config.cardWidth * boxScale},${Config.cardHeight * boxScale}`);
+        //const padding = (boxWidth - Config.cardWidth * boxScale * Config.columns - Config.marginX * boxScale * Math.max(0, Config.columns - 1)) / 2;
+        //overviewDiv.style.padding = `0 ${padding}px`;
       }
     }, 100);
   }, [JSON.stringify(Config)]);
