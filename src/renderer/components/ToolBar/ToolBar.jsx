@@ -100,6 +100,11 @@ export const ToolBar = () => {
           }}>
             {t('toolbar.bulkMenu.menuRemove')}
           </MenuItem>
+          <MenuItem onClick={() => {
+            dispatch(Actions.SelectedCardsDuplicate());
+          }}>
+            {t('toolbar.bulkMenu.duplidate')}
+          </MenuItem>
           <MenuItem onClick={async () => {
             const filePath = await openImage('fillBackground');
             filePath && dispatch(Actions.SelectedCardsEdit({ back: filePath }));

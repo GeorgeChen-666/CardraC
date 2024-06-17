@@ -245,6 +245,17 @@ export const pnpSlice = createSlice({
       }).forEach(c => state.CardList.splice(state.CardList.indexOf(cc => cc.id === c.id), 1));
       storeCardImage(state);
     },
+    SelectedCardsDuplicate: (state) => {
+      const selection = state.CardList.filter(c => c.selected);
+      const orderedSelection = selection.toSorted((a, b) => {
+        return state.CardList.findIndex(c => c.id === b.id) - state.CardList.findIndex(c => c.id === a.id);
+      });
+      const to = state.CardList.findIndex(c => c.id === orderedSelection[0].id);
+      const newSelection = orderedSelection.map(c=>({...c, id: crypto.randomUUID(), selected: false}));
+      newSelection.forEach((s, index) => {
+        state.CardList.splice(to, 0, s);
+      });
+    },
     SelectedCardsEdit: (state, action) => {
       const selection = state.CardList.filter(c => c.selected);
       selection.forEach(c => {

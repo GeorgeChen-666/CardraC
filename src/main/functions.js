@@ -9,14 +9,17 @@ export const readCompressedImage = async (path, options = {}) => {
     quality = 60,
     format= 'webp'
   } = options;
-
-  let image = sharp(path);
-  const metadata = await image.metadata();
-  image = image.resize({ width: Math.min(metadata.width, maxWidth) });
-  image = (image[format])({ lossless: true, force: true, quality });
-  const ext = 'webp';
-  const base64String = (await image.toBuffer()).toString('base64');
-  return `data:image/${ext};base64,${base64String}`;
+  try {
+    let image = sharp(path);
+    const metadata = await image.metadata();
+    image = image.resize({ width: Math.min(metadata.width, maxWidth) });
+    image = (image[format])({ lossless: true, force: true, quality });
+    const ext = 'webp';
+    const base64String = (await image.toBuffer()).toString('base64');
+    return `data:image/${ext};base64,${base64String}`;
+  } catch (e) {
+    return null;
+  }
 }
 
 export const readFileToData = async (filePath, format = '') => {
