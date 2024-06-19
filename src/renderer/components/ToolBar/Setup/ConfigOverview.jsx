@@ -29,13 +29,13 @@ export const ConfigOverview = () => {
       const overviewDiv = document.getElementsByClassName('ConfigOverviewPage')?.[0];
 
       if (Config.landscape) {
-        overviewDiv.style.gap = `${Config.marginY * boxScale}px ${Config.marginX * boxScale}px`;
+        overviewDiv.style.gap = `1px`;
         overviewDiv.style.height = `${Config.pageWidth * boxScale}px`;
         overviewDiv.style.width = `${Config.pageHeight * boxScale}px`;
         setBoxCardSize(`${Config.cardWidth * boxScale},${Config.cardHeight * boxScale}`);
 
       } else {
-        overviewDiv.style.gap = `${Config.marginX * boxScale}px ${Config.marginY * boxScale}px`;
+        overviewDiv.style.gap = `1px`;
         overviewDiv.style.height = `${Config.pageHeight * boxScale}px`;
         overviewDiv.style.width = `${Config.pageWidth * boxScale}px`;
         setBoxCardSize(`${Config.cardWidth * boxScale},${Config.cardHeight * boxScale}`);

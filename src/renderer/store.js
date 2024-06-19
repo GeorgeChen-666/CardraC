@@ -44,7 +44,7 @@ export const initialState = Object.freeze({
     autoColumnsRows: true,
     fCutLine: '1',
     bCutLine: '1',
-    lineWeight: 1.5,
+    lineWeight: 0.5,
     cutlineColor: '#000000',
     globalBackground: null,
     avoidDislocation: false
@@ -228,8 +228,8 @@ export const pnpSlice = createSlice({
     SelectedCardsRemove: (state) => {
       const selection = state.CardList.filter(c => c.selected);
       selection.toSorted((a, b) => {
-        return state.CardList.indexOf(c => c.id === b.id) - state.CardList.indexOf(c => c.id === a.id);
-      }).forEach(c => state.CardList.splice(state.CardList.indexOf(cc => cc.id === c.id), 1));
+        return state.CardList.findIndex(c => c.id === b.id) - state.CardList.findIndex(c => c.id === a.id);
+      }).forEach(c => state.CardList.splice(state.CardList.findIndex(cc => cc.id === c.id), 1));
       storeCardImage(state);
     },
     SelectedCardsDuplicate: (state) => {
