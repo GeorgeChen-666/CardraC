@@ -16,11 +16,11 @@ import {
   NumberInputStepper,
   NumberIncrementStepper,
   NumberDecrementStepper,
-  Link,
+  Link, useToast,
 } from '@chakra-ui/react';
 import { MdPictureAsPdf } from 'react-icons/md';
 import { SetupDialog } from './Setup/SetupDialog';
-import { Actions, initialState, store, reloadImageFromFile } from '../../store';
+import { Actions, initialState, store, reloadImageFromFile, loading } from '../../store';
 import { exportPdf, getImageSrc, openImage, openMultiImage, openProject, saveProject } from '../../functions';
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { useTranslation } from 'react-i18next';
@@ -28,6 +28,7 @@ import { GeneralButton } from './Buttons/GeneralButton';
 import { LangSelectButton } from './Buttons/LangSelectButton';
 
 export const ToolBar = () => {
+  const toast = useToast()
   const { t } = useTranslation();
   const dialogRef = useRef(null);
   const Config = useSelector((state) => ({
@@ -50,11 +51,11 @@ export const ToolBar = () => {
       <GeneralButton
         label={t('toolbar.btnOpen')}
         icon={<AiFillFolderOpen size={'30'} />}
-        onClick={async () => {
+        onClick={() => loading(async () => {
           const projectData = await openProject();
           dispatch(Actions.StateFill(projectData));
           await reloadImageFromFile(projectData);
-        }}
+        })}
       />
       <GeneralButton
         label={t('toolbar.btnSave')}
@@ -70,7 +71,7 @@ export const ToolBar = () => {
       <GeneralButton
         label={t('toolbar.btnExport')}
         icon={<MdPictureAsPdf size={'30'} />}
-        onClick={async () => {
+        onClick={() => loading(async () => {
           dispatch(Actions.GlobalEdit({ isInProgress: true, progress: 0 }));
           const isSuccess = await exportPdf({
             state: store.getState().pnp, onProgress: value => {
@@ -78,16 +79,21 @@ export const ToolBar = () => {
             },
           });
           dispatch(Actions.GlobalEdit({ isInProgress: false }));
-          isSuccess && setTimeout(() => alert(t('toolbar.lblExportSuccess')), 100);
-        }}
+          isSuccess && toast({
+            description: t('toolbar.lblExportSuccess'),
+            status: 'success',
+            duration: 9000,
+            isClosable: true,
+          });
+        })}
       />
       {Config.sides === 'double sides' && <GeneralButton
         label={t('toolbar.btnGlobalBackground')}
         icon={<Image boxSize='30px' src={getImageSrc(Config.globalBackground)} />}
-        onClick={async () => {
+        onClick={() => loading(async () => {
           const filePath = await openImage('setGlobalBack');
           dispatch(Actions.ConfigEdit({ globalBackground: filePath }));
-        }}
+        })}
       />}
       <Menu onOpen={() => setRepeat(1)}>
         <MenuButton visibility={selectionLength === 0 ? 'hidden' : 'inline'} as={Button}
@@ -105,16 +111,16 @@ export const ToolBar = () => {
           }}>
             {t('toolbar.bulkMenu.duplidate')}
           </MenuItem>
-          <MenuItem onClick={async () => {
+          <MenuItem onClick={() => loading(async () => {
             const filePath = await openImage('fillBackground');
             filePath && dispatch(Actions.SelectedCardsEdit({ back: filePath }));
-          }}>
+          })}>
             {t('toolbar.bulkMenu.menuFillBackground')}
           </MenuItem>
-          <MenuItem onClick={async () => {
+          <MenuItem onClick={() => loading(async () => {
             const filePaths = await openMultiImage('SelectedCardFillBackWithEachBack');
             filePaths?.length > 0 && dispatch(Actions.SelectedCardFillBackWithEachBack(filePaths));
-          }}>
+          })}>
             {t('toolbar.bulkMenu.menuFillMultiBackground')}
           </MenuItem>
           <MenuItem>
@@ -123,7 +129,6 @@ export const ToolBar = () => {
                          onClick={(e) => e.stopPropagation()}
                          onChange={($, value) => {
                            setRepeat(value);
-                           //dispatch(Actions.CardEditById({ id: data.id, repeat: value }));
                          }}>
               <NumberInputField />
               <NumberInputStepper>

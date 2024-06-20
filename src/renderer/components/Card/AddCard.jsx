@@ -1,7 +1,7 @@
-import React, { useRef, useContext } from 'react';
+import React, { useRef } from 'react';
 import { IconButton } from '@chakra-ui/react';
 import { IoIosAdd } from 'react-icons/io';
-import { StoreContext, Actions } from '../../store';
+import { Actions } from '../../store';
 import './styles.css';
 import { openMultiImage } from '../../functions';
 import { useDispatch } from 'react-redux';
@@ -23,21 +23,6 @@ export const AddCard = () => {
         } else {
           inputRef.current?.click();
         }
-      }}
-    />
-    <input
-      ref={inputRef}
-      style={{ position: 'fixed', top: '-900px' }}
-      type='file'
-      multiple={true}
-      accept='image/jpeg,image/png'
-      onChange={() => {
-        console.log(inputRef.current?.files);
-        // dispatch({
-        //   type: Actions.AddCardByFace,
-        //   payload: [...inputRef.current?.files].map(f => URL.createObjectURL(f)),
-        // });
-        inputRef.current.value = '';
       }}
     />
   </div>);

@@ -10,12 +10,15 @@ import {
   onOpenProjectFile,
   reloadLocalImage,
 } from './functions';
+import { i18nInstance } from './i18n';
 
 export const initialState = Object.freeze({
   Global: {
     availableLangs: [],
     currentLang: 'zh',
     projectPath: '',
+    isLoading: false,
+    loadingText: '',
     isInProgress: false,
     progress: 0,
     lastSelection: null,
@@ -272,7 +275,11 @@ export const StoreProvider = ({ children }) => {
     </Provider>
   );
 };
-
+export const loading = async (cb,text= i18nInstance.t('util.operating')) => {
+  store.dispatch(Actions.GlobalEdit({isLoading: true, loadingText: text}));
+  cb && await cb();
+  store.dispatch(Actions.GlobalEdit({isLoading: false, loadingText: ''}));
+}
 const config = await loadConfig();
 store.dispatch(Actions.GlobalEdit({...config.Global}));
 store.dispatch(Actions.ConfigEdit({...config.Config}));

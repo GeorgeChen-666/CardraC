@@ -11,11 +11,10 @@ import { ToolBar } from './components/ToolBar/ToolBar';
 import { CardEditorList } from './components/Card/CardEditorList';
 import { Footer } from './components/Footer';
 import { i18nInstance } from './i18n';
-import { getResourcesPath } from './functions';
 import _ from 'lodash';
+import { LoadingModal } from './components/LoadingModal';
 
 function App() {
-  const [isI18nReady, setI18nReady] = useState(false);
   const Global = useSelector((state) => (
     _.pick(state.pnp.Global, [
       'currentLang',
@@ -38,6 +37,7 @@ function App() {
   return (
     <>
       {isI18nReady && (<ChakraProvider theme={theme}>
+        <LoadingModal />
         <Box>
           <Grid
             templateAreas={`"header"

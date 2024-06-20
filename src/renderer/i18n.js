@@ -17,5 +17,4 @@ i18n
   //   },
   //   // debug: true,
   // });
-
 export const i18nInstance = i18n;

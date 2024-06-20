@@ -1,4 +1,7 @@
 {
+  "util": {
+    "operating": "Operating..."
+  },
   "button": {
     "OK": "OK"
   },
@@ -17,7 +20,8 @@
       "menuFillBackground": "Fill Background",
       "menuFillMultiBackground": "Fill Multi Background",
       "menuSetCount": "Set Count",
-      "menuSwap": "Swap Face/Back"
+      "menuSwap": "Swap Face/Back",
+      "duplidate": "Duplidate"
     }
   },
   "cardEditor": {
