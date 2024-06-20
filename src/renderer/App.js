@@ -15,6 +15,7 @@ import _ from 'lodash';
 import { LoadingModal } from './components/LoadingModal';
 
 function App() {
+  const [isI18nReady, setIsI18nReady] = useState(false);
   const Global = useSelector((state) => (
     _.pick(state.pnp.Global, [
       'currentLang',
@@ -31,7 +32,7 @@ function App() {
           [lang]: { translation: Global.locales[lang] }
         })).reduce((l1, l2) => Object.assign(l1, l2), {}),
     });
-    setI18nReady(true);
+    setIsI18nReady(true);
   }, []);
 
   return (
