@@ -6,11 +6,12 @@ import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { CardDragTarget } from './CardDragTarget';
+import { Actions } from '../../store';
 
 export const CardEditorList = () => {
   const CardList = useSelector((state) => state.pnp.CardList, shallowEqual);
-
-  return <div className={'CardList'}>
+  const dispatch = useDispatch();
+  return <div className={'CardList'} onDragEnd={()=>dispatch(Actions.DragHoverCancel())}>
     <DndProvider backend={HTML5Backend}>
       {
         CardList.map((c, index) => {

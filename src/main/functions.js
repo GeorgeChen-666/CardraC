@@ -1,135 +1,63 @@
-const fs = require('fs')
-const path = require('path')
-const { exportPdf } = require('./ExportPdf');
-const { app, dialog, ipcMain } = require('electron');
-const electron = require('electron');
-const _ = require('lodash');
-const Store = require('electron-store');
+import sharp from 'sharp';
 
-const store = new Store();
+const fs = require('fs');
 
-if (typeof electron === 'string') {
-  throw new TypeError('Not running in an Electron environment!');
+export const readCompressedImage = async (path, options = {}) => {
+  options.format = options.format === 'jpg' ? 'jpeg' : 'png';
+  const {
+    maxWidth = 1000,
+    quality = 80,
+    format= 'webp'
+  } = options;
+  try {
+    let image = sharp(path);
+    const metadata = await image.metadata();
+    image = image.resize({ width: Math.min(metadata.width, maxWidth) });
+    image = (image[format])({ lossless: true, force: true, quality });
+    const ext = 'webp';
+    const base64String = (await image.toBuffer()).toString('base64');
+    return `data:image/${ext};base64,${base64String}`;
+  } catch (e) {
+    return null;
+  }
 }
-
-const {env} = process; // eslint-disable-line n/prefer-global/process
-const isEnvSet = 'ELECTRON_IS_DEV' in env;
-const getFromEnv = Number.parseInt(env.ELECTRON_IS_DEV, 10) === 1;
-
-export const isDev = isEnvSet ? getFromEnv : !electron.app.isPackaged;
 
 export const readFileToData = async (filePath, format = '') => {
-  const data = await fs.readFileSync(filePath);
-  const formatedData = format ? data.toString(format): data.toString();
-  return formatedData;
-}
+  const readStream = fs.createReadStream(filePath);
+
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    readStream.on('data', (chunk) => {
+      chunks.push(chunk)
+    });
+
+    readStream.on('end', () => {
+      const resultBuffer = Buffer.concat(chunks);
+      const formatedData = format ? resultBuffer.toString(format) : resultBuffer.toString();
+      resolve(formatedData)
+    });
+    readStream.on('error', (err) => {
+      reject(err);
+    });
+  })
+};
 
 export const saveDataToFile = async (data, filePath) => {
   let buffer = null;
-  if(typeof data ==='string') {
+  if (typeof data === 'string') {
     buffer = data;
-  } else if(typeof data === 'object' && data instanceof Blob) {
-    buffer = Buffer.from( await data.arrayBuffer() )
-  } else if(typeof data === 'object' && data.constructor === Object) {
+  } else if (typeof data === 'object' && data instanceof Blob) {
+    buffer = Buffer.from(await data.arrayBuffer());
+  } else if (typeof data === 'object' && data.constructor === Object) {
     buffer = JSON.stringify(data);
   }
   await fs.writeFileSync(filePath, buffer);
-}
+};
+export const base64ToBuffer = (base64Data) => {
+  const buffer = Buffer.from(base64Data, 'base64');
+  const decodedString = buffer.toString('binary');
+  return decodedString;
+};
 
-const initLanguageJson = (lang) => {
-  const en = new Store({name: lang, cwd: 'locales'});
-  if(en.size === 0) {
-    en.set(require(`./locales/${lang}.json`));
-  }
-}
 
-export const registerRendererActionHandlers = (mainWindow) => {
-  ipcMain.on('export-pdf', async (event, args) => {
-    const result = await dialog.showSaveDialog({
-      title: 'Save PDF',
-      defaultPath: 'pnp.pdf',
-      filters: [
-        { name: 'pdf', extensions: ['pdf'] }
-      ]
-    });
-    if (!result.canceled) {
-      const blob = await exportPdf(args.state, (progress) => {
-        mainWindow.webContents.send('export-pdf-progress', progress);
-      });
-      const filePath = result.filePath;
-      await saveDataToFile(blob, filePath);
-      mainWindow.webContents.send('export-pdf-progress', 100);
-      mainWindow.webContents.send('export-pdf-done');
-    }
-  });
 
-  ipcMain.on('open-image', async (event, args) => {
-    const { properties = [], returnChannel } = args;
-    const result = await dialog.showOpenDialog({
-      filters: [
-        { name: 'Image File', extensions: ['jpg', 'png', 'gif'] }
-      ],
-      properties: ['openFile', ...properties],
-    });
-    if (!result.canceled) {
-      const toRenderData = [];
-      const jobList = result.filePaths.map(path => readFileToData(path, 'base64'));
-      for(let jobIndex in jobList) {
-        const base64String = await jobList[jobIndex];
-        toRenderData.push({ path: result.filePaths[jobIndex], data: base64String })
-      }
-      mainWindow.webContents.send(returnChannel, toRenderData);
-    }
-  });
-
-  ipcMain.on('save-project', async (event, args) => {
-    const { state } = args;
-    let projectPath = state.Global.projectPath;
-    if(projectPath === '') {
-      const result = await dialog.showSaveDialog({
-        title: 'Save Project',
-        defaultPath: 'myProject.cpnp',
-        filters: [
-          { name: 'Project file', extensions: ['cpnp'] }
-        ]
-      });
-      if (result.canceled) { return; }
-      else {
-        projectPath = result.filePath;
-      }
-    }
-    const projectData = _.pick(state, ['Config', 'CardList']);
-    await saveDataToFile(projectData, projectPath);
-    mainWindow.webContents.send('save-project-done');
-  });
-
-  ipcMain.on('open-project', async (event, args) => {
-    const { properties = [], returnChannel } = args;
-    const result = await dialog.showOpenDialog({
-      filters: [
-        { name: 'Project File', extensions: ['cpnp'] }
-      ],
-      properties: ['openFile', ...properties],
-    });
-    if (!result.canceled) {
-      const toRenderData = await readFileToData(result.filePaths[0]);
-      mainWindow.webContents.send(returnChannel, toRenderData);
-    }
-  });
-
-  ipcMain.on('save-config', (event, args) => {
-    const { Global } = args.state;
-    store.set(_.pick(Global, ['currentLang']));
-  });
-  ipcMain.on('load-config', () => {
-    initLanguageJson('en');
-    initLanguageJson('zh')
-    const config = store.get() || {};
-    config.availableLangs = fs.readdirSync(path.join(app.getPath('userData'), 'locales')).map(p=>p?.split('.')?.[0] || '').filter(p=>!!p);
-    config.locales = {};
-    config.availableLangs.forEach(lang => {
-      config.locales[lang] = new Store({name: lang, cwd: 'locales'}).get();
-    })
-    mainWindow.webContents.send('load-config-done', config);
-  });
-}

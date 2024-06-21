@@ -1,4 +1,7 @@
 {
+  "util": {
+    "operating": "Operating..."
+  },
   "button": {
     "OK": "OK"
   },
@@ -17,7 +20,8 @@
       "menuFillBackground": "Fill Background",
       "menuFillMultiBackground": "Fill Multi Background",
       "menuSetCount": "Set Count",
-      "menuSwap": "Swap Face/Back"
+      "menuSwap": "Swap Face/Back",
+      "duplidate": "Duplidate"
     }
   },
   "cardEditor": {
@@ -29,7 +33,42 @@
     "clearBack": "Clear Background"
   },
   "configDialog": {
-
+    "setup": "Setup",
+    "layout": "Layout",
+    "custom": "Custom",
+    "size": "Size",
+    "landscape": "Landscape",
+    "pageWidth": "Page Width",
+    "pageHeight": "Page Height",
+    "offsetX": "Offset X",
+    "offsetY": "Offset Y",
+    "side": "Side",
+    "oneSide": "One Side",
+    "doubleSides": "Double Sides",
+    "brochure": "Brochure",
+    "auto": "Auto",
+    "longEdgeBinding": "Long Edge Binding",
+    "shortEdgeBinding": "Short Edge Binding",
+    "edit": "Edit",
+    "flip": "Flip",
+    "card": "Card",
+    "mark": "Mark",
+    "cardWidth": "Card Width",
+    "cardHeight": "Card Height",
+    "marginX": "Margin X",
+    "marginY": "Margin Y",
+    "bleed": "Bleed",
+    "scale": "Scale",
+    "columns_rows": "Columns/Rows",
+    "fCutLine": "Front CutLine",
+    "bCutLine": "Back CutLine",
+    "none": "None",
+    "normal": "Normal",
+    "cross": "Cross",
+    "complete": "Complete",
+    "lineWeight": "Line Weight",
+    "color": "Color",
+    "avoidDislocation": "Avoid Dislocation"
   },
   "footer": {
     "files": "Files",

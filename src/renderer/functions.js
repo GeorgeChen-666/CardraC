@@ -1,17 +1,51 @@
 import { ipcRenderer } from 'electron';
 
+export const emptyImg = {
+  path: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
+    '12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg==',
+  ext: 'png',
+};
+
 export const isDev = 'ELECTRON_IS_DEV' in process?.env;
 
-export const getResourcesPath = (path) => (isDev?'':'..') + path;
+function isPromise(obj) {
+  return !!obj && typeof obj.then === 'function' && typeof obj.catch === 'function';
+}
 
-export const isObject = data => typeof data === 'object' && data?.constructor === Object
+export const getResourcesPath = (path) => (isDev ? '' : '..') + path;
 
-export const fillByObjectValue = (source,value) => {
-  if(isObject(source) && isObject(value)) {
+export const isObject = data => typeof data === 'object' && data?.constructor === Object;
+
+export const getImageSrc = imageData => OverviewStorage[imageData?.path?.replaceAll('\\', '')] || ImageStorage[imageData?.path?.replaceAll('\\', '')] || emptyImg.path;
+
+export const base64ImageToBlob = (imageData) => new Promise((resolve) => {
+  const base64Data = imageData.data.split(';base64,')[1] || imageData.data;
+  const returnKey = `base64-to-buffer-return-${imageData.path.replaceAll('\\', '')}`;
+  ipcRenderer.send('base64-to-buffer', {
+    base64Data,
+    returnChannel: returnKey,
+  });
+  const onEvent = (event, returnValue) => {
+    ipcRenderer.off(returnKey, onEvent);
+    const contentType = 'image/' + imageData.ext;
+    const raw = returnValue;
+    const rawLength = raw.length;
+    const uInt8Array = new Uint8Array(rawLength);
+    for (let i = 0; i < rawLength; ++i) {
+      uInt8Array[i] = raw.charCodeAt(i);
+    }
+    resolve(new Blob([uInt8Array], { type: contentType }));
+  };
+  ipcRenderer.on(returnKey, onEvent);
+});
+
+
+export const fillByObjectValue = (source, value) => {
+  if (isObject(source) && isObject(value)) {
     Object.keys(value).forEach(key => {
       const newValue = value[key];
-      if(isObject(newValue)) {
-        if(!isObject(source[key])) {
+      if (isObject(newValue)) {
+        if (!isObject(source[key])) {
           source[key] = {};
         }
         fillByObjectValue(source[key], newValue);
@@ -20,87 +54,103 @@ export const fillByObjectValue = (source,value) => {
       }
     });
   }
-}
+};
 
-export const openImage = () => new Promise((resolve) => {
-  ipcRenderer.send('open-image', {
-    returnChannel: 'open-image-return'
+
+const mergeState = (state) => {
+  const newState = JSON.parse(JSON.stringify(state));
+  const { ImageStorage, OverviewStorage } = window;
+  return { ...newState, ImageStorage, OverviewStorage };
+};
+
+
+ipcRenderer.on('console', (ev, ...args) => console.log(...args));
+export const onOpenProjectFile = (dispatch, Actions, cb) => {
+  ipcRenderer.on('open-project-file', async (event, data) => {
+    const newState = JSON.parse(data)
+    await cb(newState);
+    dispatch(Actions.StateFill(newState));
   });
-  const onFileOpen = (event, filePaths) => {
-    ipcRenderer.off('open-image-return', onFileOpen);
-    resolve(filePaths.map(p => ({...p, ext: p.path.split('.').pop()}))?.[0])
-  }
-  ipcRenderer.on('open-image-return', onFileOpen);
+};
+
+export const reloadLocalImage = ({ path, mtime }) => {
+  const result = callMain('reload-local-image', { returnChannel: 'reload-local-image-return' + path, path, mtime });
+  console.log({ path, mtime }, result);
+  return result;
+};
+
+export const openImage = (key) => callMain('open-image', {
+  returnChannel: 'open-image-return' + key,
+}, async imageDatas => {
+  if (imageDatas.length === 0) return;
+  const imageData = imageDatas[0];
+  imageData.ext = imageData.path.split('.').pop();
+  const imagePathKey = imageData?.path.replaceAll('\\','');
+  window.ImageStorage[imagePathKey] = imageData.data;
+  window.OverviewStorage[imagePathKey] = imageData.overviewData;
+  delete imageData.data;
+  delete imageData.overviewData;
+  return imageData;
 });
 
-export const openMultiImage = () => new Promise((resolve)=>{
-  ipcRenderer.send('open-image', {
-    properties: ['multiSelections'],
-    returnChannel: 'open-image-return'
-  });
-  const onFileOpen = (event, filePaths) => {
-    ipcRenderer.off('open-image-return', onFileOpen);
-    resolve(filePaths.map(p => ({...p, ext: p.path.split('.').pop()})))
+export const openMultiImage = (key) => callMain('open-image', {
+  properties: ['multiSelections'],
+  returnChannel: 'open-multi-image-return' + key,
+}, async imageDatas => {
+  const newImageDatas = [...imageDatas];
+  for (const imageData of newImageDatas) {
+    imageData.ext = imageData.path.split('.').pop();
+    const imagePathKey = imageData?.path.replaceAll('\\','');
+    window.ImageStorage[imagePathKey] = imageData.data;
+    window.OverviewStorage[imagePathKey] = imageData.overviewData;
+    delete imageData.data;
+    delete imageData.overviewData;
   }
-  ipcRenderer.on('open-image-return', onFileOpen);
+  return newImageDatas;
 });
 
-export const exportPdf = ({ state, onProgress }) => new Promise((resolve)=>{
-  ipcRenderer.send('export-pdf', {
-    state: JSON.parse(JSON.stringify(state))
-  });
-
-  if(onProgress) {
-    const onMainProgress = ($,value) => {
+export const exportPdf = ({ state, onProgress }) => {
+  const key = 'export-pdf';
+  if (onProgress) {
+    const onMainProgress = ($, value) => {
       onProgress(value);
-      if(value >= 100) {
-        ipcRenderer.off('export-pdf-progress', onMainProgress);
+      if (value >= 100) {
+        ipcRenderer.off(`${key}-progress`, onMainProgress);
       }
-    }
-    ipcRenderer.on('export-pdf-progress', onMainProgress);
+    };
+    ipcRenderer.on(`${key}-progress`, onMainProgress);
   }
-  const onMainDone = () => {
-    resolve();
-    ipcRenderer.off('export-pdf-done', onMainDone);
-  }
-  ipcRenderer.on('export-pdf-done', onMainDone);
-});
+  return callMain(key, { state: mergeState(state) });
+};
 
-export const saveProject = ({ state }) => new Promise((resolve)=>{
-  ipcRenderer.send('save-project', {
-    state: JSON.parse(JSON.stringify(state))
-  });
-  ipcRenderer.on('save-project-done', resolve);
-  ipcRenderer.off('save-project-done', resolve);
-});
-export const openProject = () => new Promise((resolve)=>{
-  ipcRenderer.send('open-project', {
+export const saveProject = ({ state }) => callMain('save-project', { state: mergeState(state) });
+
+export const openProject = () => callMain('open-project', {
     properties: [],
-    returnChannel: 'open-project-return'
-  });
-  const onFileOpen = (event, data) => {
-    ipcRenderer.off('open-project-return', onFileOpen);
-    resolve(JSON.parse(data));
-  }
-  ipcRenderer.on('open-project-return', onFileOpen);
-});
+  },
+  data => JSON.parse(data));
 
-export const loadConfig = () => new Promise((resolve) => {
-  ipcRenderer.send('load-config');
-  const onDone = (event, data) => {
-    ipcRenderer.off('load-config-done', onDone);
-    resolve(data);
-  }
-  ipcRenderer.on('load-config-done', onDone);
-});
+export const loadConfig = () => callMain('load-config');
 
-export const saveConfig = ({ state }) => new Promise((resolve) => {
-  ipcRenderer.send('save-config', {
-    state: JSON.parse(JSON.stringify(state))
+export const saveConfig = ({ state }) => callMain('save-config', { state: mergeState(state) });
+
+const callMain = (key, params, transform = d => d) => new Promise((resolve) => {
+  const returnKey = params?.returnChannel || `${key}-done`;
+  ipcRenderer.send(key, {
+    returnChannel: returnKey,
+    ...params,
   });
+
   const onDone = (event, data) => {
-    ipcRenderer.off('save-config-done', onDone);
-    resolve(data);
-  }
-  ipcRenderer.on('save-config-done', onDone);
+    ipcRenderer.off(returnKey, onDone);
+    const newData = transform(data);
+    if (isPromise(newData)) {
+      newData.then(nd => {
+        resolve(nd);
+      });
+    } else {
+      resolve(newData);
+    }
+  };
+  ipcRenderer.on(returnKey, onDone);
 });
