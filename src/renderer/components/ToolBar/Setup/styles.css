@@ -39,11 +39,17 @@
     align-items: center;
     justify-content: center;
     flex-wrap: wrap;
+    overflow: hidden;
 }
 
-.ConfigOverviewPage div{
+.ConfigOverviewPage table {
+    text-wrap: nowrap;
+}
+
+.ConfigOverviewPage td{
     display: inline-block;
     width: 30px;
     height: 30px;
     background-color: #5d8bb3;
+    margin: 0.5px;
 }

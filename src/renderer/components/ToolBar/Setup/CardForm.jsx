@@ -27,6 +27,7 @@ export const CardForm = () => {
       'autoColumnsRows',
       'bleed',
       'landscape',
+      'pageSize',
       'pageWidth',
       'pageHeight',
       'sides'
@@ -37,12 +38,13 @@ export const CardForm = () => {
     if (Config.autoColumnsRows) {
       const pageWidth = Config.landscape ? Config.pageHeight : Config.pageWidth;
       const pageHeight = Config.landscape ? Config.pageWidth : Config.pageHeight;
-      const autoColumns = Config.sides === 'brochure' && !Config.landscape ? 2 : parseInt((pageWidth - 4) / (Config.cardWidth + Config.marginX));
-      const autoRows = Config.sides === 'brochure' && Config.landscape ? 2 : parseInt((pageHeight- 4) / (Config.cardHeight + Config.marginY));
+      const autoColumns = Config.sides === 'brochure' && !Config.landscape ? 2 : parseInt((pageWidth * 0.95) / (Config.cardWidth + Config.marginX));
+      const autoRows = Config.sides === 'brochure' && Config.landscape ? 2 : parseInt((pageHeight * 0.95) / (Config.cardHeight + Config.marginY));
       dispatch(Actions.ConfigEdit({ columns: autoColumns, rows: autoRows }));
     }
   }, [
     Config.autoColumnsRows,
+    Config.pageSize,
     Config.pageWidth,
     Config.pageHeight,
     Config.cardWidth,
@@ -90,8 +92,8 @@ export const CardForm = () => {
     <Control label={t('configDialog.columns_rows')}>
       <HStack>
         <NumberInput isDisabled={Config.autoColumnsRows} width={'90px'}
-                     value={Config.landscape ? Config.rows : Config.columns} onChange={(s, v) => {
-          dispatch(Actions.ConfigEdit({ [Config.landscape ? 'rows' : 'columns']: v }));
+                     value={Config.rows} onChange={(s, v) => {
+          dispatch(Actions.ConfigEdit({ rows: v }));
         }} mr={4}>
           <NumberInputField />
           <NumberInputStepper>
@@ -100,8 +102,8 @@ export const CardForm = () => {
           </NumberInputStepper>
         </NumberInput>
         <NumberInput isDisabled={Config.autoColumnsRows} width={'90px'}
-                     value={Config.landscape ? Config.columns : Config.rows} onChange={(s, v) => {
-          dispatch(Actions.ConfigEdit({ [Config.landscape ? 'columns' : 'rows']: v }));
+                     value={Config.columns} onChange={(s, v) => {
+          dispatch(Actions.ConfigEdit({ columns: v }));
         }} mr={8}>
           <NumberInputField />
           <NumberInputStepper>

@@ -27,27 +27,34 @@ export const ConfigOverview = () => {
       const boxHeight = boxDiv.offsetHeight - 20;
       const boxScale = Math.min(boxWidth / Config.pageWidth, boxHeight / Config.pageHeight);
       const overviewDiv = document.getElementsByClassName('ConfigOverviewPage')?.[0];
-
+      const scaledPageHeight = Config.pageHeight * boxScale;
+      const scaledPageWidth = Config.pageWidth * boxScale;
+      const scaledCardHeight = Config.cardHeight * boxScale;
+      const scaledCardWidth = Config.cardWidth * boxScale;
       if (Config.landscape) {
         overviewDiv.style.gap = `1px`;
-        overviewDiv.style.height = `${Config.pageWidth * boxScale}px`;
-        overviewDiv.style.width = `${Config.pageHeight * boxScale}px`;
-        setBoxCardSize(`${Config.cardWidth * boxScale},${Config.cardHeight * boxScale}`);
-
+        overviewDiv.style.height = `${scaledPageWidth}px`;
+        overviewDiv.style.width = `${scaledPageHeight}px`;
+        setBoxCardSize(`${scaledCardWidth},${scaledCardHeight}`);
       } else {
         overviewDiv.style.gap = `1px`;
-        overviewDiv.style.height = `${Config.pageHeight * boxScale}px`;
-        overviewDiv.style.width = `${Config.pageWidth * boxScale}px`;
-        setBoxCardSize(`${Config.cardWidth * boxScale},${Config.cardHeight * boxScale}`);
-        //const padding = (boxWidth - Config.cardWidth * boxScale * Config.columns - Config.marginX * boxScale * Math.max(0, Config.columns - 1)) / 2;
-        //overviewDiv.style.padding = `0 ${padding}px`;
+        overviewDiv.style.height = `${scaledPageHeight}px`;
+        overviewDiv.style.width = `${scaledPageWidth}px`;
+        setBoxCardSize(`${scaledCardWidth},${scaledCardHeight}`);
       }
-    }, 100);
+    }, 0);
   }, [JSON.stringify(Config)]);
   return (<div className={'ConfigOverview'}>
     <div className={'ConfigOverviewPage'}>
-      {[...new Array(Config.rows * Config.columns)].map((e, index) => (<div key={'key'+index}
-        style={{ width: `${boxCardWidth}px`, height: `${boxCardHeight}px` }}></div>))}
+      <table>
+        {
+          [...new Array(Config.rows)].map((e,i)=>(<tr key={'tr'+i}>
+            {
+              [...new Array(Config.columns)].map((e,ii)=>(<td key={'td'+ii} style={{ width: `${boxCardWidth}px`, height: `${boxCardHeight}px` }} />))
+            }
+          </tr>))
+        }
+      </table>
     </div>
   </div>);
 };

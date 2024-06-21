@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { IconButton } from '@chakra-ui/react';
 import { IoIosAdd } from 'react-icons/io';
-import { Actions } from '../../store';
+import { Actions, loading } from '../../store';
 import './styles.css';
 import { openMultiImage } from '../../functions';
 import { useDispatch } from 'react-redux';
@@ -16,14 +16,14 @@ export const AddCard = () => {
       width={'100%'}
       icon={<IoIosAdd />}
       variant='outline'
-      onClick={async () => {
+      onClick={() => loading(async () => {
         if (process?.versions?.electron) {
           const imageData = await openMultiImage('CardAddByFaces');
           dispatch(Actions.CardAddByFaces([...imageData]));
         } else {
           inputRef.current?.click();
         }
-      }}
+      })}
     />
   </div>);
 };
