@@ -53,8 +53,10 @@ export const ToolBar = () => {
         icon={<AiFillFolderOpen size={'30'} />}
         onClick={() => loading(async () => {
           const projectData = await openProject();
-          dispatch(Actions.StateFill(projectData));
-          await reloadImageFromFile(projectData);
+          if(projectData) {
+            dispatch(Actions.StateFill(projectData));
+            await reloadImageFromFile(projectData);
+          }
         })}
       />
       <GeneralButton
