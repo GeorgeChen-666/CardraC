@@ -17,11 +17,22 @@ const {env} = process; // eslint-disable-line n/prefer-global/process
 const isEnvSet = 'ELECTRON_IS_DEV' in env;
 const getFromEnv = Number.parseInt(env.ELECTRON_IS_DEV, 10) === 1;
 export const isDev = isEnvSet ? getFromEnv : !electron?.app?.isPackaged;
+
+const ImageStorageLoadingJobs = {
+
+}
 const pathToImageData = async path => {
   const ext = path.split('.').pop();
-  const data = '';
-  ImageStorage[path] = await readCompressedImage(path, { format: ext });
+  ImageStorageLoadingJobs[path] = async() => {
+    console.log('1',new Date());
+    ImageStorage[path] = await readCompressedImage(path, { format: ext });
+    console.log('2',new Date());
+    delete ImageStorageLoadingJobs[path];
+  }
+  ImageStorageLoadingJobs[path]();
+  console.log(new Date());
   const overviewData = await readCompressedImage(path, { maxWidth: 100 });
+  console.log(new Date());
   const { mtime } = fs.statSync(path);
   return ({ path, overviewData, mtime: mtime.getTime() });
 }
@@ -115,11 +126,7 @@ export const registerRendererActionHandlers = (mainWindow) => {
       properties: ['openFile', ...properties],
     });
     if (result.canceled) {
-<<<<<<< HEAD
-      mainWindow.webContents.send(returnChannel, '');
-=======
       mainWindow.webContents.send(returnChannel, null);
->>>>>>> b5152e816b9ac0313128092b077455333a0cf415
     }
     else {
       //const toRenderData = await readFileToData(result.filePaths[0]);

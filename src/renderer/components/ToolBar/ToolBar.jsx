@@ -53,13 +53,8 @@ export const ToolBar = () => {
         icon={<AiFillFolderOpen size={'30'} />}
         onClick={() => loading(async () => {
           const projectData = await openProject();
-<<<<<<< HEAD
           dispatch(Actions.StateFill(projectData));
-          if(confirm('reload?')) {
-=======
-          if(projectData) {
-            dispatch(Actions.StateFill(projectData));
->>>>>>> b5152e816b9ac0313128092b077455333a0cf415
+          if(confirm('reload?') && projectData) {
             await reloadImageFromFile(projectData);
           }
         })}

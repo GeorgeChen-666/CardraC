@@ -55,7 +55,6 @@ export const initialState = Object.freeze({
   CardList: [],
 });
 window.OverviewStorage = {};
-window.ImageStorage = {};
 export const reloadImageFromFile = async (state) => {
   const {CardList, Config} = state;
   const loadImage = async(image) => {
@@ -63,12 +62,11 @@ export const reloadImageFromFile = async (state) => {
     try {
       const imagePathKey = image?.path.replaceAll('\\','');
       const imageParam = {...image};
-      if(!window.ImageStorage[imagePathKey] || !window.OverviewStorage[imagePathKey]) {
+      if(!window.OverviewStorage[imagePathKey]) {
         delete imageParam.mtime; //force reload
       }
       const imageData = await reloadLocalImage(imageParam);
       if(imageData) {
-        window.ImageStorage[imagePathKey] = imageData.data;
         window.OverviewStorage[imagePathKey] = imageData.overviewData;
         return true
       }
@@ -91,7 +89,7 @@ export const reloadImageFromFile = async (state) => {
 //ugly code
 const storeCardImage = (state) => {
   const {CardList, Config} = state;
-  const { ImageStorage, OverviewStorage } = window;
+  const { OverviewStorage } = window;
   const usedImagePath = new Set();
   CardList.forEach(card => {
     const {face,back} = card;
@@ -106,7 +104,6 @@ const storeCardImage = (state) => {
     usedImagePath.add(globalBackPathKey);
   }
 
-  Object.keys(ImageStorage).filter(key=> !usedImagePath.has(key)).forEach(key => delete ImageStorage[key]);
   Object.keys(OverviewStorage).filter(key=> !usedImagePath.has(key)).forEach(key => delete OverviewStorage[key]);
 }
 
@@ -115,10 +112,8 @@ export const pnpSlice = createSlice({
   initialState,
   reducers: {
     StateFill: (state, action) => {
-      const { ImageStorage, OverviewStorage } = action.payload;
-      ImageStorage && (window.ImageStorage = {}) && fillByObjectValue(window.ImageStorage, ImageStorage);
+      const { OverviewStorage } = action.payload;
       OverviewStorage && (window.OverviewStorage = {}) && fillByObjectValue(window.OverviewStorage, OverviewStorage);
-      delete action.payload.ImageStorage;
       delete action.payload.OverviewStorage;
       fillByObjectValue(state, action.payload);
       storeCardImage(state);

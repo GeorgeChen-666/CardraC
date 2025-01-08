@@ -16,7 +16,7 @@ export const getResourcesPath = (path) => (isDev ? '' : '..') + path;
 
 export const isObject = data => typeof data === 'object' && data?.constructor === Object;
 
-export const getImageSrc = imageData => OverviewStorage[imageData?.path?.replaceAll('\\', '')] || ImageStorage[imageData?.path?.replaceAll('\\', '')] || emptyImg.path;
+export const getImageSrc = imageData => OverviewStorage[imageData?.path?.replaceAll('\\', '')] || emptyImg.path;
 
 export const base64ImageToBlob = (imageData) => new Promise((resolve) => {
   const base64Data = imageData.data.split(';base64,')[1] || imageData.data;
@@ -59,8 +59,8 @@ export const fillByObjectValue = (source, value) => {
 
 const mergeState = (state) => {
   const newState = JSON.parse(JSON.stringify(state));
-  const { ImageStorage, OverviewStorage } = window;
-  return { ...newState, ImageStorage, OverviewStorage };
+  const { OverviewStorage } = window;
+  return { ...newState, OverviewStorage };
 };
 
 
