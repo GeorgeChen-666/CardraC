@@ -63,7 +63,7 @@ const getPagedImageListByCardList = (state) => {
   return pagedImageList;
 };
 const drawPageElements = async (doc, pageData, state) => {
-  const { Config, ImageStorage } = state;
+  const { Config } = state;
   const hc = Config.columns;
   const vc = Config.rows;
   const scale = fixFloat(Config.scale / 100);
