@@ -54,7 +54,9 @@ export const ToolBar = () => {
         onClick={() => loading(async () => {
           const projectData = await openProject();
           dispatch(Actions.StateFill(projectData));
-          await reloadImageFromFile(projectData);
+          if(confirm('reload?')) {
+            await reloadImageFromFile(projectData);
+          }
         })}
       />
       <GeneralButton

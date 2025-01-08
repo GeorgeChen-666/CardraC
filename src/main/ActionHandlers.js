@@ -113,7 +113,10 @@ export const registerRendererActionHandlers = (mainWindow) => {
       ],
       properties: ['openFile', ...properties],
     });
-    if (!result.canceled) {
+    if (result.canceled) {
+      mainWindow.webContents.send(returnChannel, '');
+    }
+    else {
       //const toRenderData = await readFileToData(result.filePaths[0]);
       const readStream = fs.createReadStream(result.filePaths[0]);
       let resultString = '';
