@@ -86,7 +86,6 @@ export const openImage = (key) => callMain('open-image', {
   const imageData = imageDatas[0];
   imageData.ext = imageData.path.split('.').pop();
   const imagePathKey = imageData?.path.replaceAll('\\','');
-  window.ImageStorage[imagePathKey] = imageData.data;
   window.OverviewStorage[imagePathKey] = imageData.overviewData;
   delete imageData.data;
   delete imageData.overviewData;
@@ -101,7 +100,6 @@ export const openMultiImage = (key) => callMain('open-image', {
   for (const imageData of newImageDatas) {
     imageData.ext = imageData.path.split('.').pop();
     const imagePathKey = imageData?.path.replaceAll('\\','');
-    window.ImageStorage[imagePathKey] = imageData.data;
     window.OverviewStorage[imagePathKey] = imageData.overviewData;
     delete imageData.data;
     delete imageData.overviewData;
@@ -128,7 +126,7 @@ export const saveProject = ({ state }) => callMain('save-project', { state: merg
 export const openProject = () => callMain('open-project', {
     properties: [],
   },
-  data => JSON.parse(data));
+  data => data);
 
 export const loadConfig = () => callMain('load-config');
 

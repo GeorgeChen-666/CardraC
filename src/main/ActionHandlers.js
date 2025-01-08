@@ -2,7 +2,7 @@ const { readCompressedImage } = require('./functions');
 const { base64ToBuffer, readFileToData, saveDataToFile } = require('./functions');
 const fs = require('fs')
 const path = require('path')
-const { exportPdf } = require('./ExportPdf');
+const { exportPdf, ImageStorage } = require('./ExportPdf');
 const { app, dialog, ipcMain } = require('electron');
 const _ = require('lodash');
 const Store = require('electron-store');
@@ -19,10 +19,11 @@ const getFromEnv = Number.parseInt(env.ELECTRON_IS_DEV, 10) === 1;
 export const isDev = isEnvSet ? getFromEnv : !electron?.app?.isPackaged;
 const pathToImageData = async path => {
   const ext = path.split('.').pop();
-  const data = await readCompressedImage(path, { format: ext });
-  const overviewData = await readCompressedImage(path, { maxWidth: 200 });
+  const data = '';
+  ImageStorage[path] = await readCompressedImage(path, { format: ext });
+  const overviewData = await readCompressedImage(path, { maxWidth: 100 });
   const { mtime } = fs.statSync(path);
-  return ({ path, data, overviewData, mtime: mtime.getTime() });
+  return ({ path, overviewData, mtime: mtime.getTime() });
 }
 
 const store = new Store();
@@ -101,7 +102,7 @@ export const registerRendererActionHandlers = (mainWindow) => {
       }
     }
     const projectData = _.pick(state, ['Config', 'CardList']);
-    await saveDataToFile({ ...projectData, ImageStorage: state.ImageStorage, OverviewStorage: state.OverviewStorage }, projectPath);
+    await saveDataToFile({ ...projectData, ImageStorage, OverviewStorage: state.OverviewStorage }, projectPath);
     mainWindow.webContents.send('save-project-done');
   });
 
@@ -114,7 +115,11 @@ export const registerRendererActionHandlers = (mainWindow) => {
       properties: ['openFile', ...properties],
     });
     if (result.canceled) {
+<<<<<<< HEAD
       mainWindow.webContents.send(returnChannel, '');
+=======
+      mainWindow.webContents.send(returnChannel, null);
+>>>>>>> b5152e816b9ac0313128092b077455333a0cf415
     }
     else {
       //const toRenderData = await readFileToData(result.filePaths[0]);
@@ -125,7 +130,17 @@ export const registerRendererActionHandlers = (mainWindow) => {
       });
 
       readStream.on('end', () => {
-        mainWindow.webContents.send(returnChannel, resultString);
+        const projectJson = JSON.parse(resultString);
+        Object.keys(ImageStorage).forEach(key => {
+          if(!Object.keys(projectJson.ImageStorage).includes(key)) {
+            delete ImageStorage[key];
+          }
+        });
+        Object.keys(projectJson.ImageStorage).forEach(key => {
+          ImageStorage[key] = projectJson.ImageStorage[key];
+        });
+        delete projectJson.ImageStorage;
+        mainWindow.webContents.send(returnChannel, projectJson);
       });
       readStream.on('error', (err) => {
         console.log(err);
