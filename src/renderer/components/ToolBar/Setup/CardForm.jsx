@@ -73,19 +73,6 @@ export const CardForm = () => {
       </Control>
     </Control>
 
-    <Control
-      label={t('configDialog.bleed')}
-      attrKey={'bleed'}
-      type={ControlType.NumberInput}
-      style={{ width: '90px' }}
-    >
-      mm
-      <Control label={t('configDialog.avoidDislocation')}>
-        <Checkbox value={'true'} isChecked={Config.avoidDislocation}
-                  onChange={(event) => dispatch(Actions.ConfigEdit({ avoidDislocation: event.target.checked }))}
-        ></Checkbox>
-      </Control>
-    </Control>
     <Control label={t('configDialog.scale')} attrKey={'scale'} type={ControlType.NumberInput}>
       %
     </Control>

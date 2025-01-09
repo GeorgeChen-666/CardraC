@@ -170,15 +170,39 @@ export const registerRendererActionHandlers = (mainWindow) => {
     mainWindow.webContents.send('load-config-done', config);
   });
   ipcMain.on('reload-local-image', async (event, args) => {
-    const { path, mtime: cardMtime} = args;
-    const { mtime } = fs.statSync(path);
-    if(cardMtime !== mtime) {
-      mainWindow.webContents.send(args.returnChannel, await pathToImageData(path));
+    const state = JSON.parse(JSON.stringify(args.state));
+    const { Config, CardList, OverviewStorage } = state;
+    const reloadImageJobs = [];
+    const reloadImage = (args, cb) => {
+      if(!args) return false;
+      const { path, mtime: cardMtime} = args;
+      const { mtime } = fs.statSync(path);
+      if(cardMtime !== mtime.getTime()) {
+        reloadImageJobs.push((async()=>{
+          const imagePathKey = path.replaceAll('\\','');
+          cb && cb(mtime.getTime())
+          const {overviewData} = await pathToImageData(path);
+          OverviewStorage[imagePathKey] = overviewData;
+        })())
+        return true;
+      }
+      return false;
     }
-    else {
-      mainWindow.webContents.send(args.returnChannel);
-    }
-
+    CardList.forEach((card, index) => {
+      reloadImage(card.face, newMtime => {
+        CardList[index].face.mtime = newMtime;
+        delete CardList[index].id;
+      });
+      reloadImage(card.back, newMtime => {
+        CardList[index].back.mtime = newMtime;
+        delete CardList[index].id;
+      });
+    });
+    reloadImage(Config.globalBackground, newMtime => {
+      Config.globalBackground.mtime = newMtime;
+    });
+    await Promise.all(reloadImageJobs);
+    mainWindow.webContents.send(args.returnChannel, state);
   });
   ipcMain.on('base64-to-buffer', (event, args) => {
     const decodedString = base64ToBuffer(args.base64Data);

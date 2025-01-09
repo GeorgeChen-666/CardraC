@@ -45,7 +45,9 @@
 .ConfigOverviewPage table {
     text-wrap: nowrap;
 }
-
+.ConfigOverviewPage tr {
+    font-size: 0;
+}
 .ConfigOverviewPage td{
     display: inline-block;
     width: 30px;

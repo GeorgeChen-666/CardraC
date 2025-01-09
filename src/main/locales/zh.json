@@ -1,6 +1,7 @@
 {
   "util": {
-    "operating": "操作中。。。"
+    "operating": "操作中。。。",
+    "success": "操作成功！"
   },
   "button": {
     "OK": "OK"
@@ -11,9 +12,9 @@
     "btnSave" : "保存pnp文件。",
     "btnConfig" : "参数设置。",
     "btnExport" : "导出pdf。",
-    "lblExportSuccess": "导出成功！",
     "btnGlobalBackground" : "全局默认背景图。",
     "lblSwitchView": "切换视图",
+    "btnReloadImage": "从图片文件重新加载图像（可能很慢...）",
     "bulkMenu": {
       "labelSelection": "选择项...",
       "menuRemove": "删除",

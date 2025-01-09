@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { IoIosArrowDown } from 'react-icons/io';
-import { AiFillFolderOpen, AiFillFileAdd, AiFillSetting, AiFillSave } from 'react-icons/ai';
+import { AiFillFolderOpen, AiFillFileAdd, AiFillSetting, AiFillSave, AiOutlineReload } from 'react-icons/ai';
 import {
   Menu,
   MenuButton,
@@ -20,12 +20,22 @@ import {
 } from '@chakra-ui/react';
 import { MdPictureAsPdf } from 'react-icons/md';
 import { SetupDialog } from './Setup/SetupDialog';
-import { Actions, initialState, store, reloadImageFromFile, loading } from '../../store';
-import { exportPdf, getImageSrc, openImage, openMultiImage, openProject, saveProject } from '../../functions';
+import { Actions, initialState, store, loading } from '../../store';
+import {
+  exportPdf,
+  getImageSrc,
+  openImage,
+  openMultiImage,
+  openProject,
+  reloadLocalImage,
+  saveProject,
+} from '../../functions';
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { GeneralButton } from './Buttons/GeneralButton';
 import { LangSelectButton } from './Buttons/LangSelectButton';
+import './styles.css';
+
 
 export const ToolBar = () => {
   const toast = useToast()
@@ -40,7 +50,13 @@ export const ToolBar = () => {
   }), shallowEqual);
   const [repeat, setRepeat] = useState(1);
   const dispatch = useDispatch();
-  return (<div>
+  const messageSuccess = () => toast({
+    description: t('util.success'),
+    status: 'success',
+    duration: 9000,
+    isClosable: true,
+  });
+  return (<div className={'ToolBar'}>
       <GeneralButton
         label={t('toolbar.btnAdd')}
         icon={<AiFillFileAdd size={'30'} />}
@@ -53,10 +69,21 @@ export const ToolBar = () => {
         icon={<AiFillFolderOpen size={'30'} />}
         onClick={() => loading(async () => {
           const projectData = await openProject();
-          dispatch(Actions.StateFill(projectData));
-          if(confirm('reload?') && projectData) {
-            await reloadImageFromFile(projectData);
+          if(projectData) {
+            dispatch(Actions.StateFill(projectData));
           }
+        })}
+      />
+      <GeneralButton
+        label={t('toolbar.btnReloadImage')}
+        icon={<AiOutlineReload size={'30'} />}
+        onClick={() => loading(async () => {
+          //await reloadImageFromFile(store.getState().pnp);
+          const stateData = await reloadLocalImage({ state: store.getState().pnp });
+          if(stateData) {
+            dispatch(Actions.StateFill(stateData));
+          }
+          messageSuccess();
         })}
       />
       <GeneralButton
@@ -81,12 +108,7 @@ export const ToolBar = () => {
             },
           });
           dispatch(Actions.GlobalEdit({ isInProgress: false }));
-          isSuccess && toast({
-            description: t('toolbar.lblExportSuccess'),
-            status: 'success',
-            duration: 9000,
-            isClosable: true,
-          });
+          isSuccess && messageSuccess();
         })}
       />
       {Config.sides === 'double sides' && <GeneralButton

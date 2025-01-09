@@ -55,39 +55,8 @@ export const initialState = Object.freeze({
   CardList: [],
 });
 window.OverviewStorage = {};
-export const reloadImageFromFile = async (state) => {
-  const {CardList, Config} = state;
-  const loadImage = async(image) => {
-    if(!image || !image?.path) return false;
-    try {
-      const imagePathKey = image?.path.replaceAll('\\','');
-      const imageParam = {...image};
-      if(!window.OverviewStorage[imagePathKey]) {
-        delete imageParam.mtime; //force reload
-      }
-      const imageData = await reloadLocalImage(imageParam);
-      if(imageData) {
-        window.OverviewStorage[imagePathKey] = imageData.overviewData;
-        return true
-      }
-    } catch (e) {
-      console.log(e);
-    }
 
-  }
-  for(let card of CardList) {
-    const {face,back, id} = card;
-    const [isFaceChanged, isBackChanged] = [await loadImage(face), await loadImage(back)]
-    if(isFaceChanged || isBackChanged) {
-      store.dispatch(Actions.CardEditById({ id, _newId: crypto.randomUUID() }))
-    }
-  }
-  if(Config.globalBackground?.path) {
-    await loadImage(Config.globalBackground)
-  }
-}
-//ugly code
-const storeCardImage = (state) => {
+const refreshCardStorage = (state) => {
   const {CardList, Config} = state;
   const { OverviewStorage } = window;
   const usedImagePath = new Set();
@@ -115,8 +84,10 @@ export const pnpSlice = createSlice({
       const { OverviewStorage } = action.payload;
       OverviewStorage && (window.OverviewStorage = {}) && fillByObjectValue(window.OverviewStorage, OverviewStorage);
       delete action.payload.OverviewStorage;
+      action.payload.CardList.forEach(card=>{
+        card && !card.id && (card.id = crypto.randomUUID());
+      })
       fillByObjectValue(state, action.payload);
-      storeCardImage(state);
       saveConfig({state});
     },
     GlobalEdit: (state, action) => {
@@ -156,7 +127,6 @@ export const pnpSlice = createSlice({
     },
     ConfigEdit: (state, action) => {
       fillByObjectValue(state.Config, action.payload);
-      storeCardImage(state);
       saveConfig({state});
     },
     CardAddByFaces: (state, action) => {
@@ -166,7 +136,6 @@ export const pnpSlice = createSlice({
         back: null,
         repeat: 1,
       })));
-      storeCardImage(state);
     },
     DragHoverCancel: (state) => {
       const dragTargetId = 'dragTarget';
@@ -206,7 +175,7 @@ export const pnpSlice = createSlice({
       const backImageList = action.payload;
       const selection = state.CardList.filter(c => c.selected);
       selection.forEach((c, index) => (c.back = backImageList?.[index]));
-      storeCardImage(state);
+      refreshCardStorage(state);
     },
     CardEditById: (state, action) => {
       const card = state.CardList.find(c => c.id === action.payload.id);
@@ -216,7 +185,7 @@ export const pnpSlice = createSlice({
       }
       if (card) {
         fillByObjectValue(card, action.payload);
-        storeCardImage(state);
+        refreshCardStorage(state);
       }
     },
     SelectedCardsSwap: (state) => {
@@ -228,14 +197,14 @@ export const pnpSlice = createSlice({
       selection.toSorted((a, b) => {
         return state.CardList.findIndex(c => c.id === b.id) - state.CardList.findIndex(c => c.id === a.id);
       }).forEach(c => state.CardList.splice(state.CardList.findIndex(cc => cc.id === c.id), 1));
-      storeCardImage(state);
+      refreshCardStorage(state);
     },
     SelectedCardsDuplicate: (state) => {
       const selection = state.CardList.filter(c => c.selected);
       const orderedSelection = selection.toSorted((a, b) => {
         return state.CardList.findIndex(c => c.id === b.id) - state.CardList.findIndex(c => c.id === a.id);
       });
-      const to = state.CardList.findIndex(c => c.id === orderedSelection[0].id);
+      const to = state.CardList.findIndex(c => c.id === orderedSelection[0].id) + 1;
       const newSelection = orderedSelection.map(c=>({...c, id: crypto.randomUUID(), selected: false}));
       newSelection.forEach((s, index) => {
         state.CardList.splice(to, 0, s);
@@ -246,11 +215,11 @@ export const pnpSlice = createSlice({
       selection.forEach(c => {
         fillByObjectValue(c, action.payload);
       });
-      storeCardImage(state);
+      refreshCardStorage(state);
     },
     CardRemoveByIds: (state, action) => {
       state.CardList = state.CardList.filter(c => !action.payload.includes(c.id));
-      storeCardImage(state);
+      refreshCardStorage(state);
     }
   },
 });
@@ -271,11 +240,14 @@ export const StoreProvider = ({ children }) => {
   );
 };
 export const loading = async (cb,text= i18nInstance.t('util.operating')) => {
-  store.dispatch(Actions.GlobalEdit({isLoading: true, loadingText: text}));
-  cb && await cb();
-  store.dispatch(Actions.GlobalEdit({isLoading: false, loadingText: ''}));
+  try {
+    store.dispatch(Actions.GlobalEdit({isLoading: true, loadingText: text}));
+    cb && await cb();
+  } finally {
+    store.dispatch(Actions.GlobalEdit({isLoading: false, loadingText: ''}));
+  }
 }
 const config = await loadConfig();
 store.dispatch(Actions.GlobalEdit({...config.Global}));
 store.dispatch(Actions.ConfigEdit({...config.Config}));
-onOpenProjectFile(store.dispatch, Actions, reloadImageFromFile)
+onOpenProjectFile(store.dispatch, Actions)

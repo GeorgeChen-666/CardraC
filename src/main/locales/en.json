@@ -1,6 +1,7 @@
 {
   "util": {
-    "operating": "Operating..."
+    "operating": "Operating...",
+    "success": "Success!"
   },
   "button": {
     "OK": "OK"
@@ -11,9 +12,9 @@
     "btnSave" : "Save PNP File.",
     "btnConfig" : "Settings Config.",
     "btnExport" : "Export PDF.",
-    "lblExportSuccess": "Export Success!",
     "btnGlobalBackground" : "Global Default Background.",
     "lblSwitchView": "Switch View",
+    "btnReloadImage": "Reload All Images From File(May Slow..)",
     "bulkMenu": {
       "labelSelection": "Selection ...",
       "menuRemove": "Remove",

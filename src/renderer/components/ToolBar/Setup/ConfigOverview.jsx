@@ -50,7 +50,7 @@ export const ConfigOverview = () => {
         {
           [...new Array(Config.rows)].map((e,i)=>(<tr key={'tr'+i}>
             {
-              [...new Array(Config.columns)].map((e,ii)=>(<td key={'td'+ii} style={{ width: `${boxCardWidth}px`, height: `${boxCardHeight}px` }} />))
+              [...new Array(Config.columns)].map((e,ii)=>(<td key={'td'+ii} style={{ width: `${boxCardWidth-1}px`, height: `${boxCardHeight-1}px` }} />))
             }
           </tr>))
         }

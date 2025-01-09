@@ -16,7 +16,7 @@ export const CardEditorList = () => {
       {
         CardList.map((c, index) => {
           if(c.id === 'dragTarget') {
-            return (<CardDragTarget  key={c.id} index={index} />)
+            return (<CardDragTarget key={c.id} index={index} />)
           } else {
             return (<CardEditor key={c.id} index={index} data={c} />);
           }

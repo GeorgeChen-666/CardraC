@@ -73,11 +73,7 @@ export const onOpenProjectFile = (dispatch, Actions, cb) => {
   });
 };
 
-export const reloadLocalImage = ({ path, mtime }) => {
-  const result = callMain('reload-local-image', { returnChannel: 'reload-local-image-return' + path, path, mtime });
-  console.log({ path, mtime }, result);
-  return result;
-};
+export const reloadLocalImage = ({ state }) => callMain('reload-local-image', { state: mergeState(state) });
 
 export const openImage = (key) => callMain('open-image', {
   returnChannel: 'open-image-return' + key,
