@@ -24,15 +24,11 @@ const ImageStorageLoadingJobs = {
 const pathToImageData = async path => {
   const ext = path.split('.').pop();
   ImageStorageLoadingJobs[path] = async() => {
-    console.log('1',new Date());
-    ImageStorage[path] = await readCompressedImage(path, { format: ext });
-    console.log('2',new Date());
+    ImageStorage[path.replaceAll('\\','')] = await readCompressedImage(path, { format: ext });
     delete ImageStorageLoadingJobs[path];
   }
   ImageStorageLoadingJobs[path]();
-  console.log(new Date());
   const overviewData = await readCompressedImage(path, { maxWidth: 100 });
-  console.log(new Date());
   const { mtime } = fs.statSync(path);
   return ({ path, overviewData, mtime: mtime.getTime() });
 }
@@ -80,19 +76,10 @@ export const registerRendererActionHandlers = (mainWindow) => {
     else {
       const toRenderData = [];
       for(const path of result.filePaths) {
-        toRenderData.push(await pathToImageData(path))
+        toRenderData.push(pathToImageData(path))
       }
-      // const jobList = result.filePaths.map(path => readFileToData(path, 'base64'));
-      // for(let jobIndex in jobList) {
-      //   const path = result.filePaths[jobIndex];
-      //   const base64String = await jobList[jobIndex];
-      //   const ext = path.split('.').pop();
-      //   const data = `data:image/${ext};base64,${base64String}`;
-      //   const { mtime } = fs.statSync(path);
-      //   readCompressedImage(path);
-      //   toRenderData.push({ path, data, mtime: mtime.getTime() })
-      // }
-      mainWindow.webContents.send(returnChannel, toRenderData);
+
+      mainWindow.webContents.send(returnChannel, await Promise.all(toRenderData));
     }
   });
 
@@ -137,16 +124,24 @@ export const registerRendererActionHandlers = (mainWindow) => {
       });
 
       readStream.on('end', () => {
-        const projectJson = JSON.parse(resultString);
-        Object.keys(ImageStorage).forEach(key => {
-          if(!Object.keys(projectJson.ImageStorage).includes(key)) {
-            delete ImageStorage[key];
+        const imageStorageRegexp = new RegExp(/"ImageStorage":\{".*?"\}(,)?/g);
+        (async () => {
+          let [imageStorageString] = resultString.match(imageStorageRegexp) || [];
+          if(imageStorageString.endsWith(',')) {
+            imageStorageString = imageStorageString.substring(0, imageStorageString.length - 1);
           }
-        });
-        Object.keys(projectJson.ImageStorage).forEach(key => {
-          ImageStorage[key] = projectJson.ImageStorage[key];
-        });
-        delete projectJson.ImageStorage;
+          const imageStorageJson = JSON.parse(`{${imageStorageString}}`);
+          Object.keys(ImageStorage).forEach(key => {
+            if(!Object.keys(imageStorageJson.ImageStorage).includes(key)) {
+              delete ImageStorage[key];
+            }
+          });
+          Object.keys(imageStorageJson.ImageStorage).forEach(key => {
+            ImageStorage[key] = imageStorageJson.ImageStorage[key];
+          });
+        })()
+        const result = resultString.replace(imageStorageRegexp, '');
+        const projectJson = JSON.parse(result);
         mainWindow.webContents.send(returnChannel, projectJson);
       });
       readStream.on('error', (err) => {
