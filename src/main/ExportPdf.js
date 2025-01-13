@@ -138,18 +138,7 @@ const drawPageElements = async (doc, pageData, state) => {
         imageYc = imageYc + offsetY;
       }
 
-      if (image) {
-        try {
-          if (image === emptyImg) {
-            doc.addImage(image.path, image.ext, imageXc, imageYc, imageW, imageH, image.path, 'NONE', cardRotation);
-          } else {
-            const base64String = ImageStorage[image.path?.replaceAll('\\', '')];
-            doc.addImage(base64String, image.ext, imageXc, imageYc, imageW, imageH, image.path, 'FAST', cardRotation);
-          }
-        } catch (e) {
-          console.log('addImage error', e);
-        }
-      }
+
 
       if (Config.fCutLine === '2' || Config.fCutLine === '3') {
         const [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc); //avoid card rotation
@@ -201,6 +190,18 @@ const drawPageElements = async (doc, pageData, state) => {
         });
       }
 
+      if (image) {
+        try {
+          if (image === emptyImg) {
+            doc.addImage(image.path, image.ext, imageXc, imageYc, imageW, imageH, image.path, 'NONE', cardRotation);
+          } else {
+            const base64String = ImageStorage[image.path?.replaceAll('\\', '')];
+            doc.addImage(base64String, image.ext, imageXc, imageYc, imageW, imageH, image.path, 'FAST', cardRotation);
+          }
+        } catch (e) {
+          console.log('addImage error', e);
+        }
+      }
 
     }
   }
