@@ -176,19 +176,19 @@ const drawPageElements = async (doc, pageData, state) => {
         //add normal mark loc
         if (cx === 0) {
           normalMarks.add(`0,${imageYc + bleedY + offsetY}-${imageXc + bleedX + offsetX},${imageYc + bleedY + offsetY}`);
-          normalMarks.add(`0,${imageYc + cardH - bleedY + offsetY}-${imageXc + bleedX + offsetX},${imageYc + cardH - bleedY + offsetY}`);
+          normalMarks.add(`0,${imageYc + imageH - bleedY + offsetY}-${imageXc + bleedX + offsetX},${imageYc + imageH - bleedY + offsetY}`);
         }
         if (cx === hc - 1) {
-          normalMarks.add(`${imageXc + cardW - bleedX + offsetX},${imageYc + bleedY + offsetY}-${maxWidth},${imageYc + bleedY + offsetY}`);
-          normalMarks.add(`${imageXc + cardW - bleedX + offsetX},${imageYc + cardH - bleedY + offsetY}-${maxWidth},${imageYc + cardH - bleedY + offsetY}`);
+          normalMarks.add(`${imageXc + imageW - bleedX + offsetX},${imageYc + bleedY + offsetY}-${maxWidth},${imageYc + bleedY + offsetY}`);
+          normalMarks.add(`${imageXc + imageW - bleedX + offsetX},${imageYc + imageH - bleedY + offsetY}-${maxWidth},${imageYc + imageH - bleedY + offsetY}`);
         }
         if (cy === 0) {
           normalMarks.add(`${imageXc + bleedX + offsetX},0-${imageXc + bleedX + offsetX},${imageYc + bleedY + offsetY}`);
-          normalMarks.add(`${imageXc + cardW - bleedX + offsetX},0-${imageXc + cardW - bleedX + offsetX},${imageYc + bleedY + offsetY}`);
+          normalMarks.add(`${imageXc + imageW - bleedX + offsetX},0-${imageXc + imageW - bleedX + offsetX},${imageYc + bleedY + offsetY}`);
         }
         if (cy === vc - 1) {
-          normalMarks.add(`${imageXc + bleedX + offsetX},${imageYc + cardH - bleedY + offsetY}-${imageXc + bleedX + offsetX},${maxHeight}`);
-          normalMarks.add(`${imageXc + cardW - bleedX + offsetX},${imageYc + cardH - bleedY + offsetY}-${imageXc + cardW - bleedX + offsetX},${maxHeight}`);
+          normalMarks.add(`${imageXc + bleedX + offsetX},${imageYc + imageH - bleedY + offsetY}-${imageXc + bleedX + offsetX},${maxHeight}`);
+          normalMarks.add(`${imageXc + imageW - bleedX + offsetX},${imageYc + imageH - bleedY + offsetY}-${imageXc + imageW - bleedX + offsetX},${maxHeight}`);
         }
         normalMarks.forEach(nm => {
           const [loc1, loc2] = nm.split('-');
