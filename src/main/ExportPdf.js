@@ -148,7 +148,6 @@ const drawPageElements = async (doc, pageData, state) => {
         crossMarks.add(`${imageXc + imageW - bleedX + offsetX},${imageYc + imageH - bleedY + offsetY}`);
         crossMarks.add(`${imageXc + bleedX + offsetX},${imageYc + imageH - bleedY + offsetY}`);
         crossMarks.add(`${imageXc + imageW - bleedX + offsetX},${imageYc + bleedY + offsetY}`);
-        console.log(type, crossMarks, ':', imageXc , bleedX , offsetX, imageW, '~', imageYc , bleedY , offsetY, imageH);
         crossMarks.forEach(cm => {
           const [x, y] = cm.split(',');
           try {
