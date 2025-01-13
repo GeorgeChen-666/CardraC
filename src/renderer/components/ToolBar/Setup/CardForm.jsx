@@ -34,13 +34,19 @@ export const CardForm = () => {
     ])
   ), shallowEqual);
   const dispatch = useDispatch();
+  const isBrochure = Config.sides === 'brochure';
   useEffect(() => {
     if (Config.autoColumnsRows) {
       const pageWidth = Config.landscape ? Config.pageHeight : Config.pageWidth;
       const pageHeight = Config.landscape ? Config.pageWidth : Config.pageHeight;
-      const autoColumns = Config.sides === 'brochure' && !Config.landscape ? 2 : parseInt((pageWidth * 0.95) / (Config.cardWidth + Config.marginX));
-      const autoRows = Config.sides === 'brochure' && Config.landscape ? 2 : parseInt((pageHeight * 0.95) / (Config.cardHeight + Config.marginY));
-      dispatch(Actions.ConfigEdit({ columns: autoColumns, rows: autoRows }));
+      const autoColumns = isBrochure ? 2 : parseInt((pageWidth * 0.95) / (Config.cardWidth + Config.marginX));
+      const autoRows = isBrochure ? 1 : parseInt((pageHeight * 0.95) / (Config.cardHeight + Config.marginY));
+      const newConfig = { columns: autoColumns, rows: autoRows };
+      if(isBrochure) {
+        newConfig.marginX = 0;
+        newConfig.marginY = 0;
+      }
+      dispatch(Actions.ConfigEdit(newConfig));
     }
   }, [
     Config.autoColumnsRows,
@@ -66,9 +72,10 @@ export const CardForm = () => {
       attrKey={'marginX'}
       type={ControlType.NumberInput}
       style={{ width: '90px' }}
+      disabled={isBrochure}
     >
       mm
-      <Control attrKey={'marginY'} type={ControlType.NumberInput} style={{ width: '90px' }}>
+      <Control attrKey={'marginY'} type={ControlType.NumberInput} style={{ width: '90px' }} disabled={isBrochure}>
         mm
       </Control>
     </Control>
@@ -110,7 +117,7 @@ export const CardForm = () => {
             <NumberDecrementStepper />
           </NumberInputStepper>
         </NumberInput>
-        <Checkbox value={'true'} isChecked={Config.autoColumnsRows}
+        <Checkbox isDisabled={isBrochure} value={'true'} isChecked={Config.autoColumnsRows}
                   onChange={(event) => dispatch(Actions.ConfigEdit({ autoColumnsRows: event.target.checked }))}
         >{t('configDialog.auto')}</Checkbox>
       </HStack>

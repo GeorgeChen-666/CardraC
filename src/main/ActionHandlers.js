@@ -116,7 +116,6 @@ export const registerRendererActionHandlers = (mainWindow) => {
       mainWindow.webContents.send(returnChannel, null);
     }
     else {
-      //const toRenderData = await readFileToData(result.filePaths[0]);
       const readStream = fs.createReadStream(result.filePaths[0]);
       let resultString = '';
       readStream.on('data', (chunk) => {
@@ -124,31 +123,44 @@ export const registerRendererActionHandlers = (mainWindow) => {
       });
 
       readStream.on('end', () => {
-        const imageStorageRegexp = new RegExp(/"ImageStorage":\{".*?"\}(,)?/g);
-        (async () => {
+        try {
+          const imageStorageRegexp = new RegExp(/"ImageStorage":\{".*?"\}(,)?/g);
           let [imageStorageString] = resultString.match(imageStorageRegexp) || [];
           if(imageStorageString.endsWith(',')) {
             imageStorageString = imageStorageString.substring(0, imageStorageString.length - 1);
           }
-          const imageStorageJson = JSON.parse(`{${imageStorageString}}`);
-          Object.keys(ImageStorage).forEach(key => {
-            if(!Object.keys(imageStorageJson.ImageStorage).includes(key)) {
-              delete ImageStorage[key];
-            }
+          (async () => {
+            const imageStorageJson = JSON.parse(`{${imageStorageString}}`);
+            Object.keys(ImageStorage).forEach(key => {
+              if(!Object.keys(imageStorageJson.ImageStorage).includes(key)) {
+                delete ImageStorage[key];
+              }
+            });
+            Object.keys(imageStorageJson.ImageStorage).forEach(key => {
+              ImageStorage[key] = imageStorageJson.ImageStorage[key];
+            });
+          })()
+          const result = resultString.replace(imageStorageString, ('"_":"_"'));
+          const projectJson = JSON.parse(result);
+          delete projectJson._;
+          mainWindow.webContents.send(returnChannel, projectJson);
+        }
+        catch (e) {
+          mainWindow.webContents.send('notification', {
+            status: 'error',
+            description: "文件损坏.."
           });
-          Object.keys(imageStorageJson.ImageStorage).forEach(key => {
-            ImageStorage[key] = imageStorageJson.ImageStorage[key];
-          });
-        })()
-        const result = resultString.replace(imageStorageRegexp, '');
-        const projectJson = JSON.parse(result);
-        mainWindow.webContents.send(returnChannel, projectJson);
+          mainWindow.webContents.send(returnChannel, null);
+        }
+
       });
       readStream.on('error', (err) => {
         console.log(err);
       });
 
     }
+
+
   });
 
   ipcMain.on('save-config', (event, args) => {

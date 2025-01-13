@@ -18,7 +18,7 @@ export const ControlType = Object.freeze({
   Checkbox: 'Checkbox'
 });
 
-export const Control = (({ children, label, attrKey, type, onChange, style }) => {
+export const Control = (({ children, label, attrKey, type, onChange, style, disabled = false }) => {
   const dispatch = useDispatch();
   const Config = useSelector((state) => (
     _.pick(state.pnp.Config, [attrKey])
@@ -36,6 +36,7 @@ export const Control = (({ children, label, attrKey, type, onChange, style }) =>
         if (type === ControlType.NumberInput) {
           return (
             <NumberInput
+              isDisabled={disabled}
               style={style}
               value={value}
               onChange={(valueString, numberValue) =>

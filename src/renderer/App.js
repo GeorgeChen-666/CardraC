@@ -13,8 +13,10 @@ import { Footer } from './components/Footer';
 import { i18nInstance } from './i18n';
 import _ from 'lodash';
 import { LoadingModal } from './components/LoadingModal';
+import { Notification } from './components/Notification';
 
 function App() {
+
   const [isI18nReady, setIsI18nReady] = useState(false);
   const Global = useSelector((state) => (
     _.pick(state.pnp.Global, [
@@ -39,6 +41,7 @@ function App() {
     <>
       {isI18nReady && (<ChakraProvider theme={theme}>
         <LoadingModal />
+        <Notification />
         <Box>
           <Grid
             templateAreas={`"header"

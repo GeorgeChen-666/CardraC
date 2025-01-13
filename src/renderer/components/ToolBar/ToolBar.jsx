@@ -29,6 +29,7 @@ import {
   openProject,
   reloadLocalImage,
   saveProject,
+  getNotificationTrigger,
 } from '../../functions';
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { useTranslation } from 'react-i18next';
@@ -38,7 +39,7 @@ import './styles.css';
 
 
 export const ToolBar = () => {
-  const toast = useToast()
+  const toast = getNotificationTrigger()
   const { t } = useTranslation();
   const dialogRef = useRef(null);
   const Config = useSelector((state) => ({

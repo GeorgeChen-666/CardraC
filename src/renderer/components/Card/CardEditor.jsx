@@ -19,7 +19,6 @@ import {
 import { IoIosMore, IoIosSwap, IoIosKeypad } from 'react-icons/io';
 import './styles.css';
 import { Actions } from '../../store';
-import { emptyImg } from '../../../main/ExportPdf';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import _ from 'lodash';
 import { useDrag, useDrop } from 'react-dnd';
@@ -49,7 +48,7 @@ export default memo(({ data, index }) => {
       isDragging: monitor.isDragging(),
     }),
   });
-  console.log('rending', index, isDragging);
+
   const Config = useSelector((state) => (
     _.pick(state.pnp.Config, [
       'sides',

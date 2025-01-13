@@ -63,6 +63,12 @@ const mergeState = (state) => {
   return { ...newState, OverviewStorage };
 };
 
+let triggerNotification = () => {};
+export const getNotificationTrigger = () => triggerNotification
+export const regNotification = (cb) => {
+  triggerNotification = cb;
+}
+ipcRenderer.on('notification', (ev, ...args) => triggerNotification(...args));
 
 ipcRenderer.on('console', (ev, ...args) => console.log(...args));
 export const onOpenProjectFile = (dispatch, Actions, cb) => {

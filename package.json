@@ -1,6 +1,6 @@
 {
   "name": "cardrac",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "author": {
     "name": "cardrac"
@@ -27,6 +27,7 @@
     "@electron-forge/plugin-fuses": "^7.4.0",
     "@electron-forge/plugin-webpack": "^7.4.0",
     "@electron/fuses": "^1.8.0",
+    "@timfish/forge-externals-plugin": "^0.2.1",
     "@vercel/webpack-asset-relocator-loader": "^1.7.3",
     "babel-loader": "^9.1.3",
     "copy-webpack-plugin": "^12.0.2",
