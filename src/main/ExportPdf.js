@@ -74,8 +74,8 @@ const drawPageElements = async (doc, pageData, state) => {
   const bleed = fixFloat(Config.bleed * scale);
   let bleedX = bleed;
   let bleedY = bleed;
-  let offsetX = 1 * Config.offsetX;
-  let offsetY = 1 * Config.offsetY;
+  let offsetX = fixFloat(scale * Config.offsetX);
+  let offsetY = fixFloat(scale * Config.offsetY);
 
   const maxWidth = fixFloat(doc.getPageWidth(0));
   const maxHeight = fixFloat(doc.getPageHeight(0));
@@ -102,12 +102,14 @@ const drawPageElements = async (doc, pageData, state) => {
     if (avoidDislocation) {
       cardW = cardW + marginX;
       cardH = cardH + marginY;
-      bleedX = bleedX + marginX / 2;
-      bleedY = bleedY + marginY / 2;
+      bleedX = marginX / 2;
+      bleedY = marginY / 2;
       marginX = 0;
       marginY = 0;
     }
   }
+
+  const [imageW, imageH] = [cardW + bleedX * 2, cardH + bleedY * 2];
   for (let xx = 0; xx < hc; xx++) {
     for (let yy = 0; yy < vc; yy++) {
       let cardRotation = 0;
@@ -124,26 +126,40 @@ const drawPageElements = async (doc, pageData, state) => {
 
       const cardIndex = yy * hc + xx;
       const image = imageList?.[cardIndex] || (type === 'back' ? Config.globalBackground : null) || emptyImg;
-      const cardX = (cx - hc / 2) * cardW + (cx - (hc - 1) / 2) * marginX;
-      const cardY = (cy - vc / 2) * cardH + (cy - (vc - 1) / 2) * marginY;
+      const imageX = (cx - hc / 2) * imageW + (cx - (hc - 1) / 2) * (marginX - bleedX * 2);
+      const imageY = (cy - vc / 2) * imageH + (cy - (vc - 1) / 2) * (marginY - bleedY * 2);
 
-      const [cardXc, cardYc] = getLocateByCenterBase(cardX, cardY, doc);
-      let [imageXc, imageYc] = [cardXc, cardYc];
+      let [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc);
       if (cardRotation === 180) {
-        imageXc = imageXc + cardW + offsetX;
-        imageYc = imageYc - cardH + offsetY;
+        imageXc = imageXc + imageW + offsetX;
+        imageYc = imageYc - imageH + offsetY;
       } else {
         imageXc = imageXc + offsetX;
         imageYc = imageYc + offsetY;
       }
 
+      if (image) {
+        try {
+          if (image === emptyImg) {
+            doc.addImage(image.path, image.ext, imageXc, imageYc, imageW, imageH, image.path, 'NONE', cardRotation);
+          } else {
+            const base64String = ImageStorage[image.path?.replaceAll('\\', '')];
+            doc.addImage(base64String, image.ext, imageXc, imageYc, imageW, imageH, image.path, 'FAST', cardRotation);
+          }
+        } catch (e) {
+          console.log('addImage error', e);
+        }
+      }
+
       if (Config.fCutLine === '2' || Config.fCutLine === '3') {
+        const [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc); //avoid card rotation
         //add cross mark loc
         const crossMarks = new Set();
-        crossMarks.add(`${cardXc + bleedX + offsetX},${cardYc + bleedY + offsetY}`);
-        crossMarks.add(`${cardXc + cardW - bleedX + offsetX},${cardYc + cardH - bleedY + offsetY}`);
-        crossMarks.add(`${cardXc + bleedX + offsetX},${cardYc + cardH - bleedY + offsetY}`);
-        crossMarks.add(`${cardXc + cardW - bleedX + offsetX},${cardYc + bleedY + offsetY}`);
+        crossMarks.add(`${imageXc + bleedX + offsetX},${imageYc + bleedY + offsetY}`);
+        crossMarks.add(`${imageXc + imageW - bleedX + offsetX},${imageYc + imageH - bleedY + offsetY}`);
+        crossMarks.add(`${imageXc + bleedX + offsetX},${imageYc + imageH - bleedY + offsetY}`);
+        crossMarks.add(`${imageXc + imageW - bleedX + offsetX},${imageYc + bleedY + offsetY}`);
+        console.log(type, crossMarks, ':', imageXc , bleedX , offsetX, imageW, '~', imageYc , bleedY , offsetY, imageH);
         crossMarks.forEach(cm => {
           const [x, y] = cm.split(',');
           try {
@@ -155,23 +171,24 @@ const drawPageElements = async (doc, pageData, state) => {
       }
 
       if (Config.fCutLine === '1' || Config.fCutLine === '3') {
+        const [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc); //avoid card rotation
         const normalMarks = new Set();
         //add normal mark loc
         if (cx === 0) {
-          normalMarks.add(`0,${cardYc + bleedY + offsetY}-${cardXc + bleedX + offsetX},${cardYc + bleedY + offsetY}`);
-          normalMarks.add(`0,${cardYc + cardH - bleedY + offsetY}-${cardXc + bleedX + offsetX},${cardYc + cardH - bleedY + offsetY}`);
+          normalMarks.add(`0,${imageYc + bleedY + offsetY}-${imageXc + bleedX + offsetX},${imageYc + bleedY + offsetY}`);
+          normalMarks.add(`0,${imageYc + cardH - bleedY + offsetY}-${imageXc + bleedX + offsetX},${imageYc + cardH - bleedY + offsetY}`);
         }
         if (cx === hc - 1) {
-          normalMarks.add(`${cardXc + cardW - bleedX + offsetX},${cardYc + bleedY + offsetY}-${maxWidth},${cardYc + bleedY + offsetY}`);
-          normalMarks.add(`${cardXc + cardW - bleedX + offsetX},${cardYc + cardH - bleedY + offsetY}-${maxWidth},${cardYc + cardH - bleedY + offsetY}`);
+          normalMarks.add(`${imageXc + cardW - bleedX + offsetX},${imageYc + bleedY + offsetY}-${maxWidth},${imageYc + bleedY + offsetY}`);
+          normalMarks.add(`${imageXc + cardW - bleedX + offsetX},${imageYc + cardH - bleedY + offsetY}-${maxWidth},${imageYc + cardH - bleedY + offsetY}`);
         }
         if (cy === 0) {
-          normalMarks.add(`${cardXc + bleedX + offsetX},0-${cardXc + bleedX + offsetX},${cardYc + bleedY + offsetY}`);
-          normalMarks.add(`${cardXc + cardW - bleedX + offsetX},0-${cardXc + cardW - bleedX + offsetX},${cardYc + bleedY + offsetY}`);
+          normalMarks.add(`${imageXc + bleedX + offsetX},0-${imageXc + bleedX + offsetX},${imageYc + bleedY + offsetY}`);
+          normalMarks.add(`${imageXc + cardW - bleedX + offsetX},0-${imageXc + cardW - bleedX + offsetX},${imageYc + bleedY + offsetY}`);
         }
         if (cy === vc - 1) {
-          normalMarks.add(`${cardXc + bleedX + offsetX},${cardYc + cardH - bleedY + offsetY}-${cardXc + bleedX + offsetX},${maxHeight}`);
-          normalMarks.add(`${cardXc + cardW - bleedX + offsetX},${cardYc + cardH - bleedY + offsetY}-${cardXc + cardW - bleedX + offsetX},${maxHeight}`);
+          normalMarks.add(`${imageXc + bleedX + offsetX},${imageYc + cardH - bleedY + offsetY}-${imageXc + bleedX + offsetX},${maxHeight}`);
+          normalMarks.add(`${imageXc + cardW - bleedX + offsetX},${imageYc + cardH - bleedY + offsetY}-${imageXc + cardW - bleedX + offsetX},${maxHeight}`);
         }
         normalMarks.forEach(nm => {
           const [loc1, loc2] = nm.split('-');
@@ -184,18 +201,7 @@ const drawPageElements = async (doc, pageData, state) => {
         });
       }
 
-      if (image) {
-        try {
-          if (image === emptyImg) {
-            doc.addImage(image.path, image.ext, imageXc, imageYc, cardW, cardH, image.path, 'NONE', cardRotation);
-          } else {
-            const base64String = ImageStorage[image.path?.replaceAll('\\', '')];
-            doc.addImage(base64String, image.ext, imageXc, imageYc, cardW, cardH, image.path, 'FAST', cardRotation);
-          }
-        } catch (e) {
-          console.log('addImage error', e);
-        }
-      }
+
     }
   }
 };

@@ -1,4 +1,5 @@
 import {
+  Checkbox,
   FormControl,
   FormLabel,
   NumberDecrementStepper,
@@ -14,6 +15,7 @@ import { Actions } from '/src/renderer/store';
 
 export const ControlType = Object.freeze({
   NumberInput: 'NumberInput',
+  Checkbox: 'Checkbox'
 });
 
 export const Control = (({ children, label, attrKey, type, onChange, style }) => {
@@ -54,6 +56,9 @@ export const Control = (({ children, label, attrKey, type, onChange, style }) =>
               </NumberInputStepper>
             </NumberInput>
           );
+        }
+        else if (type === ControlType.Checkbox) {
+          return (<Checkbox defaultChecked>Checkbox</Checkbox>)
         }
       })()
     }

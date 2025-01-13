@@ -14,32 +14,17 @@ export const MarkForm = () => {
   const { t } = useTranslation();
   const Config = useSelector((state) => (
     _.pick(state.pnp.Config, [
-      'avoidDislocation',
       'fCutLine',
       'fCutlineColor',
       'fCutlineThinkness',
       'bCutLine',
       'bCutlineColor',
       'bCutlineThinkness',
-      'bleed',
       'sides'
     ])
   ), shallowEqual);
   const dispatch = useDispatch();
   return (<div className={'FormPanel'}>
-    <Control
-      label={t('configDialog.bleed')}
-      attrKey={'bleed'}
-      type={ControlType.NumberInput}
-      style={{ width: '90px' }}
-    >
-      mm
-      <Control label={t('configDialog.avoidDislocation')}>
-        <Checkbox value={'true'} isChecked={Config.avoidDislocation}
-                  onChange={(event) => dispatch(Actions.ConfigEdit({ avoidDislocation: event.target.checked }))}
-        ></Checkbox>
-      </Control>
-    </Control>
     <Control label={t('configDialog.fCutLine')}>
       <RadioGroup
         defaultValue={Config.fCutLine}
