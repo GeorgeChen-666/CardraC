@@ -1,11 +1,26 @@
+import { getImageBorderAverageColor } from './functions';
+
 const { jsPDF } = require('jspdf');
 
-export const ImageStorage = {};
-export const emptyImg = {
-  path: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
-    '12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg==',
-  ext: 'png',
+export const ImageStorage = {
+  '_emptyImg': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
+    '12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg=='
 };
+const imageAverageColorSet = new Map();
+const getImageAverageColor = async () => {
+  const jobs = Object.keys(ImageStorage).map(key => {
+    return (async () => {
+      if(!imageAverageColorSet.has(key)) {
+        try {
+          const averageColor = await getImageBorderAverageColor(ImageStorage[key]);
+          imageAverageColorSet.add(key, averageColor);
+        }
+        catch (e) {}
+      }
+    })()
+  });
+  await Promise.all(jobs);
+}
 const fixFloat = num => parseFloat(num.toFixed(2));
 const getLocateByCenterBase = (x, y, doc, pageIndex = 1) => {
   const pageHeight = doc.getPageHeight(pageIndex);
@@ -36,11 +51,11 @@ const getPagedImageListByCardList = (state) => {
     for (let i = 0; i < tempPairList2.length; i += size) {
       const result = tempPairList2.slice(i, i + size);
       pagedImageList.push({
-        imageList: result.map(c => c[0]?.face || emptyImg),
+        imageList: result.map(c => c[0]?.face),
         type: 'face',
       });
       pagedImageList.push({
-        imageList: result.map(c => c[1]?.face || emptyImg),
+        imageList: result.map(c => c[1]?.face),
         type: 'back',
       });
     }
@@ -53,7 +68,7 @@ const getPagedImageListByCardList = (state) => {
       });
       if (sides === 'double sides') {
         pagedImageList.push({
-          imageList: result.map(c => c.back || Config.globalBackground || emptyImg),
+          imageList: result.map(c => c.back || Config.globalBackground),
           type: 'back',
         });
       }
@@ -82,9 +97,6 @@ const drawPageElements = async (doc, pageData, state) => {
   const lineWeight = Config.lineWeight;
   const cutlineColor = Config.cutlineColor;
   const avoidDislocation = Config.avoidDislocation;
-
-  doc.setLineWidth(lineWeight * 0.3527);
-  doc.setDrawColor(cutlineColor);
 
   const landscape = Config.landscape;
   let flipWay = ['none', 'long-edge binding', 'short-edge binding'].indexOf(Config.flip);
@@ -125,7 +137,7 @@ const drawPageElements = async (doc, pageData, state) => {
       }
 
       const cardIndex = yy * hc + xx;
-      const image = imageList?.[cardIndex] || (type === 'back' ? Config.globalBackground : null) || emptyImg;
+      const image = imageList?.[cardIndex] || (type === 'back' ? Config.globalBackground : null);
       const imageX = (cx - hc / 2) * imageW + (cx - (hc - 1) / 2) * (marginX - bleedX * 2);
       const imageY = (cy - vc / 2) * imageH + (cy - (vc - 1) / 2) * (marginY - bleedY * 2);
 
@@ -138,8 +150,19 @@ const drawPageElements = async (doc, pageData, state) => {
         imageYc = imageYc + offsetY;
       }
 
+      if (image) {
+        try {
+          doc.setDrawColor(0);
+          const averageColor = imageAverageColorSet.get(image.path?.replaceAll('\\', ''));
+          doc.setFillColor(averageColor.r, averageColor.g, averageColor.b);
+          doc.rect(imageXc - (marginX / 2 - bleedX), imageYc - (marginY / 2 - bleedY), cardW + marginX, cardH + marginY, 'F');
+        } catch (e) {
+          console.log('addImageBG error', e);
+        }
+      }
 
-
+      doc.setLineWidth(lineWeight * 0.3527);
+      doc.setDrawColor(cutlineColor);
       if (Config.fCutLine === '2' || Config.fCutLine === '3') {
         const [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc); //avoid card rotation
         //add cross mark loc
@@ -191,12 +214,8 @@ const drawPageElements = async (doc, pageData, state) => {
 
       if (image) {
         try {
-          if (image === emptyImg) {
-            doc.addImage(image.path, image.ext, imageXc, imageYc, imageW, imageH, image.path, 'NONE', cardRotation);
-          } else {
-            const base64String = ImageStorage[image.path?.replaceAll('\\', '')];
-            doc.addImage(base64String, image.ext, imageXc, imageYc, imageW, imageH, image.path, 'FAST', cardRotation);
-          }
+          const base64String = ImageStorage[image.path?.replaceAll('\\', '')];
+          doc.addImage(base64String, image.ext, imageXc, imageYc, imageW, imageH, image.path, 'FAST', cardRotation);
         } catch (e) {
           console.log('addImage error', e);
         }
@@ -220,6 +239,7 @@ export const exportPdf = async (state, onProgress) => {
   // for (const job of pageJobs) {
   //   await job();
   // }
+  await getImageAverageColor();
   for (const index in pagedImageList) {
     const pageData = pagedImageList[index];
     index > 0 && doc.addPage();

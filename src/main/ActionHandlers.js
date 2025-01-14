@@ -132,7 +132,7 @@ export const registerRendererActionHandlers = (mainWindow) => {
           (async () => {
             const imageStorageJson = JSON.parse(`{${imageStorageString}}`);
             Object.keys(ImageStorage).forEach(key => {
-              if(!Object.keys(imageStorageJson.ImageStorage).includes(key)) {
+              if(!Object.keys(imageStorageJson.ImageStorage).includes(key) && key !== '_emptyImg') {
                 delete ImageStorage[key];
               }
             });

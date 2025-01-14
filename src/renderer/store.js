@@ -49,7 +49,7 @@ export const initialState = Object.freeze({
     bCutLine: '1',
     lineWeight: 0.5,
     cutlineColor: '#000000',
-    globalBackground: null,
+    globalBackground: { path:'_emptyImg' },
     avoidDislocation: false
   },
   CardList: [],
@@ -133,7 +133,7 @@ export const pnpSlice = createSlice({
       state.CardList = state.CardList.concat(action.payload.map(p => ({
         id: crypto.randomUUID(),
         face: p,
-        back: null,
+        back: { path:'_emptyImg' },
         repeat: 1,
       })));
     },

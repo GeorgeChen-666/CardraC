@@ -1,7 +1,40 @@
 import sharp from 'sharp';
 
 const fs = require('fs');
+export const getImageBorderAverageColor = async (base64String, borderWidth= 10) => {
+  const buffer = Buffer.from(base64String.split(',')[1], 'base64');
+  const image = sharp(buffer);
+  const {width, height} = await image.metadata();
+  const rectangles = [
+    { width, height: borderWidth, left: 0, top: 0 },
+    { width: borderWidth, height, left: 0, top: 0 },
+    { width: borderWidth, height, left: width - borderWidth, top: 0 },
+    { width, height: borderWidth, left: 0, top: height - borderWidth },
+  ];
+  let [tr,tg,tb]=[0,0,0];
+  for (const rectangle of rectangles) {
+    const { r, g, b, alpha } = await image
+      .extract(rectangle)
+      .stats()
+      .then(stats => ({
+        r: stats.channels[0].mean,
+        g: stats.channels[1].mean,
+        b: stats.channels[2].mean,
+        alpha: stats.channels[3] ? stats.channels[3].mean : 1
+      }));
 
+    const averageColor = { r: Math.round(r), g: Math.round(g), b: Math.round(b), alpha };
+    tr += averageColor.r;
+    tg += averageColor.g;
+    tb += averageColor.b;
+  }
+  return {
+    r: Math.round(tr / rectangles.length),
+    g: Math.round(tg / rectangles.length),
+    b: Math.round(tb / rectangles.length),
+    alpha: 1
+  };
+}
 export const readCompressedImage = async (path, options = {}) => {
   options.format = options.format === 'jpg' ? 'jpeg' : 'png';
   const {

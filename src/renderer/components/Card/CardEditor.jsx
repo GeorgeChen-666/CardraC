@@ -117,7 +117,7 @@ export default memo(({ data, index }) => {
           </MenuItem>
           <MenuItem onClick={async (e) => {
             e.stopPropagation();
-            dispatch(Actions.CardEditById({ id: data.id, face: null }));
+            dispatch(Actions.CardEditById({ id: data.id, face: { path:'_emptyImg' } }));
           }}>
             {t('cardEditor.clearFace')}
           </MenuItem>
@@ -130,7 +130,7 @@ export default memo(({ data, index }) => {
           </MenuItem>
           <MenuItem onClick={async (e) => {
             e.stopPropagation();
-            dispatch(Actions.CardEditById({ id: data.id, back: null }));
+            dispatch(Actions.CardEditById({ id: data.id, back: { path:'_emptyImg' } }));
           }}>
             {t('cardEditor.clearBack')}
           </MenuItem>
