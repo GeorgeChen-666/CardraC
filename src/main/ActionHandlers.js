@@ -36,9 +36,8 @@ const pathToImageData = async path => {
 const store = new Store();
 const initLanguageJson = (lang) => {
   const en = new Store({name: lang, cwd: 'locales'});
-  if(en.size === 0 || isDev) {
-    en.set(require(`./locales/${lang}.json`));
-  }
+  const defaultLangStore = require(`./locales/${lang}.json`);
+  en.set(_.merge(defaultLangStore, en.store));
 }
 export const registerRendererActionHandlers = (mainWindow) => {
   ipcMain.on('export-pdf', async (event, args) => {

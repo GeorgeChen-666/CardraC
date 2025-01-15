@@ -50,6 +50,7 @@ export const initialState = Object.freeze({
     lineWeight: 0.5,
     cutlineColor: '#000000',
     globalBackground: { path:'_emptyImg' },
+    marginFilling: false,
     avoidDislocation: false
   },
   CardList: [],

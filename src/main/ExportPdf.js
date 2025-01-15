@@ -7,15 +7,17 @@ export const ImageStorage = {
     '12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg=='
 };
 const imageAverageColorSet = new Map();
-const getImageAverageColor = async () => {
+const loadImageAverageColor = async () => {
   const jobs = Object.keys(ImageStorage).map(key => {
     return (async () => {
       if(!imageAverageColorSet.has(key)) {
         try {
           const averageColor = await getImageBorderAverageColor(ImageStorage[key]);
-          imageAverageColorSet.add(key, averageColor);
+          imageAverageColorSet.set(key, averageColor);
         }
-        catch (e) {}
+        catch (e) {
+          console.log(e)
+        }
       }
     })()
   });
@@ -150,12 +152,15 @@ const drawPageElements = async (doc, pageData, state) => {
         imageYc = imageYc + offsetY;
       }
 
-      if (image) {
+      if (image && Config.marginFilling) {
         try {
+          const [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc);
           doc.setDrawColor(0);
           const averageColor = imageAverageColorSet.get(image.path?.replaceAll('\\', ''));
-          doc.setFillColor(averageColor.r, averageColor.g, averageColor.b);
-          doc.rect(imageXc - (marginX / 2 - bleedX), imageYc - (marginY / 2 - bleedY), cardW + marginX, cardH + marginY, 'F');
+          if(averageColor) {
+            doc.setFillColor(averageColor.r, averageColor.g, averageColor.b);
+            doc.rect(imageXc - (marginX / 2 - bleedX), imageYc - (marginY / 2 - bleedY), cardW + marginX, cardH + marginY, 'F');
+          }
         } catch (e) {
           console.log('addImageBG error', e);
         }
@@ -239,7 +244,9 @@ export const exportPdf = async (state, onProgress) => {
   // for (const job of pageJobs) {
   //   await job();
   // }
-  await getImageAverageColor();
+  if(Config.marginFilling) {
+    await loadImageAverageColor();
+  }
   for (const index in pagedImageList) {
     const pageData = pagedImageList[index];
     index > 0 && doc.addPage();

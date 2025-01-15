@@ -6,10 +6,10 @@ export const getImageBorderAverageColor = async (base64String, borderWidth= 10) 
   const image = sharp(buffer);
   const {width, height} = await image.metadata();
   const rectangles = [
-    { width, height: borderWidth, left: 0, top: 0 },
-    { width: borderWidth, height, left: 0, top: 0 },
-    { width: borderWidth, height, left: width - borderWidth, top: 0 },
-    { width, height: borderWidth, left: 0, top: height - borderWidth },
+    { width, height: Math.min(height, borderWidth), left: 0, top: 0 },
+    { width: Math.min(width, borderWidth), height, left: 0, top: 0 },
+    { width: Math.min(width, borderWidth), height, left: Math.max(width - borderWidth, 0), top: 0 },
+    { width, height: Math.min(height, borderWidth), left: 0, top: Math.max(height - borderWidth, 0) },
   ];
   let [tr,tg,tb]=[0,0,0];
   for (const rectangle of rectangles) {

@@ -69,6 +69,7 @@
     "complete": "完整",
     "lineWeight": "线粗",
     "color": "颜色",
+    "marginFilling": "实色填充间距",
     "avoidDislocation": "牌背防错位"
   },
   "footer": {

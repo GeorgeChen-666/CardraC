@@ -17,6 +17,7 @@ export const CardForm = () => {
   const { t } = useTranslation();
   const Config = useSelector((state) => (
     _.pick(state.pnp.Config, [
+      'marginFilling',
       'avoidDislocation',
       'columns',
       'rows',
@@ -49,6 +50,7 @@ export const CardForm = () => {
       dispatch(Actions.ConfigEdit(newConfig));
     }
   }, [
+    Config.marginFilling,
     Config.autoColumnsRows,
     Config.pageSize,
     Config.pageWidth,
@@ -86,15 +88,24 @@ export const CardForm = () => {
       style={{ width: '90px' }}
     >
       mm
+      <Control
+        label={t('configDialog.scale')}
+        attrKey={'scale'}
+        type={ControlType.NumberInput}
+        style={{ width: '90px' }}
+      >%</Control>
+    </Control>
+    <Control label={t('configDialog.marginFilling')}>
+      <Checkbox value={'true'} isChecked={Config.marginFilling}
+                onChange={(event) => dispatch(Actions.ConfigEdit({ marginFilling: event.target.checked }))}
+      ></Checkbox>
       <Control label={t('configDialog.avoidDislocation')}>
         <Checkbox value={'true'} isChecked={Config.avoidDislocation}
                   onChange={(event) => dispatch(Actions.ConfigEdit({ avoidDislocation: event.target.checked }))}
         ></Checkbox>
       </Control>
     </Control>
-    <Control label={t('configDialog.scale')} attrKey={'scale'} type={ControlType.NumberInput}>
-      %
-    </Control>
+
     <Control label={t('configDialog.columns_rows')}>
       <HStack>
         <NumberInput isDisabled={Config.autoColumnsRows} width={'90px'}

@@ -69,6 +69,7 @@
     "complete": "Complete",
     "lineWeight": "Line Weight",
     "color": "Color",
+    "marginFilling": "Margin Color Filling",
     "avoidDislocation": "Avoid Dislocation"
   },
   "footer": {
