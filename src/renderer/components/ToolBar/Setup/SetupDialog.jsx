@@ -27,7 +27,7 @@ export const SetupDialog = forwardRef(({}, ref) => {
   return (<div>
     <Modal closeOnOverlayClick={false} isOpen={isOpen} onClose={onClose} size={'5xl'} isCentered>
       <ModalOverlay />
-      <ModalContent>
+      <ModalContent minWidth={'870px'}>
         <ModalHeader padding={4}>{t('configDialog.setup')}</ModalHeader>
         <ModalCloseButton />
         <ModalBody>

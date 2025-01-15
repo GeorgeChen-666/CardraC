@@ -88,9 +88,8 @@ const drawPageElements = async (doc, pageData, state) => {
   let cardH = fixFloat(Config.cardHeight * scale);
   let marginX = fixFloat(Config.marginX * scale);
   let marginY = fixFloat(Config.marginY * scale);
-  const bleed = fixFloat(Config.bleed * scale);
-  let bleedX = bleed;
-  let bleedY = bleed;
+  const bleedX = fixFloat(Config.bleedX * scale);
+  const bleedY = fixFloat(Config.bleedX * scale);
   let offsetX = fixFloat(scale * Config.offsetX);
   let offsetY = fixFloat(scale * Config.offsetY);
 
@@ -113,14 +112,14 @@ const drawPageElements = async (doc, pageData, state) => {
     if (landscape && flipWay === 2 || !landscape && flipWay === 1) {
       offsetX = offsetX * -1;
     }
-    if (avoidDislocation) {
-      cardW = cardW + marginX;
-      cardH = cardH + marginY;
-      bleedX = marginX / 2;
-      bleedY = marginY / 2;
-      marginX = 0;
-      marginY = 0;
-    }
+    // if (avoidDislocation) {
+    //   cardW = cardW + marginX;
+    //   cardH = cardH + marginY;
+    //   bleedX = marginX / 2;
+    //   bleedY = marginY / 2;
+    //   marginX = 0;
+    //   marginY = 0;
+    // }
   }
 
   const [imageW, imageH] = [cardW + bleedX * 2, cardH + bleedY * 2];
@@ -157,9 +156,9 @@ const drawPageElements = async (doc, pageData, state) => {
           const [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc);
           doc.setDrawColor(0);
           const averageColor = imageAverageColorSet.get(image.path?.replaceAll('\\', ''));
-          if(averageColor) {
+          if(averageColor && !(marginX / 2 - bleedX === 0 && marginY / 2 - bleedY === 0)) {
             doc.setFillColor(averageColor.r, averageColor.g, averageColor.b);
-            doc.rect(imageXc - (marginX / 2 - bleedX), imageYc - (marginY / 2 - bleedY), cardW + marginX, cardH + marginY, 'F');
+            doc.rect(imageXc - (marginX / 2 - bleedX) + offsetX, imageYc - (marginY / 2 - bleedY) + offsetY, cardW + marginX, cardH + marginY, 'F');
           }
         } catch (e) {
           console.log('addImageBG error', e);
@@ -168,23 +167,7 @@ const drawPageElements = async (doc, pageData, state) => {
 
       doc.setLineWidth(lineWeight * 0.3527);
       doc.setDrawColor(cutlineColor);
-      if (Config.fCutLine === '2' || Config.fCutLine === '3') {
-        const [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc); //avoid card rotation
-        //add cross mark loc
-        const crossMarks = new Set();
-        crossMarks.add(`${imageXc + bleedX + offsetX},${imageYc + bleedY + offsetY}`);
-        crossMarks.add(`${imageXc + imageW - bleedX + offsetX},${imageYc + imageH - bleedY + offsetY}`);
-        crossMarks.add(`${imageXc + bleedX + offsetX},${imageYc + imageH - bleedY + offsetY}`);
-        crossMarks.add(`${imageXc + imageW - bleedX + offsetX},${imageYc + bleedY + offsetY}`);
-        crossMarks.forEach(cm => {
-          const [x, y] = cm.split(',');
-          try {
-            doc.line(parseFloat(x) - fixFloat(2 * scale), parseFloat(y), parseFloat(x) + fixFloat(2 * scale), parseFloat(y));
-            doc.line(parseFloat(x), parseFloat(y) - fixFloat(2 * scale), parseFloat(x), parseFloat(y) + fixFloat(2 * scale));
-          } catch (e) {
-          }
-        });
-      }
+
 
       if (Config.fCutLine === '1' || Config.fCutLine === '3') {
         const [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc); //avoid card rotation
@@ -224,6 +207,24 @@ const drawPageElements = async (doc, pageData, state) => {
         } catch (e) {
           console.log('addImage error', e);
         }
+      }
+
+      if (Config.fCutLine === '2' || Config.fCutLine === '3') {
+        const [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc); //avoid card rotation
+        //add cross mark loc
+        const crossMarks = new Set();
+        crossMarks.add(`${imageXc + bleedX + offsetX},${imageYc + bleedY + offsetY}`);
+        crossMarks.add(`${imageXc + imageW - bleedX + offsetX},${imageYc + imageH - bleedY + offsetY}`);
+        crossMarks.add(`${imageXc + bleedX + offsetX},${imageYc + imageH - bleedY + offsetY}`);
+        crossMarks.add(`${imageXc + imageW - bleedX + offsetX},${imageYc + bleedY + offsetY}`);
+        crossMarks.forEach(cm => {
+          const [x, y] = cm.split(',');
+          try {
+            doc.line(parseFloat(x) - fixFloat(2 * scale), parseFloat(y), parseFloat(x) + fixFloat(2 * scale), parseFloat(y));
+            doc.line(parseFloat(x), parseFloat(y) - fixFloat(2 * scale), parseFloat(x), parseFloat(y) + fixFloat(2 * scale));
+          } catch (e) {
+          }
+        });
       }
 
     }

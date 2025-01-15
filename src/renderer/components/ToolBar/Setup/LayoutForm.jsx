@@ -56,10 +56,10 @@ export const LayoutForm = () => {
     }>
       mm
     </Control>
-    <Control label={t('configDialog.offsetX')} attrKey={'offsetX'} type={ControlType.NumberInput}>
+    <Control label={t('configDialog.offsetX')} attrKey={'offsetX'} type={ControlType.NumberInput} min={-9999}>
       mm
     </Control>
-    <Control label={t('configDialog.offsetY')} attrKey={'offsetY'} type={ControlType.NumberInput}>
+    <Control label={t('configDialog.offsetY')} attrKey={'offsetY'} type={ControlType.NumberInput} min={-9999}>
       mm
     </Control>
     <Control label={t('configDialog.side')}>

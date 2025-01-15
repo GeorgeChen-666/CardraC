@@ -15,10 +15,10 @@ import { Actions } from '/src/renderer/store';
 
 export const ControlType = Object.freeze({
   NumberInput: 'NumberInput',
-  Checkbox: 'Checkbox'
+  Checkbox: 'Checkbox',
 });
 
-export const Control = (({ children, label, attrKey, type, onChange, style, disabled = false }) => {
+export const Control = (({ children, label, attrKey, type, onChange, style = {}, disabled = false, ...restProps }) => {
   const dispatch = useDispatch();
   const Config = useSelector((state) => (
     _.pick(state.pnp.Config, [attrKey])
@@ -37,19 +37,22 @@ export const Control = (({ children, label, attrKey, type, onChange, style, disa
           return (
             <NumberInput
               isDisabled={disabled}
-              style={style}
+              style={{ width: '270px', ...style }}
               value={value}
-              onChange={(valueString, numberValue) =>
-                setValue(valueString)
-              }
-              onBlur={(e) => {
-                const value = e.target.value * 1 || 0;
-                if (onChange) {
-                  onChange(value);
-                } else {
-                  dispatch(Actions.ConfigEdit({ [attrKey]: value }));
+              onChange={(valueString, numberValue) => {
+                setValue(valueString.endsWith('.0') ? numberValue + '' : valueString);
+                if (!isNaN(numberValue)) {
+                  if (onChange) {
+                    onChange(numberValue);
+                  } else {
+                    dispatch(Actions.ConfigEdit({ [attrKey]: numberValue }));
+                  }
                 }
-              }} mr={3}>
+              }}
+              mr={3}
+              min={0}
+              {...restProps}
+            >
               <NumberInputField />
               <NumberInputStepper>
                 <NumberIncrementStepper />
@@ -57,9 +60,6 @@ export const Control = (({ children, label, attrKey, type, onChange, style, disa
               </NumberInputStepper>
             </NumberInput>
           );
-        }
-        else if (type === ControlType.Checkbox) {
-          return (<Checkbox defaultChecked>Checkbox</Checkbox>)
         }
       })()
     }
