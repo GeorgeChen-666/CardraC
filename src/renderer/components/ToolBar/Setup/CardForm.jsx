@@ -26,7 +26,8 @@ export const CardForm = () => {
       'marginX',
       'marginY',
       'autoColumnsRows',
-      'bleed',
+      'bleedX',
+      'bleedY',
       'landscape',
       'pageSize',
       'pageWidth',
@@ -62,6 +63,21 @@ export const CardForm = () => {
     Config.landscape,
     Config.sides
   ]);
+
+  useEffect(() => {
+    if(Config.bleedX > Config.marginX / 2) {
+      dispatch(Actions.ConfigEdit({ bleedX: Config.marginX / 2 }))
+    }
+    if(Config.bleedY > Config.marginY / 2) {
+      dispatch(Actions.ConfigEdit({ bleedY: Config.marginY / 2 }))
+    }
+  }, [
+    Config.marginX,
+    Config.marginY,
+    Config.bleedX,
+    Config.bleedY
+  ]);
+
   return (<div className={'FormPanel'}>
     <Control label={t('configDialog.cardWidth')} attrKey={'cardWidth'} type={ControlType.NumberInput}>
       mm
@@ -77,33 +93,47 @@ export const CardForm = () => {
       disabled={isBrochure}
     >
       mm
-      <Control attrKey={'marginY'} type={ControlType.NumberInput} style={{ width: '90px' }} disabled={isBrochure}>
+      <Control attrKey={'marginY'} type={ControlType.NumberInput} style={{ width: '90px', marginLeft: '41px' }} disabled={isBrochure}>
         mm
       </Control>
     </Control>
     <Control
       label={t('configDialog.bleed')}
-      attrKey={'bleed'}
+      attrKey={'bleedX'}
       type={ControlType.NumberInput}
       style={{ width: '90px' }}
+      step={0.1}
+      max={Config.marginX / 2}
     >
       mm
       <Control
-        label={t('configDialog.scale')}
-        attrKey={'scale'}
+        attrKey={'bleedY'}
         type={ControlType.NumberInput}
-        style={{ width: '90px' }}
-      >%</Control>
+        style={{ width: '90px', marginLeft: '41px' }}
+        step={0.1}
+        max={Config.marginY / 2}
+      >
+        mm
+      </Control>
     </Control>
     <Control label={t('configDialog.marginFilling')}>
       <Checkbox value={'true'} isChecked={Config.marginFilling}
                 onChange={(event) => dispatch(Actions.ConfigEdit({ marginFilling: event.target.checked }))}
       ></Checkbox>
-      <Control label={t('configDialog.avoidDislocation')}>
-        <Checkbox value={'true'} isChecked={Config.avoidDislocation}
-                  onChange={(event) => dispatch(Actions.ConfigEdit({ avoidDislocation: event.target.checked }))}
-        ></Checkbox>
-      </Control>
+      <span style={{width: '113px'}}></span>
+      <Control
+        label={t('configDialog.scale')}
+        attrKey={'scale'}
+        type={ControlType.NumberInput}
+        style={{ width: '90px' }}
+        min={1}
+      >%</Control>
+      {/*<span style={{width: '113px'}}></span>*/}
+      {/*<Control label={t('configDialog.avoidDislocation')}>*/}
+      {/*  <Checkbox value={'true'} isChecked={Config.avoidDislocation}*/}
+      {/*            onChange={(event) => dispatch(Actions.ConfigEdit({ avoidDislocation: event.target.checked }))}*/}
+      {/*  ></Checkbox>*/}
+      {/*</Control>*/}
     </Control>
 
     <Control label={t('configDialog.columns_rows')}>
