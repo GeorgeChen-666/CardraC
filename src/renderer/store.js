@@ -3,13 +3,23 @@ import { createSlice, configureStore } from '@reduxjs/toolkit';
 import _ from 'lodash';
 import logger from 'redux-logger';
 import { Provider } from 'react-redux';
-import { fillByObjectValue, loadConfig, saveConfig } from './functions';
+import {
+  fillByObjectValue,
+  loadConfig,
+  saveConfig,
+  onOpenProjectFile,
+} from './functions';
+import { i18nInstance } from './i18n';
+import { flipWay, layoutSides } from '../public/constants';
+import { drawPdfBrochure } from '../main/ele_action/handlers/pdf/Brochure';
 
 export const initialState = Object.freeze({
   Global: {
     availableLangs: [],
     currentLang: 'zh',
     projectPath: '',
+    isLoading: false,
+    loadingText: '',
     isInProgress: false,
     progress: 0,
     lastSelection: null,
@@ -24,66 +34,68 @@ export const initialState = Object.freeze({
     offsetX: 0,
     offsetY: 0,
     landscape: true,
-    sides: 'double sides',
+    sides: layoutSides.doubleSides,
     autoConfigFlip: true,
-    flip: 'long-edge binding',
-    cardWidth: 65,
-    cardHeight: 90,
-    marginX: 1,
-    marginY: 1,
-    bleed: 1,
+    flip: flipWay.longEdgeBinding,
+    cardWidth: 63,
+    cardHeight: 88,
+    marginX: 3,
+    marginY: 3,
+    bleedX: 1,
+    bleedY: 1,
     columns: 4,
     rows: 2,
     autoColumnsRows: true,
     fCutLine: '1',
-    fCutlineThinkness: 3,
-    fCutlineColor: '#000000',
     bCutLine: '1',
-    bCutlineThinkness: 3,
-    bCutlineColor: '#000000',
-    globalBackground: null,
+    lineWeight: 0.5,
+    cutlineColor: '#000000',
+    globalBackground: { path:'_emptyImg' },
+    marginFilling: false,
+    avoidDislocation: false,
+    brochureRepeatPerPage: false,
   },
   CardList: [],
-  ImageStorage: {},
 });
-const storeCardImage = (state) => {
-  const {CardList, ImageStorage} = state;
+window.OverviewStorage = {};
+
+const refreshCardStorage = (state) => {
+  const {CardList, Config} = state;
+  const { OverviewStorage } = window;
   const usedImagePath = new Set();
   CardList.forEach(card => {
     const {face,back} = card;
-    usedImagePath.add(face?.path);
-    usedImagePath.add(back?.path);
-    if(face?.data) {
-      if(!Object.keys(ImageStorage).includes(face?.path)) {
-        ImageStorage[face?.path] = face?.data;
-      }
-      delete face?.data;
-    }
-    if(back?.data) {
-      if(!Object.keys(ImageStorage).includes(back?.path)) {
-        ImageStorage[back?.path] = back?.data;
-      }
-      delete back?.data;
-    }
+    const facePathKey  = face?.path.replaceAll('\\','');
+    const backPathKey  = back?.path.replaceAll('\\','');
+    usedImagePath.add(facePathKey);
+    usedImagePath.add(backPathKey);
   });
-  Object.keys(ImageStorage).filter(key=> !usedImagePath.has(key)).forEach(key => delete ImageStorage[key])
+
+  if(Config.globalBackground?.path) {
+    const globalBackPathKey = Config.globalBackground?.path?.replaceAll('\\','');
+    usedImagePath.add(globalBackPathKey);
+  }
+
+  Object.keys(OverviewStorage).filter(key=> !usedImagePath.has(key)).forEach(key => delete OverviewStorage[key]);
 }
+
 export const pnpSlice = createSlice({
   name: 'pnp',
   initialState,
   reducers: {
     StateFill: (state, action) => {
-      fillByObjectValue(state, action.payload)
-      // Object.keys(action.payload).forEach(key => {
-      //   state[key] = action.payload[key];
-      // });
+      const { OverviewStorage } = action.payload;
+      OverviewStorage && (window.OverviewStorage = {}) && fillByObjectValue(window.OverviewStorage, OverviewStorage);
+      delete action.payload.OverviewStorage;
+      action.payload.CardList.forEach(card=>{
+        card && !card.id && (card.id = crypto.randomUUID());
+      })
+      fillByObjectValue(state, action.payload);
+      saveConfig({state});
     },
     GlobalEdit: (state, action) => {
       fillByObjectValue(state.Global, action.payload);
       saveConfig({state});
-      // Object.keys(action.payload).forEach(key => {
-      //   state.Global[key] = action.payload[key];
-      // });
     },
     CardSelect: (state, action) => {
       const selectedId = action.payload;
@@ -98,6 +110,11 @@ export const pnpSlice = createSlice({
         state.Global.lastSelection = selectedId;
       }
     },
+    CardCtrlSelect: (state, action) => {
+      const selectedId = action.payload;
+      const selectedCard = state.CardList.find(c => c.id === selectedId);
+      selectedCard.selected = !selectedCard.selected
+    },
     CardShiftSelect: (state, action) => {
       const lastSelection = state.Global.lastSelection;
       const lastSelectionIndex = state.CardList.findIndex(c => c.id === lastSelection);
@@ -105,11 +122,7 @@ export const pnpSlice = createSlice({
       if (lastSelectionIndex + currentSelectionIndex > -1) {
         state.CardList.forEach((c, i) => {
           const ia = [lastSelectionIndex, currentSelectionIndex];
-          if (i >= Math.min(...ia) && i <= Math.max(...ia)) {
-            c.selected = true;
-          } else {
-            c.selected = false;
-          }
+          c.selected = i >= Math.min(...ia) && i <= Math.max(...ia);
         });
       } else {
         state.CardList.forEach(c => c.selected = false);
@@ -117,18 +130,22 @@ export const pnpSlice = createSlice({
     },
     ConfigEdit: (state, action) => {
       fillByObjectValue(state.Config, action.payload);
-      // Object.keys(action.payload).forEach(key => {
-      //   state.Config[key] = action.payload[key];
-      // });
+      saveConfig({state});
     },
     CardAddByFaces: (state, action) => {
       state.CardList = state.CardList.concat(action.payload.map(p => ({
         id: crypto.randomUUID(),
         face: p,
-        back: null,
+        back: { path:'_emptyImg' },
         repeat: 1,
       })));
-      storeCardImage(state);
+    },
+    DragHoverCancel: (state) => {
+      const dragTargetId = 'dragTarget';
+      const targetIndex = state.CardList.findIndex(c => c.id === dragTargetId);
+      if(targetIndex !== -1) {
+        state.CardList.splice(targetIndex, 1);
+      }
     },
     DragHoverMove: (state, action) => {
       const { to } = action.payload;
@@ -142,7 +159,7 @@ export const pnpSlice = createSlice({
     SelectedCardsMove: (state, action) => {
       const dragTargetId = 'dragTarget';
       const selection = state.CardList.filter(c => c.selected);
-      const orderedSelection = selection.sort((a, b) => {
+      const orderedSelection = selection.toSorted((a, b) => {
         return state.CardList.findIndex(c => c.id === b.id) - state.CardList.findIndex(c => c.id === a.id);
       })
       orderedSelection.forEach(c => {
@@ -161,15 +178,17 @@ export const pnpSlice = createSlice({
       const backImageList = action.payload;
       const selection = state.CardList.filter(c => c.selected);
       selection.forEach((c, index) => (c.back = backImageList?.[index]));
+      refreshCardStorage(state);
     },
     CardEditById: (state, action) => {
       const card = state.CardList.find(c => c.id === action.payload.id);
+      const { _newId } = action.payload;
+      if(_newId) {
+        action.payload.id = _newId;
+      }
       if (card) {
         fillByObjectValue(card, action.payload);
-        // Object.keys(action.payload).forEach(key => {
-        //   card[key] = action.payload[key];
-        // });
-        storeCardImage(state);
+        refreshCardStorage(state);
       }
     },
     SelectedCardsSwap: (state) => {
@@ -178,25 +197,33 @@ export const pnpSlice = createSlice({
     },
     SelectedCardsRemove: (state) => {
       const selection = state.CardList.filter(c => c.selected);
-      selection.sort((a, b) => {
-        return state.CardList.indexOf(c => c.id === b.id) - state.CardList.indexOf(c => c.id === a.id);
-      }).forEach(c => state.CardList.splice(state.CardList.indexOf(cc => cc.id === c.id), 1));
-      storeCardImage(state);
+      selection.toSorted((a, b) => {
+        return state.CardList.findIndex(c => c.id === b.id) - state.CardList.findIndex(c => c.id === a.id);
+      }).forEach(c => state.CardList.splice(state.CardList.findIndex(cc => cc.id === c.id), 1));
+      refreshCardStorage(state);
+    },
+    SelectedCardsDuplicate: (state) => {
+      const selection = state.CardList.filter(c => c.selected);
+      const orderedSelection = selection.toSorted((a, b) => {
+        return state.CardList.findIndex(c => c.id === b.id) - state.CardList.findIndex(c => c.id === a.id);
+      });
+      const to = state.CardList.findIndex(c => c.id === orderedSelection[0].id) + 1;
+      const newSelection = orderedSelection.map(c=>({...c, id: crypto.randomUUID(), selected: false}));
+      newSelection.forEach((s, index) => {
+        state.CardList.splice(to, 0, s);
+      });
     },
     SelectedCardsEdit: (state, action) => {
       const selection = state.CardList.filter(c => c.selected);
       selection.forEach(c => {
         fillByObjectValue(c, action.payload);
-        // Object.keys(action.payload).forEach(key => {
-        //   c[key] = action.payload[key];
-        // });
       });
-      storeCardImage(state);
+      refreshCardStorage(state);
     },
     CardRemoveByIds: (state, action) => {
       state.CardList = state.CardList.filter(c => !action.payload.includes(c.id));
-      storeCardImage(state);
-    },
+      refreshCardStorage(state);
+    }
   },
 });
 export const Actions = pnpSlice.actions;
@@ -215,6 +242,15 @@ export const StoreProvider = ({ children }) => {
     </Provider>
   );
 };
-
+export const loading = async (cb,text= i18nInstance.t('util.operating')) => {
+  try {
+    store.dispatch(Actions.GlobalEdit({isLoading: true, loadingText: text}));
+    cb && await cb();
+  } finally {
+    store.dispatch(Actions.GlobalEdit({isLoading: false, loadingText: ''}));
+  }
+}
 const config = await loadConfig();
-store.dispatch(Actions.GlobalEdit({...config}))
+store.dispatch(Actions.GlobalEdit({...config.Global}));
+store.dispatch(Actions.ConfigEdit({...config.Config}));
+onOpenProjectFile(store.dispatch, Actions)

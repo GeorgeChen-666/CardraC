@@ -19,20 +19,21 @@ import {
 import { IoIosMore, IoIosSwap, IoIosKeypad } from 'react-icons/io';
 import './styles.css';
 import { Actions } from '../../store';
-import { emptyImg } from '../../../main/ExportPdf';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import _ from 'lodash';
 import { useDrag, useDrop } from 'react-dnd';
 import { useTranslation } from 'react-i18next';
-import { openImage } from '../../functions';
+import { getImageSrc, openImage } from '../../functions';
+import { layoutSides } from '../../../public/constants';
 
 export default memo(({ data, index }) => {
+  const dispatch = useDispatch();
   const { t } = useTranslation();
   const [, dropRef] = useDrop({
     accept: 'Card',
     hover({ id: draggedId }) {
       if (draggedId !== data.id) {
-        dispatch(Actions.DragHoverMove({to:index}));
+        dispatch(Actions.DragHoverMove({ to: index }));
       }
     },
     drop: () => {
@@ -48,7 +49,7 @@ export default memo(({ data, index }) => {
       isDragging: monitor.isDragging(),
     }),
   });
-  console.log('rending', index, isDragging);
+
   const Config = useSelector((state) => (
     _.pick(state.pnp.Config, [
       'sides',
@@ -56,32 +57,35 @@ export default memo(({ data, index }) => {
   ), shallowEqual);
   const Global = useSelector((state) => (
     _.pick(state.pnp.Global, [
-      'isBackEditing',
+      'isBackEditing'
     ])
   ), shallowEqual);
-  const {
-    faceData,
-    backData
-  } = useSelector((state) => ({
-    faceData: state.pnp.ImageStorage[data.face?.path],
-    backData: state.pnp.ImageStorage[data.back?.path],
-  }), shallowEqual);
-  const dispatch = useDispatch();
+  const [
+    faceUrl,
+    backUrl,
+  ] = [
+    getImageSrc(data?.face),
+    getImageSrc(data?.back),
+  ];
   const onSelectCard = useCallback((event) => {
+    if(event.target.nodeName === 'SPAN') return;
     if (event.shiftKey) {
       dispatch(Actions.CardShiftSelect(data.id));
+    } else if(event.ctrlKey || event.target.nodeName === 'INPUT') {
+      dispatch(Actions.CardCtrlSelect(data.id));
     } else {
       dispatch(Actions.CardSelect(data.id));
     }
-  }, [data.id])
+  }, [data.id]);
   const isBackEditing = Global.isBackEditing;
-  return (<Card ref={node => previewRef(dropRef(node))} style={{ display: (isDragging ? 'none': 'unset') }} className={'Card'} size={'sm'} padding={2}
+  return (<Card ref={node => previewRef(dropRef(node))} style={{ display: (isDragging ? 'none' : 'unset') }}
+                className={'Card'} size={'sm'} padding={2}
                 onClick={onSelectCard}>
     <div className={'CardBar'}>
       <Menu>
         <IconButton
           size={'xs'}
-          isDisabled={Config.sides === 1}
+          isDisabled={Config.sides !== layoutSides.doubleSides}
           icon={<IoIosSwap />}
           variant='outline'
           onClick={(e) => {
@@ -90,8 +94,8 @@ export default memo(({ data, index }) => {
           }}
         />
         <span ref={dragRef} className={'CardDragHandler'}
-              onMouseDown={e=>{
-                if(!data.selected) {
+              onMouseDown={e => {
+                if (!data.selected) {
                   dispatch(Actions.CardSelect(data.id));
                 }
               }}
@@ -108,42 +112,45 @@ export default memo(({ data, index }) => {
         <MenuList>
           <MenuItem onClick={async (e) => {
             e.stopPropagation();
-            const filePath = await openImage();
-            dispatch(Actions.CardEditById({id: data.id, face: filePath}));
+            const filePath = await openImage('setCardFace');
+            filePath && dispatch(Actions.CardEditById({ id: data.id, face: filePath }));
           }}>
             {t('cardEditor.face')}
           </MenuItem>
           <MenuItem onClick={async (e) => {
             e.stopPropagation();
-            dispatch(Actions.CardEditById({id: data.id, face: null}));
+            dispatch(Actions.CardEditById({ id: data.id, face: { path:'_emptyImg' } }));
           }}>
             {t('cardEditor.clearFace')}
           </MenuItem>
-          <MenuItem onClick={async (e) => {
-            e.stopPropagation();
-            const filePath = await openImage();
-            dispatch(Actions.CardEditById({id: data.id, back: filePath}));
-          }}>
-            {t('cardEditor.back')}
-          </MenuItem>
-          <MenuItem onClick={async (e) => {
-            e.stopPropagation();
-            dispatch(Actions.CardEditById({id: data.id, back: null}));
-          }}>
-            {t('cardEditor.clearBack')}
-          </MenuItem>
+          {Config.sides === layoutSides.doubleSides && (<>
+            <MenuItem onClick={async (e) => {
+              e.stopPropagation();
+              const filePath = await openImage('setCardBack');
+              filePath && dispatch(Actions.CardEditById({ id: data.id, back: filePath }));
+            }}>
+              {t('cardEditor.back')}
+            </MenuItem>
+            <MenuItem onClick={async (e) => {
+              e.stopPropagation();
+              dispatch(Actions.CardEditById({ id: data.id, back: { path:'_emptyImg' } }));
+            }}>
+              {t('cardEditor.clearBack')}
+            </MenuItem>
+          </>)}
         </MenuList>
       </Menu>
     </div>
     <div className={'CardMain'}>
       <Stack direction='row' justifyContent={'center'}>
-        <Image className={'CardImage'} boxSize={isBackEditing ? '50px' : '160px'} src={`data:image/${data.ext};base64,${faceData}`}
-               fallbackSrc={emptyImg.path} />
+        <Image className={'CardImage'} boxSize={isBackEditing ? '50px' : '160px'}
+               src={faceUrl}
+                />
         {Config.sides === 'double sides' && (
           <Image className={'CardImage'}
                  boxSize={isBackEditing ? '160px' : '50px'}
-                 src={`data:image/${data.ext};base64,${backData}`}
-                 fallbackSrc={emptyImg.path}
+                 src={backUrl}
+                 
           />
         )}
 
@@ -151,17 +158,17 @@ export default memo(({ data, index }) => {
     </div>
     <div className={'CardBar'}>
       <Checkbox isChecked={data.selected} onClick={onSelectCard}>#{index + 1}</Checkbox>
-      <NumberInput size='xs' maxW={16} value={data.repeat} min={1}
-                   onClick={(e) => e.stopPropagation()}
-                   onChange={($, value) => {
-                     dispatch(Actions.CardEditById({ id: data.id, repeat: value }));
-                   }}>
+      {Config.sides !==layoutSides.brochure && (<NumberInput size='xs' maxW={16} value={data.repeat} min={1} max={999}
+                                                             onClick={(e) => e.stopPropagation()}
+                                                             onChange={($, value) => {
+                                                               dispatch(Actions.CardEditById({ id: data.id, repeat: isNaN(value) ? 1 : value }));
+                                                             }}>
         <NumberInputField />
         <NumberInputStepper>
           <NumberIncrementStepper />
           <NumberDecrementStepper />
         </NumberInputStepper>
-      </NumberInput>
+      </NumberInput>)}
     </div>
     <div>
       <Button width='100%' size='sm' onClick={() => {

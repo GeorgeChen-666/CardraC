@@ -3,7 +3,10 @@ const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 
 module.exports = {
   packagerConfig: {
-    //asar: true,
+    icon: "icon",
+    asar: {
+      unpack: "**/node_modules/{sharp,@img}/**/*"
+    }
   },
   rebuildConfig: {},
   makers: [
@@ -25,14 +28,14 @@ module.exports = {
     },
   ],
   plugins: [
-    // {
-    //   name: '@electron-forge/plugin-auto-unpack-natives',
-    //   config: {},
-    // },
+    {
+      name: '@electron-forge/plugin-auto-unpack-natives',
+      config: {},
+    },
     {
       name: '@electron-forge/plugin-webpack',
       config: {
-        devContentSecurityPolicy: 'default-src \'self\' \'unsafe-inline\' data:; img-src \'self\' file://* data:; script-src \'self\' \'unsafe-eval\' \'unsafe-inline\' data:',
+        devContentSecurityPolicy: 'default-src \'self\' \'unsafe-inline\' data:; img-src \'self\' file://* data: blob:; script-src \'self\' \'unsafe-eval\' \'unsafe-inline\' data:',
         mainConfig: './webpack.main.config.js',
         renderer: {
           config: './webpack.renderer.config.js',
@@ -49,16 +52,23 @@ module.exports = {
         },
       },
     },
+    {
+      name: "@timfish/forge-externals-plugin",
+      config: {
+        "externals": ["sharp"],
+        "includeDeps": true
+      }
+    },
     // Fuses are used to enable/disable various Electron functionality
     // at package time, before code signing the application
-    // new FusesPlugin({
-    //   version: FuseVersion.V1,
-    //   [FuseV1Options.RunAsNode]: false,
-    //   [FuseV1Options.EnableCookieEncryption]: true,
-    //   [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
-    //   [FuseV1Options.EnableNodeCliInspectArguments]: false,
-    //   [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
-    //   [FuseV1Options.OnlyLoadAppFromAsar]: true,
-    // }),
+    new FusesPlugin({
+      version: FuseVersion.V1,
+      [FuseV1Options.RunAsNode]: false,
+      [FuseV1Options.EnableCookieEncryption]: true,
+      [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
+      [FuseV1Options.EnableNodeCliInspectArguments]: false,
+      [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
+      [FuseV1Options.OnlyLoadAppFromAsar]: true,
+    }),
   ],
 };

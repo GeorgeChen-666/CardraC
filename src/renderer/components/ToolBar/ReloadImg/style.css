@@ -1,0 +1,26 @@
+.SpreadsheetGrid__cell_active, .SpreadsheetGrid__cell_focused::after {
+    box-shadow: none;
+}
+
+.SpreadsheetGrid__headCell {
+    background-color: #666;
+}
+.SpreadsheetGrid__row {
+    display: flex;
+}
+.SpreadsheetGrid__headCell, .SpreadsheetGrid__cell {
+    flex-grow: 1;
+    word-break: break-all;
+    white-space: normal;
+    cursor: initial;
+}
+.SpreadsheetGrid__headCell[data-index="2"], .SpreadsheetGrid__cell.opCol {
+    width: 90px!important;
+    flex-grow: 0;
+}
+
+.ProgressDiv {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}

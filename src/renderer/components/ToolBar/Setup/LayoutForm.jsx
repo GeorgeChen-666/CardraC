@@ -8,8 +8,11 @@ import './styles.css';
 import _ from 'lodash';
 import { Actions } from '../../../store';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
+import { flipWay, layoutSides } from '../../../../public/constants';
 
 export const LayoutForm = () => {
+  const { t } = useTranslation();
   const Config = useSelector((state) => (
     _.pick(state.pnp.Config, [
       'pageSize',
@@ -25,7 +28,7 @@ export const LayoutForm = () => {
   const dispatch = useDispatch();
 
   return (<div className={'FormPanel'}>
-    <Control label={'Size'}>
+    <Control label={t('configDialog.size')}>
       <Select value={Config.pageSize} width={'120px'} mr={3} onChange={(event) => {
         const pageSize = event.target.value;
         if (pageSize) {
@@ -33,7 +36,7 @@ export const LayoutForm = () => {
           dispatch(Actions.ConfigEdit({ pageSize, pageWidth: parseInt(width), pageHeight: parseInt(height) }));
         }
       }}>
-        <option value={''}>Custom</option>
+        <option value={''}>{t('configDialog.custom')}</option>
         <option value={'A5:148,210'}>A5</option>
         <option value={'A4:210,297'}>A4</option>
         <option value={'A3:297,420'}>A3</option>
@@ -42,50 +45,47 @@ export const LayoutForm = () => {
       </Select>
       <Checkbox value={'true'} isChecked={Config.landscape}
                 onChange={(event) => dispatch(Actions.ConfigEdit({ landscape: event.target.checked }))}
-      >Landscape</Checkbox>
+      >{t('configDialog.landscape')}</Checkbox>
     </Control>
-    <Control label={'Page Width'} attrKey={'pageWidth'} type={ControlType.NumberInput} onChange={(value) =>
+    <Control label={t('configDialog.pageWidth')} attrKey={'pageWidth'} type={ControlType.NumberInput} onChange={(value) =>
       dispatch(Actions.ConfigEdit({ pageWidth: value, pageSize: '' }))
     }>
       mm
     </Control>
-    <Control label={'Page Height'} attrKey={'pageHeight'} type={ControlType.NumberInput} onChange={(value) =>
+    <Control label={t('configDialog.pageHeight')} attrKey={'pageHeight'} type={ControlType.NumberInput} onChange={(value) =>
       dispatch(Actions.ConfigEdit({ pageHeight: value, pageSize: '' }))
     }>
       mm
     </Control>
-    <Control label={'Scale'} attrKey={'scale'} type={ControlType.NumberInput}>
-      %
-    </Control>
-    <Control label={'Offset X'} attrKey={'offsetX'} type={ControlType.NumberInput}>
+    <Control label={t('configDialog.offsetX')} attrKey={'offsetX'} type={ControlType.NumberInput} min={-9999}>
       mm
     </Control>
-    <Control label={'Offset Y'} attrKey={'offsetY'} type={ControlType.NumberInput}>
+    <Control label={t('configDialog.offsetY')} attrKey={'offsetY'} type={ControlType.NumberInput} min={-9999}>
       mm
     </Control>
-    <Control label={'Side'}>
+    <Control label={t('configDialog.side')}>
       <RadioGroup value={Config.sides} onChange={(v) => dispatch(Actions.ConfigEdit({ sides: v }))}>
         <Stack direction='row'>
-          <Radio value='one side'>One side</Radio>
-          <Radio value='double sides'>Double sides</Radio>
+          <Radio value={layoutSides.oneSide}>{t('configDialog.oneSide')}</Radio>
+          <Radio value={layoutSides.doubleSides}>{t('configDialog.doubleSides')}</Radio>
+          <Radio value={layoutSides.brochure}>{t('configDialog.brochure')}</Radio>
         </Stack>
       </RadioGroup>
     </Control>
-    {Config.sides === 'double sides' && (<Control label={'Flip'}>
+    {Config.sides !== layoutSides.oneSide && (<Control label={t('configDialog.flip')}>
       {!Config.autoConfigFlip && <Select value={Config.flip} width={'230px'} onChange={(event) => {
         const flip = event.target.value || '';
         dispatch(Actions.ConfigEdit({ flip, autoConfigFlip: (flip === '') }));
       }}>
-        <option value={''}>Auto</option>
-        <option value={'none'}>None</option>
-        <option value={'long-edge binding'}>Long-edge binding</option>
-        <option value={'short-edge binding'}>Short-edge binding</option>
+        <option value={''}>{t('configDialog.auto')}</option>
+        <option value={flipWay.longEdgeBinding}>{t('configDialog.longEdgeBinding')}</option>
+        <option value={flipWay.shortEdgeBinding}>{t('configDialog.shortEdgeBinding')}</option>
       </Select>}
       {Config.autoConfigFlip && (<Stack direction='row' alignItems={'center'}>
-        <Input width={'230px'} isDisabled value={Config.landscape ? 'Long-edge binding' : 'Short-edge binding'} />
+        <Input width={'230px'} isDisabled value={Config.landscape ? t('configDialog.longEdgeBinding') : t('configDialog.shortEdgeBinding')} />
         <Link color={'blue'} onClick={() => {
-          dispatch(Actions.ConfigEdit({ flip: Config.landscape ? 'long-edge binding' : 'short-edge binding', autoConfigFlip: false }));
-        }}>edit</Link>
+          dispatch(Actions.ConfigEdit({ flip: Config.landscape ? flipWay.longEdgeBinding : flipWay.shortEdgeBinding, autoConfigFlip: false }));
+        }}>{t('configDialog.edit')}</Link>
       </Stack>)}
     </Control>)}
   </div>);

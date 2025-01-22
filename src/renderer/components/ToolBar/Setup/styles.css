@@ -4,11 +4,16 @@
     width: 120px;
     margin-bottom: 0!important;
 }
+.FormControl > .FormControl > .FormLabel {
+    width: auto;
+    margin-left: 10px;
+}
 .FormControl {
     display: flex;
     flex-direction: row;
     align-items: center;
     height: 52px;
+    width: auto!important;
 }
 
 .FormPanel {
@@ -29,4 +34,37 @@
 
 .ConfigOverviewPage {
     background-color: #fff;
+    align-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    overflow: hidden;
+}
+
+.ConfigOverviewPage table {
+    text-wrap: nowrap;
+}
+.ConfigOverviewPage table.brochureTable {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+}
+.ConfigOverviewPage table.brochureTable tr {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+}
+.ConfigOverviewPage tr {
+    font-size: 0;
+}
+.ConfigOverviewPage td{
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    background-color: #5d8bb3;
+    margin: 0.5px;
 }

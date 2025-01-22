@@ -2,20 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import {
   ChakraProvider,
-  Box,
-  GridItem,
-  Grid,
-  theme,
+  theme, Flex,
 } from '@chakra-ui/react';
 import { ToolBar } from './components/ToolBar/ToolBar';
 import { CardEditorList } from './components/Card/CardEditorList';
 import { Footer } from './components/Footer';
 import { i18nInstance } from './i18n';
-import { getResourcesPath } from './functions';
 import _ from 'lodash';
+import { LoadingModal } from './components/LoadingModal';
+import { Notification } from './components/Notification';
 
 function App() {
-  const [isI18nReady, setI18nReady] = useState(false);
+
+  const [isI18nReady, setIsI18nReady] = useState(false);
   const Global = useSelector((state) => (
     _.pick(state.pnp.Global, [
       'currentLang',
@@ -32,35 +31,19 @@ function App() {
           [lang]: { translation: Global.locales[lang] }
         })).reduce((l1, l2) => Object.assign(l1, l2), {}),
     });
-    setI18nReady(true);
+    setIsI18nReady(true);
   }, []);
 
   return (
     <>
       {isI18nReady && (<ChakraProvider theme={theme}>
-        <Box>
-          <Grid
-            templateAreas={`"header"
-                    "main"
-                    "footer"`}
-            gridTemplateRows={'50px 1fr 30px'}
-            height='100vh'
-            gap='1'
-            color='blackAlpha.700'
-            fontWeight='bold'
-            overflow={'hidden'}
-          >
-            <GridItem pl='2' area={'header'}>
-              <ToolBar />
-            </GridItem>
-            <GridItem pl='2' area={'main'} overflow={'auto'}>
-              <CardEditorList />
-            </GridItem>
-            <GridItem pl='2' area={'footer'}>
-              <Footer />
-            </GridItem>
-          </Grid>
-        </Box>
+        <LoadingModal />
+        <Notification />
+        <Flex direction={"column"} height={'100vh'} overflow={'hidden'}>
+          <ToolBar />
+          <CardEditorList />
+          <Footer />
+        </Flex>
       </ChakraProvider>)}
     </>
   );

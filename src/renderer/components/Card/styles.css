@@ -1,6 +1,7 @@
 .Card {
     width: 220px;
     user-select: none;
+    margin: 6px;
 }
 .Card:hover {
     background-color: var(--chakra-colors-gray-100);
@@ -13,6 +14,10 @@
 }
 .CardMain {
     padding: 5px;
+}
+.CardListContainer {
+    flex-grow: 1;
+    overflow-y: auto;
 }
 .CardList {
     display: flex;

@@ -1,5 +1,16 @@
-const { app, BrowserWindow } = require('electron');
-const { registerRendererActionHandlers, isDev } = require('./functions');
+import electron, { app, BrowserWindow, shell } from 'electron';
+import { registerRendererActionHandlers } from './ele_action';
+
+if (typeof electron === 'string') {
+  throw new TypeError('Not running in an Electron environment!');
+}
+
+const {env} = process; // eslint-disable-line n/prefer-global/process
+const isEnvSet = 'ELECTRON_IS_DEV' in env;
+const getFromEnv = Number.parseInt(env.ELECTRON_IS_DEV, 10) === 1;
+export const isDev = isEnvSet ? getFromEnv : !electron?.app?.isPackaged;
+
+
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -9,6 +20,7 @@ if (require('electron-squirrel-startup')) {
 const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
+    icon: 'icon',
     width: 1280,
     height: 800,
     webPreferences: {
@@ -25,18 +37,12 @@ const createWindow = () => {
     // Open the DevTools.
     mainWindow.webContents.openDevTools();
   } else {
+    //mainWindow.webContents.openDevTools();
     mainWindow.menuBarVisible = false;
     mainWindow.webContents.on('context-menu', (e, params) => {
       e.preventDefault(); // 阻止默认的右键菜单
-      // // 你可以在这里定义自己的菜单项
-      // const menu = Menu.buildFromTemplate([
-      //   { label: '自定义项' }
-      // ]);
-      // menu.popup({ window: mainWindow });
     });
   }
-
-
 
   registerRendererActionHandlers(mainWindow);
 
@@ -54,6 +60,13 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
     }
+  });
+});
+
+app.on('web-contents-created', (event, webContents) => {
+  webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: 'deny' };
   });
 });
 

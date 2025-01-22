@@ -1,6 +1,10 @@
 import React, { forwardRef,  useImperativeHandle } from 'react';
 import {
-  Tabs, TabList, TabPanels, Tab, TabPanel,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
   Modal,
   Button,
   ModalOverlay,
@@ -15,26 +19,35 @@ import { LayoutForm } from './LayoutForm';
 import { CardForm } from './CardForm';
 import { MarkForm } from './MarkForm';
 import { ConfigOverview } from './ConfigOverview';
+import { useTranslation } from 'react-i18next';
+import { TemplateMenu } from './TemplateMenu';
+
 
 export const SetupDialog = forwardRef(({}, ref) => {
+  const { t } = useTranslation();
   const { isOpen, onOpen, onClose } = useDisclosure();
   useImperativeHandle(ref, () => ({
     openDialog: onOpen,
   }));
 
+
+
   return (<div>
-    <Modal isOpen={isOpen} onClose={onClose} size={'5xl'} isCentered>
+    <Modal closeOnOverlayClick={false} isOpen={isOpen} onClose={onClose} size={'5xl'} isCentered>
       <ModalOverlay />
-      <ModalContent>
-        <ModalHeader padding={4}>Setup</ModalHeader>
+      <ModalContent minWidth={'870px'}>
+        <ModalHeader padding={4}>
+          {t('configDialog.setup')}:
+          <TemplateMenu />
+        </ModalHeader>
         <ModalCloseButton />
         <ModalBody>
-          {/* <ConfigOverview /> */}
+           <ConfigOverview />
           <Tabs orientation={'vertical'} height={400}>
             <TabList>
-              <Tab alignSelf={'end'}>Layout</Tab>
-              <Tab alignSelf={'end'}>Card</Tab>
-              <Tab alignSelf={'end'}>Mark</Tab>
+              <Tab alignSelf={'end'}>{t('configDialog.layout')}</Tab>
+              <Tab alignSelf={'end'}>{t('configDialog.card')}</Tab>
+              <Tab alignSelf={'end'}>{t('configDialog.mark')}</Tab>
             </TabList>
 
             <TabPanels>
@@ -53,7 +66,7 @@ export const SetupDialog = forwardRef(({}, ref) => {
         </ModalBody>
 
         <ModalFooter>
-          <Button variant='ghost' onClick={onClose}>Close</Button>
+          <Button variant='ghost' onClick={onClose}>{t('configDialog.close')}</Button>
         </ModalFooter>
       </ModalContent>
     </Modal>

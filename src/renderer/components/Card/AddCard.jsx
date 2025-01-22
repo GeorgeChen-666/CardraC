@@ -1,45 +1,32 @@
-import React, { useRef, useContext } from 'react';
-import { IconButton } from '@chakra-ui/react';
+import React from 'react';
+import { Button, Card, IconButton } from '@chakra-ui/react';
 import { IoIosAdd } from 'react-icons/io';
-import { StoreContext, Actions } from '../../store';
+import { Actions, loading } from '../../store';
 import './styles.css';
 import { openMultiImage } from '../../functions';
 import { useDispatch } from 'react-redux';
 
 export const AddCard = () => {
   const dispatch = useDispatch();
-  const inputRef = useRef();
-  return (<div className={'Card'}>
+  return (<Card className={'Card'} size={'sm'} padding={2}>
     <IconButton
       fontSize={100}
-      height={286}
+      height={238}
       width={'100%'}
       icon={<IoIosAdd />}
       variant='outline'
-      onClick={async () => {
-        if (process?.versions?.electron) {
-          const filePaths = await openMultiImage();
-          dispatch(Actions.CardAddByFaces([...filePaths]));
-          //dispatch({ type: Actions.AddCardByFace, payload: [...filePaths] });
-        } else {
-          inputRef.current?.click();
-        }
-      }}
+      border={'none'}
+      onClick={() => loading(async () => {
+        const imageData = await openMultiImage('CardAddByFaces');
+        dispatch(Actions.CardAddByFaces([...imageData]));
+      })}
     />
-    <input
-      ref={inputRef}
-      style={{ position: 'fixed', top: '-900px' }}
-      type='file'
-      multiple={true}
-      accept='image/jpeg,image/png'
-      onChange={() => {
-        console.log(inputRef.current?.files);
-        // dispatch({
-        //   type: Actions.AddCardByFace,
-        //   payload: [...inputRef.current?.files].map(f => URL.createObjectURL(f)),
-        // });
-        inputRef.current.value = '';
-      }}
-    />
-  </div>);
+    <div>
+      <Button width='100%' size='sm' onClick={() => { //
+        dispatch(Actions.CardAddByFaces([{ path:'_emptyImg' }]));
+      }}>
+        Add Empty
+      </Button>
+    </div>
+  </Card>);
 };
