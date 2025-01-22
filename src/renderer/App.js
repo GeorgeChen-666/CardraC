@@ -2,10 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import {
   ChakraProvider,
-  Box,
-  GridItem,
-  Grid,
-  theme,
+  theme, Flex,
 } from '@chakra-ui/react';
 import { ToolBar } from './components/ToolBar/ToolBar';
 import { CardEditorList } from './components/Card/CardEditorList';
@@ -42,29 +39,11 @@ function App() {
       {isI18nReady && (<ChakraProvider theme={theme}>
         <LoadingModal />
         <Notification />
-        <Box>
-          <Grid
-            templateAreas={`"header"
-                    "main"
-                    "footer"`}
-            gridTemplateRows={'50px 1fr 30px'}
-            height='100vh'
-            gap='1'
-            color='blackAlpha.700'
-            fontWeight='bold'
-            overflow={'hidden'}
-          >
-            <GridItem pl='2' area={'header'}>
-              <ToolBar />
-            </GridItem>
-            <GridItem pl='2' area={'main'} overflow={'auto'}>
-              <CardEditorList />
-            </GridItem>
-            <GridItem pl='2' area={'footer'}>
-              <Footer />
-            </GridItem>
-          </Grid>
-        </Box>
+        <Flex direction={"column"} height={'100vh'} overflow={'hidden'}>
+          <ToolBar />
+          <CardEditorList />
+          <Footer />
+        </Flex>
       </ChakraProvider>)}
     </>
   );

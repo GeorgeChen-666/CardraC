@@ -1,3 +1,10 @@
-.ToolBar>button{
+.ToolBar {
+    display: flex;
+    justify-content: space-between;
+}
+.ToolBar>.LeftDiv>button {
     margin: 5px;
+}
+.ToolBar>.RightDiv {
+    padding-right: 10px;
 }

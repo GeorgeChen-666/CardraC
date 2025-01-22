@@ -5,6 +5,17 @@ import { ipcMain } from 'electron';
 const { app, BrowserWindow } = require('electron');
 const { registerRendererActionHandlers, isDev } = require('./ActionHandlers')
 
+const fs = require('fs');
+const path = require('path');
+
+function getAppVersion() {
+  const workingDirectory = process.cwd();
+  const packageJsonPath = path.join(workingDirectory, 'package.json');
+  const packageJson = fs.readFileSync(packageJsonPath, 'utf-8');
+  const { version } = JSON.parse(packageJson);
+  return version;
+}
+
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
   app.quit();
@@ -74,6 +85,10 @@ const createWindow = () => {
   ipcMain.on('get-template', async (event, args) => {
     const lastStore = templateStore.get();
     mainWindow.webContents.send(args.returnChannel, (lastStore.templates || []));
+  });
+
+  ipcMain.on('version', async (event, args) => {
+    mainWindow.webContents.send(args.returnChannel, getAppVersion());
   });
 
   const filePath = process.argv.find(arg => arg.endsWith('.cpnp'))
