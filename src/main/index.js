@@ -1,20 +1,16 @@
-import { readFileToData } from './functions';
-import Store from 'electron-store';
-import { ipcMain } from 'electron';
+import electron, { app, BrowserWindow, shell } from 'electron';
+import { registerRendererActionHandlers } from './ele_action';
 
-const { app, BrowserWindow } = require('electron');
-const { registerRendererActionHandlers, isDev } = require('./ActionHandlers')
-
-const fs = require('fs');
-const path = require('path');
-
-function getAppVersion() {
-  const workingDirectory = process.cwd();
-  const packageJsonPath = path.join(workingDirectory, 'package.json');
-  const packageJson = fs.readFileSync(packageJsonPath, 'utf-8');
-  const { version } = JSON.parse(packageJson);
-  return version;
+if (typeof electron === 'string') {
+  throw new TypeError('Not running in an Electron environment!');
 }
+
+const {env} = process; // eslint-disable-line n/prefer-global/process
+const isEnvSet = 'ELECTRON_IS_DEV' in env;
+const getFromEnv = Number.parseInt(env.ELECTRON_IS_DEV, 10) === 1;
+export const isDev = isEnvSet ? getFromEnv : !electron?.app?.isPackaged;
+
+
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -34,7 +30,6 @@ const createWindow = () => {
       webSecurity: false
     },
   });
-  const renderLog = (...args) => setTimeout(() => mainWindow.webContents.send('console', args), 2000) ;
 
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
@@ -49,57 +44,8 @@ const createWindow = () => {
     });
   }
 
-
-
   registerRendererActionHandlers(mainWindow);
-  const templateStore = new Store({name: 'templates'});
-  ipcMain.on('set-template', async (event, args) => {
-    const { Config, templateName: TemplateName } = args;
-    delete Config.globalBackground;
-    const lastStore = templateStore.get();
-    const newStore = { templates: [...(lastStore.templates || []).filter(t=> t.TemplateName !== TemplateName), {
-        id: new Date().getTime(),
-        TemplateName,
-        Config
-      }]}
-    templateStore.set(newStore);
-    mainWindow.webContents.send(args.returnChannel);
-  });
-  ipcMain.on('edit-template', async (event, args) => {
-    const { id, templateName: TemplateName } = args;
-    const lastStore = templateStore.get();
-    const editingItem = (lastStore.templates || []).find(t=> t.id === id);
-    if(editingItem) {
-      editingItem.TemplateName = TemplateName;
-      templateStore.set(lastStore);
-    }
-    mainWindow.webContents.send(args.returnChannel);
-  });
-  ipcMain.on('delete-template', async (event, args) => {
-    const { id } = args;
-    const lastStore = templateStore.get();
-    const newStore =  { templates: (lastStore.templates || []).filter(t=> t.id !== id) }
-    templateStore.set(newStore);
-    mainWindow.webContents.send(args.returnChannel);
-  });
-  ipcMain.on('get-template', async (event, args) => {
-    const lastStore = templateStore.get();
-    mainWindow.webContents.send(args.returnChannel, (lastStore.templates || []));
-  });
 
-  ipcMain.on('version', async (event, args) => {
-    mainWindow.webContents.send(args.returnChannel, getAppVersion());
-  });
-
-  const filePath = process.argv.find(arg => arg.endsWith('.cpnp'))
-  if (filePath) {
-    setTimeout(()=>{
-      readFileToData(filePath).then(toRenderData => {
-        renderLog(filePath, toRenderData);
-        mainWindow.webContents.send('open-project-file', toRenderData);
-      });
-    },100)
-  }
 };
 
 // This method will be called when Electron has finished
@@ -114,6 +60,13 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
     }
+  });
+});
+
+app.on('web-contents-created', (event, webContents) => {
+  webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: 'deny' };
   });
 });
 

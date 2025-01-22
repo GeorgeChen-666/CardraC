@@ -2,6 +2,7 @@ import './styles.css';
 import React, { useEffect, useState } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import _ from 'lodash';
+import { layoutSides } from '../../../../public/constants';
 
 
 export const ConfigOverview = () => {
@@ -16,8 +17,10 @@ export const ConfigOverview = () => {
       'marginX',
       'marginY',
       'landscape',
+      'sides',
     ])
   ), shallowEqual);
+  const isBrochure = Config.sides === layoutSides.brochure;
   const [boxCardSize, setBoxCardSize] = useState(`0,0`);
   let [boxCardWidth, boxCardHeight] = boxCardSize.split(',');
   useEffect(() => {
@@ -30,7 +33,7 @@ export const ConfigOverview = () => {
       const scaledPageHeight = Config.pageHeight * boxScale;
       const scaledPageWidth = Config.pageWidth * boxScale;
       const scaledCardHeight = Config.cardHeight * boxScale;
-      const scaledCardWidth = Config.cardWidth * boxScale;
+      const scaledCardWidth = Config.cardWidth * boxScale * (isBrochure ? 2:1);
       if (Config.landscape) {
         overviewDiv.style.gap = `1px`;
         overviewDiv.style.height = `${scaledPageWidth}px`;
@@ -46,7 +49,7 @@ export const ConfigOverview = () => {
   }, [JSON.stringify(Config)]);
   return (<div className={'ConfigOverview'}>
     <div className={'ConfigOverviewPage'}>
-      <table>
+      <table className={isBrochure?'brochureTable':''}>
         {
           [...new Array(Config.rows)].map((e,i)=>(<tr key={'tr'+i}>
             {

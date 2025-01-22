@@ -1,11 +1,8 @@
-import { getImageBorderAverageColor } from './functions';
+import { getImageBorderAverageColor } from '../../functions';
+import { layoutSides } from '../../../../public/constants';
+import { fixFloat, getLocateByCenterBase, ImageStorage } from './Utils';
 
-const { jsPDF } = require('jspdf');
 
-export const ImageStorage = {
-  '_emptyImg': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
-    '12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg=='
-};
 const imageAverageColorSet = new Map();
 const loadImageAverageColor = async () => {
   const jobs = Object.keys(ImageStorage).map(key => {
@@ -23,14 +20,8 @@ const loadImageAverageColor = async () => {
   });
   await Promise.all(jobs);
 }
-const fixFloat = num => parseFloat(num.toFixed(2));
-const getLocateByCenterBase = (x, y, doc, pageIndex = 1) => {
-  const pageHeight = doc.getPageHeight(pageIndex);
-  const pageWidth = doc.getPageWidth(pageIndex);
-  const centerX = pageWidth / 2;
-  const centerY = pageHeight / 2;
-  return [fixFloat(x + centerX), fixFloat(y + centerY)];
-};
+
+
 const getPagedImageListByCardList = (state) => {
   const { CardList, Config } = state;
   let repeatCardList = CardList.reduce((arr, cv) => arr.concat(new Array(cv.repeat).fill(cv)), []);
@@ -38,42 +29,18 @@ const getPagedImageListByCardList = (state) => {
   const pagedImageList = [];
   const sides = Config.sides;
   const size = Config.rows * Config.columns;
-  if (sides === 'brochure') {
-    const repeat = (4 - repeatCardList.length % 4) % 4;
-    repeatCardList = repeatCardList.concat(new Array(repeat));
-    const tempPairList = [];
-    for (let i = 0; i < repeatCardList.length / 2; i++) {
-      tempPairList.push([repeatCardList[i * 2], repeatCardList[i * 2 + 1]]);
-    }
-    const tempPairList2 = [];
-    for (let i = 0; i < tempPairList.length / 2; i++) {
-      tempPairList2.push(tempPairList[tempPairList.length - i - 1].reverse());
-      tempPairList2.push(tempPairList[i]);
-    }
-    for (let i = 0; i < tempPairList2.length; i += size) {
-      const result = tempPairList2.slice(i, i + size);
+
+  for (let i = 0; i < repeatCardList.length; i += size) {
+    const result = repeatCardList.slice(i, i + size);
+    pagedImageList.push({
+      imageList: result.map(c => c.face),
+      type: 'face',
+    });
+    if (sides === layoutSides.doubleSides) {
       pagedImageList.push({
-        imageList: result.map(c => c[0]?.face),
-        type: 'face',
-      });
-      pagedImageList.push({
-        imageList: result.map(c => c[1]?.face),
+        imageList: result.map(c => c.back || Config.globalBackground),
         type: 'back',
       });
-    }
-  } else {
-    for (let i = 0; i < repeatCardList.length; i += size) {
-      const result = repeatCardList.slice(i, i + size);
-      pagedImageList.push({
-        imageList: result.map(c => c.face),
-        type: 'face',
-      });
-      if (sides === 'double sides') {
-        pagedImageList.push({
-          imageList: result.map(c => c.back || Config.globalBackground),
-          type: 'back',
-        });
-      }
     }
   }
 
@@ -88,8 +55,8 @@ const drawPageElements = async (doc, pageData, state) => {
   let cardH = fixFloat(Config.cardHeight * scale);
   let marginX = fixFloat(Config.marginX * scale);
   let marginY = fixFloat(Config.marginY * scale);
-  const bleedX = fixFloat(Config.bleedX * scale);
-  const bleedY = fixFloat(Config.bleedX * scale);
+  let bleedX = fixFloat(Config.bleedX * scale);
+  let bleedY = fixFloat(Config.bleedX * scale);
   let offsetX = fixFloat(scale * Config.offsetX);
   let offsetY = fixFloat(scale * Config.offsetY);
 
@@ -101,9 +68,7 @@ const drawPageElements = async (doc, pageData, state) => {
 
   const landscape = Config.landscape;
   let flipWay = ['none', 'long-edge binding', 'short-edge binding'].indexOf(Config.flip);
-  if (Config.sides === 'brochure') {
-    flipWay = landscape ? 2 : 1;
-  }
+
   const { imageList, type } = pageData;
   if (type === 'back') {
     if (landscape && flipWay === 1 || !landscape && flipWay === 2) {
@@ -112,14 +77,14 @@ const drawPageElements = async (doc, pageData, state) => {
     if (landscape && flipWay === 2 || !landscape && flipWay === 1) {
       offsetX = offsetX * -1;
     }
-    // if (avoidDislocation) {
-    //   cardW = cardW + marginX;
-    //   cardH = cardH + marginY;
-    //   bleedX = marginX / 2;
-    //   bleedY = marginY / 2;
-    //   marginX = 0;
-    //   marginY = 0;
-    // }
+    if (avoidDislocation) {
+      bleedX = 0;
+      bleedY = 0;
+      cardW = cardW + marginX;
+      cardH = cardH + marginY;
+      marginX = 0;
+      marginY = 0;
+    }
   }
 
   const [imageW, imageH] = [cardW + bleedX * 2, cardH + bleedY * 2];
@@ -230,21 +195,9 @@ const drawPageElements = async (doc, pageData, state) => {
     }
   }
 };
-
-export const exportPdf = async (state, onProgress) => {
+export const drawPdfNormal = async (doc, state, onProgress) => {
   const { Config } = state;
-  const format = (Config.pageSize.split(':')[0]).toLowerCase();
-  const orientation = Config.landscape ? 'landscape' : 'portrait';
-  const doc = new jsPDF({ format, orientation, compress: true });
   const pagedImageList = getPagedImageListByCardList(state);
-  // const pageJobs = pagedImageList.map((pageData, index) => async () => {
-  //   index > 0 && doc.addPage();
-  //   await drawPageElements(doc, pageData, state);
-  //   onProgress(parseInt((index / pagedImageList.length) * 100));
-  // });
-  // for (const job of pageJobs) {
-  //   await job();
-  // }
   if(Config.marginFilling) {
     await loadImageAverageColor();
   }
@@ -254,5 +207,4 @@ export const exportPdf = async (state, onProgress) => {
     await drawPageElements(doc, pageData, state);
     onProgress(parseInt((index / pagedImageList.length) * 100));
   }
-  return doc.output('blob');
-};
+}

@@ -9,6 +9,7 @@ import _ from 'lodash';
 import { Actions } from '../../../store';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
+import { flipWay, layoutSides } from '../../../../public/constants';
 
 export const LayoutForm = () => {
   const { t } = useTranslation();
@@ -65,25 +66,25 @@ export const LayoutForm = () => {
     <Control label={t('configDialog.side')}>
       <RadioGroup value={Config.sides} onChange={(v) => dispatch(Actions.ConfigEdit({ sides: v }))}>
         <Stack direction='row'>
-          <Radio value='one side'>{t('configDialog.oneSide')}</Radio>
-          <Radio value='double sides'>{t('configDialog.doubleSides')}</Radio>
-          <Radio value='brochure'>{t('configDialog.brochure')}</Radio>
+          <Radio value={layoutSides.oneSide}>{t('configDialog.oneSide')}</Radio>
+          <Radio value={layoutSides.doubleSides}>{t('configDialog.doubleSides')}</Radio>
+          <Radio value={layoutSides.brochure}>{t('configDialog.brochure')}</Radio>
         </Stack>
       </RadioGroup>
     </Control>
-    {Config.sides === 'double sides' && (<Control label={t('configDialog.flip')}>
+    {Config.sides !== layoutSides.oneSide && (<Control label={t('configDialog.flip')}>
       {!Config.autoConfigFlip && <Select value={Config.flip} width={'230px'} onChange={(event) => {
         const flip = event.target.value || '';
         dispatch(Actions.ConfigEdit({ flip, autoConfigFlip: (flip === '') }));
       }}>
         <option value={''}>{t('configDialog.auto')}</option>
-        <option value={'long-edge binding'}>{t('configDialog.longEdgeBinding')}</option>
-        <option value={'short-edge binding'}>{t('configDialog.shortEdgeBinding')}</option>
+        <option value={flipWay.longEdgeBinding}>{t('configDialog.longEdgeBinding')}</option>
+        <option value={flipWay.shortEdgeBinding}>{t('configDialog.shortEdgeBinding')}</option>
       </Select>}
       {Config.autoConfigFlip && (<Stack direction='row' alignItems={'center'}>
         <Input width={'230px'} isDisabled value={Config.landscape ? t('configDialog.longEdgeBinding') : t('configDialog.shortEdgeBinding')} />
         <Link color={'blue'} onClick={() => {
-          dispatch(Actions.ConfigEdit({ flip: Config.landscape ? 'long-edge binding' : 'short-edge binding', autoConfigFlip: false }));
+          dispatch(Actions.ConfigEdit({ flip: Config.landscape ? flipWay.longEdgeBinding : flipWay.shortEdgeBinding, autoConfigFlip: false }));
         }}>{t('configDialog.edit')}</Link>
       </Stack>)}
     </Control>)}

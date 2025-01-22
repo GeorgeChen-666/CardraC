@@ -12,6 +12,7 @@ import { Actions } from '../../../store';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import _ from 'lodash';
 import { useTranslation } from 'react-i18next';
+import { layoutSides } from '../../../../public/constants';
 
 export const CardForm = () => {
   const { t } = useTranslation();
@@ -32,22 +33,19 @@ export const CardForm = () => {
       'pageSize',
       'pageWidth',
       'pageHeight',
-      'sides'
+      'sides',
+      'brochureRepeatPerPage'
     ])
   ), shallowEqual);
   const dispatch = useDispatch();
-  const isBrochure = Config.sides === 'brochure';
+  const isBrochure = Config.sides === layoutSides.brochure;
   useEffect(() => {
     if (Config.autoColumnsRows) {
       const pageWidth = Config.landscape ? Config.pageHeight : Config.pageWidth;
       const pageHeight = Config.landscape ? Config.pageWidth : Config.pageHeight;
-      const autoColumns = isBrochure ? 2 : parseInt((pageWidth * 0.95) / (Config.cardWidth + Config.marginX));
-      const autoRows = isBrochure ? 1 : parseInt((pageHeight * 0.95) / (Config.cardHeight + Config.marginY));
+      const autoColumns = parseInt((pageWidth * 0.95) / (Config.cardWidth * (isBrochure ? 2:1) + Config.marginX));
+      const autoRows = parseInt((pageHeight * 0.95) / (Config.cardHeight + Config.marginY));
       const newConfig = { columns: autoColumns, rows: autoRows };
-      if(isBrochure) {
-        newConfig.marginX = 0;
-        newConfig.marginY = 0;
-      }
       dispatch(Actions.ConfigEdit(newConfig));
     }
   }, [
@@ -85,18 +83,19 @@ export const CardForm = () => {
     <Control label={t('configDialog.cardHeight')} attrKey={'cardHeight'} type={ControlType.NumberInput}>
       mm
     </Control>
-    <Control
-      label={`${t('configDialog.marginX')} / ${t('configDialog.marginY')}`}
-      attrKey={'marginX'}
-      type={ControlType.NumberInput}
-      style={{ width: '90px' }}
-      disabled={isBrochure}
-    >
-      mm
-      <Control attrKey={'marginY'} type={ControlType.NumberInput} style={{ width: '90px', marginLeft: '41px' }} disabled={isBrochure}>
+    {!isBrochure && (
+      <Control
+        label={`${t('configDialog.marginX')} / ${t('configDialog.marginY')}`}
+        attrKey={'marginX'}
+        type={ControlType.NumberInput}
+        style={{ width: '90px' }}
+      >
         mm
+        <Control attrKey={'marginY'} type={ControlType.NumberInput} style={{ width: '90px', marginLeft: '41px' }}>
+          mm
+        </Control>
       </Control>
-    </Control>
+    )}
     <Control
       label={t('configDialog.bleed')}
       attrKey={'bleedX'}
@@ -116,26 +115,6 @@ export const CardForm = () => {
         mm
       </Control>
     </Control>
-    <Control label={t('configDialog.marginFilling')}>
-      <Checkbox value={'true'} isChecked={Config.marginFilling}
-                onChange={(event) => dispatch(Actions.ConfigEdit({ marginFilling: event.target.checked }))}
-      ></Checkbox>
-      <span style={{width: '113px'}}></span>
-      <Control
-        label={t('configDialog.scale')}
-        attrKey={'scale'}
-        type={ControlType.NumberInput}
-        style={{ width: '90px' }}
-        min={1}
-      >%</Control>
-      {/*<span style={{width: '113px'}}></span>*/}
-      {/*<Control label={t('configDialog.avoidDislocation')}>*/}
-      {/*  <Checkbox value={'true'} isChecked={Config.avoidDislocation}*/}
-      {/*            onChange={(event) => dispatch(Actions.ConfigEdit({ avoidDislocation: event.target.checked }))}*/}
-      {/*  ></Checkbox>*/}
-      {/*</Control>*/}
-    </Control>
-
     <Control label={t('configDialog.columns_rows')}>
       <HStack>
         <NumberInput isDisabled={Config.autoColumnsRows} width={'90px'}
@@ -158,10 +137,40 @@ export const CardForm = () => {
             <NumberDecrementStepper />
           </NumberInputStepper>
         </NumberInput>
-        <Checkbox isDisabled={isBrochure} value={'true'} isChecked={Config.autoColumnsRows}
+        <Checkbox value={'true'} isChecked={Config.autoColumnsRows}
                   onChange={(event) => dispatch(Actions.ConfigEdit({ autoColumnsRows: event.target.checked }))}
         >{t('configDialog.auto')}</Checkbox>
       </HStack>
     </Control>
+    <Control
+      label={t('configDialog.scale')}
+      attrKey={'scale'}
+      type={ControlType.NumberInput}
+      style={{ width: '90px' }}
+      min={1}
+    >%
+      <span style={{ width: '113px' }}></span>
+    </Control>
+    <Control label={' '}>
+      {Config.sides === layoutSides.brochure && (<>
+        <Checkbox value={'true'} isChecked={Config.brochureRepeatPerPage}
+                  onChange={(event) => dispatch(Actions.ConfigEdit({ brochureRepeatPerPage: event.target.checked }))}
+        >{t('configDialog.brochureRepeatPerPage')}</Checkbox>
+      </>)}
+      {Config.sides !== layoutSides.brochure && (<>
+        <Checkbox value={'true'} isChecked={Config.marginFilling}
+                  onChange={(event) => dispatch(Actions.ConfigEdit({ marginFilling: event.target.checked }))}
+        >{t('configDialog.marginFilling')}</Checkbox>
+        <span style={{width: '65px'}}></span>
+      </>)}
+      {Config.sides === layoutSides.doubleSides && (<>
+        <Checkbox value={'true'} isChecked={Config.avoidDislocation}
+                  onChange={(event) => dispatch(Actions.ConfigEdit({ avoidDislocation: event.target.checked }))}
+        >{t('configDialog.avoidDislocation')}</Checkbox>
+      </>)}
+
+
+    </Control>
+
   </div>);
 };

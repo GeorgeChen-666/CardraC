@@ -34,8 +34,10 @@ import { deleteTemplate, editTemplate, getTemplate, setTemplate } from '../../..
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import _ from 'lodash';
 import { Actions } from '../../../store';
+import { useTranslation } from 'react-i18next';
 
 const EditableControls = forwardRef(({id, state, defaultMenuLabel}, ref) => {
+  const { t } = useTranslation();
   const Config = useSelector((state) => (
     state.pnp.Config
   ), shallowEqual);
@@ -72,7 +74,7 @@ const EditableControls = forwardRef(({id, state, defaultMenuLabel}, ref) => {
         }} />
       </>
     ) : (
-      <Tooltip label={'保存当前配置..'}>
+      <Tooltip label={t('configDialog.saveCurrentConfig')}>
         <IconButton icon={<AiOutlineSave />} {...getEditButtonProps()} onClick={onEditButtonClick} />
       </Tooltip>
     )}
@@ -81,8 +83,9 @@ const EditableControls = forwardRef(({id, state, defaultMenuLabel}, ref) => {
 })
 
 export const TemplateMenu = () => {
+  const { t } = useTranslation();
   const dispatch = useDispatch();
-  const defaultMenuLabel = '点击菜单项加载模板'
+  const defaultMenuLabel = t('configDialog.clickMenuLoadConfig')
   const [menuLabel, setMenuLabel] = useState(defaultMenuLabel);
   const { onOpen, onClose, isOpen } = useDisclosure();
   const [menuItems,  setMenuItems] = useState([]);
@@ -113,7 +116,7 @@ export const TemplateMenu = () => {
 
         </MenuButton>
         <MenuList>
-          {menuItems.length === 0 &&(<MenuItem><Text fontSize='sm' marginRight={'10px'}>无数据</Text></MenuItem>)}
+          {menuItems.length === 0 &&(<MenuItem><Text fontSize='sm' marginRight={'10px'}>{t('util.noData')}</Text></MenuItem>)}
           {menuItems.map(item => (<MenuItem as={Flex} justifyContent={'space-between'} onClick={() => {
             dispatch(Actions.ConfigEdit(item.Config));
           }}>
@@ -121,7 +124,7 @@ export const TemplateMenu = () => {
             <div>
               <IconButton
                 isRound={true}
-                variant='solid'
+                variant='ghost'
                 size='sm'
                 onClick={(e) => {
                   setEditingId(item.id);
@@ -137,7 +140,7 @@ export const TemplateMenu = () => {
                 <PopoverTrigger>
                   <IconButton
                     isRound={true}
-                    variant='solid'
+                    variant='ghost'
                     size='sm'
                     onClick={(e) => {
                       e.stopPropagation();
@@ -145,17 +148,16 @@ export const TemplateMenu = () => {
                     icon={<AiOutlineDelete />}
                   />
                 </PopoverTrigger>
-                <PopoverContent p={3} width={'160px'}>
+                <PopoverContent p={1} width={'120px'}>
                   <FocusLock returnFocus persistentFocus={false}>
                     <PopoverArrow />
-                    <PopoverCloseButton />
                     <div style={{textAlign: 'center'}}>
-                      <Text size={'xs'}>是否删除？</Text>
-                      <Button size={'sm'} onClick={async () => {
+                      <Text fontSize={'sm'}>{t('util.confirmDelete')}</Text>
+                      <Button variant='ghost' size={'sm'} onClick={async () => {
                         await deleteTemplate({id: item.id});
                         onClose();
-                      }}>确定</Button>
-                      <Button size={'sm'} marginLeft={'10px'} onClick={onClose}>取消</Button>
+                      }}>{t('button.yes')}</Button>
+                      <Button variant='ghost' size={'sm'} marginLeft={'10px'} onClick={onClose}>{t('button.no')}</Button>
                     </div>
                   </FocusLock>
                 </PopoverContent>

@@ -66,7 +66,7 @@ export const SetupDialog = forwardRef(({}, ref) => {
         </ModalBody>
 
         <ModalFooter>
-          <Button variant='ghost' onClick={onClose}>Close</Button>
+          <Button variant='ghost' onClick={onClose}>{t('configDialog.close')}</Button>
         </ModalFooter>
       </ModalContent>
     </Modal>

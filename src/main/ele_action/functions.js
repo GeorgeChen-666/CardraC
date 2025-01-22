@@ -1,6 +1,9 @@
 import sharp from 'sharp';
 
 const fs = require('fs');
+
+export const waitTime = async timeout => new Promise(resolve => setTimeout(resolve, timeout))
+
 export const getImageBorderAverageColor = async (base64String, borderWidth= 10) => {
   const buffer = Buffer.from(base64String.split(',')[1], 'base64');
   const image = sharp(buffer);

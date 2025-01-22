@@ -10,6 +10,8 @@ import {
   onOpenProjectFile,
 } from './functions';
 import { i18nInstance } from './i18n';
+import { flipWay, layoutSides } from '../public/constants';
+import { drawPdfBrochure } from '../main/ele_action/handlers/pdf/Brochure';
 
 export const initialState = Object.freeze({
   Global: {
@@ -32,9 +34,9 @@ export const initialState = Object.freeze({
     offsetX: 0,
     offsetY: 0,
     landscape: true,
-    sides: 'double sides',
+    sides: layoutSides.doubleSides,
     autoConfigFlip: true,
-    flip: 'long-edge binding',
+    flip: flipWay.longEdgeBinding,
     cardWidth: 63,
     cardHeight: 88,
     marginX: 3,
@@ -50,7 +52,8 @@ export const initialState = Object.freeze({
     cutlineColor: '#000000',
     globalBackground: { path:'_emptyImg' },
     marginFilling: false,
-    avoidDislocation: false
+    avoidDislocation: false,
+    brochureRepeatPerPage: false,
   },
   CardList: [],
 });

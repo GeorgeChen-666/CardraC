@@ -1,4 +1,5 @@
 import { ipcRenderer } from 'electron';
+import { eleActions } from '../public/constants';
 
 export const emptyImg = {
   path: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
@@ -17,28 +18,6 @@ export const getResourcesPath = (path) => (isDev ? '' : '..') + path;
 export const isObject = data => typeof data === 'object' && data?.constructor === Object;
 
 export const getImageSrc = imageData => OverviewStorage[imageData?.path?.replaceAll('\\', '')] || emptyImg.path;
-
-export const base64ImageToBlob = (imageData) => new Promise((resolve) => {
-  const base64Data = imageData.data.split(';base64,')[1] || imageData.data;
-  const returnKey = `base64-to-buffer-return-${imageData.path.replaceAll('\\', '')}`;
-  ipcRenderer.send('base64-to-buffer', {
-    base64Data,
-    returnChannel: returnKey,
-  });
-  const onEvent = (event, returnValue) => {
-    ipcRenderer.off(returnKey, onEvent);
-    const contentType = 'image/' + imageData.ext;
-    const raw = returnValue;
-    const rawLength = raw.length;
-    const uInt8Array = new Uint8Array(rawLength);
-    for (let i = 0; i < rawLength; ++i) {
-      uInt8Array[i] = raw.charCodeAt(i);
-    }
-    resolve(new Blob([uInt8Array], { type: contentType }));
-  };
-  ipcRenderer.on(returnKey, onEvent);
-});
-
 
 export const fillByObjectValue = (source, value) => {
   if (isObject(source) && isObject(value)) {
@@ -79,10 +58,10 @@ export const onOpenProjectFile = (dispatch, Actions, cb) => {
   });
 };
 
-export const reloadLocalImage = ({ state }) => callMain('reload-local-image', { state: mergeState(state) });
+export const reloadLocalImage = (args) => callMain('reload-local-image', {...args, state: mergeState(args.state)});
 
-export const openImage = (key) => callMain('open-image', {
-  returnChannel: 'open-image-return' + key,
+export const openImage = (key) => callMain(eleActions.openImage, {
+  returnChannel: `${eleActions.openImage}-return-${key}`,
 }, async imageDatas => {
   if (imageDatas.length === 0) return;
   const imageData = imageDatas[0];
@@ -94,9 +73,9 @@ export const openImage = (key) => callMain('open-image', {
   return imageData;
 });
 
-export const openMultiImage = (key) => callMain('open-image', {
+export const openMultiImage = (key) => callMain(eleActions.openImage, {
   properties: ['multiSelections'],
-  returnChannel: 'open-multi-image-return' + key,
+  returnChannel: `${eleActions.openImage}-return-Multi-${key}`,
 }, async imageDatas => {
   const newImageDatas = [...imageDatas];
   for (const imageData of newImageDatas) {
@@ -108,45 +87,49 @@ export const openMultiImage = (key) => callMain('open-image', {
   }
   return newImageDatas;
 });
+export const getImagePath = () => callMain(eleActions.getImagePath);
+export const checkImage = ({ pathList }) => callMain(eleActions.checkImage, { pathList });
 
-export const exportPdf = ({ state, onProgress }) => {
-  const key = 'export-pdf';
-  if (onProgress) {
-    const onMainProgress = ($, value) => {
-      onProgress(value);
-      if (value >= 100) {
-        ipcRenderer.off(`${key}-progress`, onMainProgress);
-      }
-    };
-    ipcRenderer.on(`${key}-progress`, onMainProgress);
-  }
-  return callMain(key, { state: mergeState(state) });
-};
+export const exportPdf = ({ state, onProgress }) => callMain('export-pdf', { state, onProgress });
 
-export const saveProject = ({ state }) => callMain('save-project', { state: mergeState(state) });
+export const saveProject = ({ state }) => callMain(eleActions.saveProject, { state: mergeState(state) });
 
-export const openProject = () => callMain('open-project', {
+export const openProject = () => callMain(eleActions.openProject, {
     properties: [],
-  },
-  data => data);
+  });
 
-export const loadConfig = () => callMain('load-config');
+export const loadConfig = () => callMain(eleActions.loadConfig);
 
-export const saveConfig = ({ state }) => callMain('save-config', { state: mergeState(state) });
+export const saveConfig = ({ state }) => callMain(eleActions.saveConfig, { state: mergeState(state) });
 
 export const setTemplate = (args) => callMain('set-template', { ...args });
 export const editTemplate = (args) => callMain('edit-template', { ...args });
 export const getTemplate = (args) => callMain('get-template', { ...args });
 export const deleteTemplate = (args) => callMain('delete-template', { ...args });
+export const version = () => callMain('version');
 
-const callMain = (key, params, transform = d => d) => new Promise((resolve) => {
-  const returnKey = params?.returnChannel || `${key}-done`;
+const callMain = (key, params = {}, transform = d => d) => new Promise((resolve) => {
+  const { returnChannel, onProgress, progressChannel, ...restParams } = params;
+  const returnKey = returnChannel || `${key}-done`;
+  const progressKey = progressChannel || `${key}-progress`;
   ipcRenderer.send(key, {
     returnChannel: returnKey,
-    ...params,
+    progressChannel: progressKey,
+    ...restParams,
   });
 
+  const onMainProgress = ($, value) => {
+    onProgress && onProgress(value);
+    if (value >= 100) {
+      ipcRenderer.off(progressKey, onMainProgress);
+    }
+  };
+  if (onProgress) {
+    ipcRenderer.on(progressKey, onMainProgress);
+  }
+
   const onDone = (event, data) => {
+    ipcRenderer.off(progressKey, onMainProgress);
     ipcRenderer.off(returnKey, onDone);
     const newData = transform(data);
     if (isPromise(newData)) {

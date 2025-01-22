@@ -24,6 +24,7 @@ import _ from 'lodash';
 import { useDrag, useDrop } from 'react-dnd';
 import { useTranslation } from 'react-i18next';
 import { getImageSrc, openImage } from '../../functions';
+import { layoutSides } from '../../../public/constants';
 
 export default memo(({ data, index }) => {
   const dispatch = useDispatch();
@@ -67,9 +68,10 @@ export default memo(({ data, index }) => {
     getImageSrc(data?.back),
   ];
   const onSelectCard = useCallback((event) => {
+    if(event.target.nodeName === 'SPAN') return;
     if (event.shiftKey) {
       dispatch(Actions.CardShiftSelect(data.id));
-    } else if(event.ctrlKey) {
+    } else if(event.ctrlKey || event.target.nodeName === 'INPUT') {
       dispatch(Actions.CardCtrlSelect(data.id));
     } else {
       dispatch(Actions.CardSelect(data.id));
@@ -83,7 +85,7 @@ export default memo(({ data, index }) => {
       <Menu>
         <IconButton
           size={'xs'}
-          isDisabled={Config.sides === 1}
+          isDisabled={Config.sides !== layoutSides.doubleSides}
           icon={<IoIosSwap />}
           variant='outline'
           onClick={(e) => {
@@ -121,19 +123,21 @@ export default memo(({ data, index }) => {
           }}>
             {t('cardEditor.clearFace')}
           </MenuItem>
-          <MenuItem onClick={async (e) => {
-            e.stopPropagation();
-            const filePath = await openImage('setCardBack');
-            filePath && dispatch(Actions.CardEditById({ id: data.id, back: filePath }));
-          }}>
-            {t('cardEditor.back')}
-          </MenuItem>
-          <MenuItem onClick={async (e) => {
-            e.stopPropagation();
-            dispatch(Actions.CardEditById({ id: data.id, back: { path:'_emptyImg' } }));
-          }}>
-            {t('cardEditor.clearBack')}
-          </MenuItem>
+          {Config.sides === layoutSides.doubleSides && (<>
+            <MenuItem onClick={async (e) => {
+              e.stopPropagation();
+              const filePath = await openImage('setCardBack');
+              filePath && dispatch(Actions.CardEditById({ id: data.id, back: filePath }));
+            }}>
+              {t('cardEditor.back')}
+            </MenuItem>
+            <MenuItem onClick={async (e) => {
+              e.stopPropagation();
+              dispatch(Actions.CardEditById({ id: data.id, back: { path:'_emptyImg' } }));
+            }}>
+              {t('cardEditor.clearBack')}
+            </MenuItem>
+          </>)}
         </MenuList>
       </Menu>
     </div>
@@ -154,17 +158,17 @@ export default memo(({ data, index }) => {
     </div>
     <div className={'CardBar'}>
       <Checkbox isChecked={data.selected} onClick={onSelectCard}>#{index + 1}</Checkbox>
-      <NumberInput size='xs' maxW={16} value={data.repeat} min={1} max={999}
-                   onClick={(e) => e.stopPropagation()}
-                   onChange={($, value) => {
-                     dispatch(Actions.CardEditById({ id: data.id, repeat: isNaN(value) ? 1 : value }));
-                   }}>
+      {Config.sides !==layoutSides.brochure && (<NumberInput size='xs' maxW={16} value={data.repeat} min={1} max={999}
+                                                             onClick={(e) => e.stopPropagation()}
+                                                             onChange={($, value) => {
+                                                               dispatch(Actions.CardEditById({ id: data.id, repeat: isNaN(value) ? 1 : value }));
+                                                             }}>
         <NumberInputField />
         <NumberInputStepper>
           <NumberIncrementStepper />
           <NumberDecrementStepper />
         </NumberInputStepper>
-      </NumberInput>
+      </NumberInput>)}
     </div>
     <div>
       <Button width='100%' size='sm' onClick={() => {

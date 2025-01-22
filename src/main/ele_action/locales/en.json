@@ -1,10 +1,16 @@
 {
   "util": {
+    "noData": "No Data",
     "operating": "Operating...",
-    "success": "Success!"
+    "success": "Success!",
+    "confirmDelete": "Do You Want Delete?"
   },
   "button": {
-    "OK": "OK"
+    "next": "Next",
+    "close": "Close",
+    "OK": "OK",
+    "yes": "Yes",
+    "no": "No"
   },
   "toolbar" : {
     "btnAdd" : "Create a New PNP File.",
@@ -23,7 +29,8 @@
       "menuSetCount": "Set Count",
       "menuSwap": "Swap Face/Back",
       "duplidate": "Duplidate"
-    }
+    },
+    "btnAbout": "About"
   },
   "cardEditor": {
     "lblHere": "Here...",
@@ -70,7 +77,21 @@
     "lineWeight": "Line Weight",
     "color": "Color",
     "marginFilling": "Margin Color Filling",
-    "avoidDislocation": "Avoid Dislocation"
+    "avoidDislocation": "Avoid Dislocation",
+    "reloadImageWizard": "Reload Image Wizard",
+    "reloadImageTitle1": "Check",
+    "reloadImageSubTitle1": "Image Path",
+    "reloadImageTitle2": "Fix",
+    "reloadImageSubTitle2": "New Image Path",
+    "reloadImageTitle3": "Reload",
+    "reloadImageSubTitle3": "New Image",
+    "reloadImageTableColumn1": "Invalid Image Path",
+    "reloadImageTableColumn2": "New Image Path",
+    "reloadImageTableColumn3": "Action",
+    "brochureRepeatPerPage": "Repeat Per Page",
+    "reloadImageFinish": "Reload Finish!",
+    "saveCurrentConfig": "Save Current Config",
+    "clickMenuLoadConfig": "Click Menu Item To Load Config"
   },
   "footer": {
     "files": "Files",
