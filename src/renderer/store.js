@@ -8,7 +8,6 @@ import {
   loadConfig,
   saveConfig,
   onOpenProjectFile,
-  reloadLocalImage,
 } from './functions';
 import { i18nInstance } from './i18n';
 
@@ -24,7 +23,6 @@ export const initialState = Object.freeze({
     lastSelection: null,
     isBackEditing: false,
     selections: [],
-    blobLinks: {},
   },
   Config: {
     pageSize: 'A4:210,297',

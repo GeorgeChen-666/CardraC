@@ -134,6 +134,11 @@ export const loadConfig = () => callMain('load-config');
 
 export const saveConfig = ({ state }) => callMain('save-config', { state: mergeState(state) });
 
+export const setTemplate = (args) => callMain('set-template', { ...args });
+export const editTemplate = (args) => callMain('edit-template', { ...args });
+export const getTemplate = (args) => callMain('get-template', { ...args });
+export const deleteTemplate = (args) => callMain('delete-template', { ...args });
+
 const callMain = (key, params, transform = d => d) => new Promise((resolve) => {
   const returnKey = params?.returnChannel || `${key}-done`;
   ipcRenderer.send(key, {
