@@ -103,7 +103,7 @@ const drawPageElements = async (doc, pageData, state) => {
       }
 
       const cardIndex = yy * hc + xx;
-      const image = imageList?.[cardIndex] || (type === 'back' ? Config.globalBackground : null);
+      const image = imageList?.[cardIndex] || (type === 'back' ? Config.globalBackground : {path: '_emptyImg'});
       const imageX = (cx - hc / 2) * imageW + (cx - (hc - 1) / 2) * (marginX - bleedX * 2);
       const imageY = (cy - vc / 2) * imageH + (cy - (vc - 1) / 2) * (marginY - bleedY * 2);
 

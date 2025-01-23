@@ -18,7 +18,11 @@ export const getResourcesPath = (path) => (isDev ? '' : '..') + path;
 export const isObject = data => typeof data === 'object' && data?.constructor === Object;
 
 export const getImageSrc = imageData => OverviewStorage[imageData?.path?.replaceAll('\\', '')] || emptyImg.path;
-
+const mergeState = (state) => {
+  const newState = JSON.parse(JSON.stringify(state));
+  const { OverviewStorage } = window;
+  return { ...newState, OverviewStorage };
+};
 export const fillByObjectValue = (source, value) => {
   if (isObject(source) && isObject(value)) {
     Object.keys(value).forEach(key => {

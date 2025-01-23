@@ -69,7 +69,7 @@ export default (mainWindow) => {
 
       readStream.on('end', () => {
         try {
-          const imageStorageRegexp = new RegExp(/"ImageStorage":\{".*?"\}(,)?/g);
+          const imageStorageRegexp = new RegExp(/"ImageStorage":( )?\{(".*?")?\}(,)?/g);
           let [imageStorageString= ''] = resultString.match(imageStorageRegexp) || [];
           if(imageStorageString.endsWith(',')) {
             imageStorageString = imageStorageString.substring(0, imageStorageString.length - 1);
