@@ -35,6 +35,7 @@
   "cardEditor": {
     "lblHere": "Here...",
     "btnRemove": "Remove image",
+    "addEmpty" : "Add Empty",
     "face": "Face...",
     "back": "Background...",
     "clearFace": "Clear Face",

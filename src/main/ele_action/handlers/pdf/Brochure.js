@@ -70,7 +70,6 @@ const drawPageElements = async (doc, pageData, state) => {
 
   const lineWeight = Config.lineWeight;
   const cutlineColor = Config.cutlineColor;
-  const avoidDislocation = Config.avoidDislocation;
 
   const landscape = Config.landscape;
   let flipWay = ['none', 'long-edge binding', 'short-edge binding'].indexOf(Config.flip);
@@ -128,6 +127,8 @@ const drawPageElements = async (doc, pageData, state) => {
 
       const dashMarks = new Set();
       if(cx % 2 === 1) {
+        doc.setFontSize(8);
+        doc.text(`${imageXc + offsetX}`, imageXc + offsetX, cy * maxHeightSplited);
         dashMarks.add(`${imageXc + offsetX},${cy * maxHeightSplited}-${imageXc + offsetX},${imageYc + bleedY + offsetY}`);
         dashMarks.add(`${imageXc + offsetX},${imageYc + imageH - bleedY + offsetY}-${imageXc + offsetX},${(cy + 1) * maxHeightSplited}`);
       }
@@ -220,12 +221,37 @@ const drawPageElements = async (doc, pageData, state) => {
     }
   }
 };
-
+const drawPageNumber = async (doc, state, pageIndex, totalPages) => {
+  const { Config } = state;
+  const { brochureRepeatPerPage } = Config;
+  const maxWidth = fixFloat(doc.getPageWidth(0));
+  const maxHeight = fixFloat(doc.getPageHeight(0));
+  const maxWidthSplited = maxWidth / Config.columns;
+  const maxHeightSplited = maxHeight / Config.rows;
+  doc.setFontSize(8);
+  if(brochureRepeatPerPage) {
+    doc.text(`${pageIndex}/${totalPages}`, 3, 5);
+  } else {
+    for(let x = 0;x<Config.columns;x++) {
+      for(let y = 0; y <Config.rows;y++) {
+        const pageIndexB = 1 + (pageIndex - 1) * Config.columns * Config.rows + x + y * Config.columns
+        const totalPagesB = totalPages * Config.columns * Config.rows;
+        doc.text(`${pageIndexB}/${totalPagesB}`, 3 + x * maxWidthSplited, 5 + y * maxHeightSplited);
+      }
+    }
+  }
+}
 export const drawPdfBrochure = async (doc, state, onProgress) => {
   const pagedImageList = getPagedImageListByCardList(state);
+  let currentPage = 0;
+  const totalPageCount = pagedImageList.filter(p => p.type === 'face').length;
   for (const index in pagedImageList) {
     const pageData = pagedImageList[index];
     index > 0 && doc.addPage();
+    if(pageData.type === 'face') {
+      currentPage++;
+      await drawPageNumber(doc,state,currentPage, totalPageCount);
+    }
     await drawPageElements(doc, pageData, state);
     onProgress(parseInt((index / pagedImageList.length) * 100));
   }

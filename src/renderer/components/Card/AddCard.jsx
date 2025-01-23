@@ -5,9 +5,11 @@ import { Actions, loading } from '../../store';
 import './styles.css';
 import { openMultiImage } from '../../functions';
 import { useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 
 export const AddCard = () => {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   return (<Card className={'Card'} size={'sm'} padding={2}>
     <IconButton
       fontSize={100}
@@ -25,7 +27,7 @@ export const AddCard = () => {
       <Button width='100%' size='sm' onClick={() => { //
         dispatch(Actions.CardAddByFaces([{ path:'_emptyImg' }]));
       }}>
-        Add Empty
+        {t('cardEditor.addEmpty')}
       </Button>
     </div>
   </Card>);

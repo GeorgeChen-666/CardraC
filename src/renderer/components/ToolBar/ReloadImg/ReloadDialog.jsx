@@ -180,8 +180,8 @@ export const ReloadDialog = forwardRef(({}, ref) => {
             if(stateData) {
               dispatch(Actions.StateFill(stateData));
             }
-          }}>{t('configDialog.reloadImageNextStep')}</Button>)}
-          <Button variant='ghost' onClick={onClose}>{t('configDialog.close')}</Button>
+          }}>{t('button.next')}</Button>)}
+          <Button variant='ghost' onClick={onClose}>{t('button.close')}</Button>
         </ModalFooter>
       </ModalContent>
     </Modal>

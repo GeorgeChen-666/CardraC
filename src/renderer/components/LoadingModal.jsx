@@ -1,8 +1,8 @@
 import {
-  Box,
+  Box, CircularProgress, CircularProgressLabel,
   Modal, ModalBody,
   ModalContent,
-  ModalOverlay, Spinner,
+  ModalOverlay, Spinner, Text,
 } from '@chakra-ui/react';
 import React from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
@@ -12,7 +12,9 @@ export const LoadingModal = () => {
   const Global = useSelector((state) => (
     _.pick(state.pnp.Global, [
       'isLoading',
-      'loadingText'
+      'isInProgress',
+      'progress',
+      'loadingText',
     ])
   ), shallowEqual);
   return (
@@ -20,11 +22,23 @@ export const LoadingModal = () => {
       <ModalOverlay />
       <ModalContent>
         <ModalBody>
-          <Box display={'flex'}>
-            <Spinner speed='1s' />{Global.loadingText}
+          <Box display={'flex'} alignItems={'center'}>
+            {Global.isInProgress && (
+              <CircularProgress value={Global.progress * 100}>
+                <CircularProgressLabel>{`${parseInt(Global.progress * 100)}`}%</CircularProgressLabel>
+              </CircularProgress>
+            )}
+            {!Global.isInProgress && (
+              <Spinner speed='1s' thickness='4px'
+                       emptyColor='#edebe9'
+                       color='blue.500'
+                       width={'44px'} height={'44px'}
+              />
+            )}
+            <Text fontSize={'x-large'}>{Global.loadingText}</Text>
           </Box>
         </ModalBody>
       </ModalContent>
     </Modal>
-  )
-}
+  );
+};

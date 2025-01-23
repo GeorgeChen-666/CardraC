@@ -35,6 +35,7 @@
   "cardEditor": {
     "lblHere": "至于此处...",
     "btnRemove": "移除",
+    "addEmpty" : "添加空卡",
     "face": "卡面...",
     "back": "卡背...",
     "clearFace": "清除卡面",
