@@ -1,17 +1,6 @@
-import { dialog, ipcMain } from 'electron';
+import { dialog, ipcMain, app } from 'electron';
 import { exportPdf } from './pdf/ExportPdf';
 import { saveDataToFile } from '../functions';
-
-const fs = require('fs');
-const path = require('path');
-
-function getAppVersion() {
-  const workingDirectory = process.cwd();
-  const packageJsonPath = path.join(workingDirectory, 'package.json');
-  const packageJson = fs.readFileSync(packageJsonPath, 'utf-8');
-  const { version } = JSON.parse(packageJson);
-  return version;
-}
 
 export default (mainWindow) => {
   ipcMain.on('export-pdf', async (event, args) => {
@@ -37,6 +26,6 @@ export default (mainWindow) => {
   });
 
   ipcMain.on('version', async (event, args) => {
-    mainWindow.webContents.send(args.returnChannel, getAppVersion());
+    mainWindow.webContents.send(args.returnChannel, app.getVersion());
   });
 }
