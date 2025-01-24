@@ -222,7 +222,7 @@ export const loading = async (cb,text= i18nInstance.t('util.operating')) => {
     store.dispatch(Actions.GlobalEdit({isLoading: true, loadingText: text}));
     cb && await cb();
   } finally {
-    store.dispatch(Actions.GlobalEdit({isLoading: false, loadingText: ''}));
+    store.dispatch(Actions.GlobalEdit({isLoading: false, isInProgress:false, loadingText: ''}));
   }
 }
 const config = await loadConfig();

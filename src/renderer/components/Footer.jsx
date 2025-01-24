@@ -14,6 +14,5 @@ export const Footer = () => {
   }), shallowEqual);
   return <HStack alignItems={'baseline'}>
     <span style={{whiteSpace: 'nowrap'}} width={'230px'}>{t('footer.files')} {fileLength} / {t('footer.images')} {cardLength}</span>
-    {isInProgress && (<Progress flexFlow={1} width={'100%'} margin={'0'} hasStripe value={progress} margin={'10px'} />)}
   </HStack>
 }

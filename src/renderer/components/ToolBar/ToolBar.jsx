@@ -122,13 +122,7 @@ export const ToolBar = () => {
             label={t('toolbar.btnExport')}
             icon={<MdPictureAsPdf size={'30'} />}
             onClick={() => loading(async () => {
-              dispatch(Actions.GlobalEdit({ isInProgress: true, progress: 0 }));
-              const isSuccess = await exportPdf({
-                state: store.getState().pnp, onProgress: value => {
-                  dispatch(Actions.GlobalEdit({ progress: value }));
-                },
-              });
-              dispatch(Actions.GlobalEdit({ isInProgress: false }));
+              const isSuccess = await exportPdf({ state: store.getState().pnp });
               isSuccess && messageSuccess();
             })}
           />
