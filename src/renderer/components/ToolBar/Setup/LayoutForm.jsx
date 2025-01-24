@@ -53,8 +53,8 @@ export const LayoutForm = () => {
              style={{ width: '90px' }}
              onChange={(value) =>
       dispatch(Actions.ConfigEdit({ pageWidth: value, pageSize: '' }))
-    }>
-      <Control attrKey={'pageHeight'} type={ControlType.NumberInput} style={{ width: '90px' }}
+    }>mm
+      <Control attrKey={'pageHeight'} type={ControlType.NumberInput} style={{ width: '90px', marginLeft: '41px' }}
                onChange={(value) =>
         dispatch(Actions.ConfigEdit({ pageHeight: value, pageSize: '' }))
       }>
@@ -63,7 +63,8 @@ export const LayoutForm = () => {
     </Control>
 
     <Control label={t('configDialog.offsetXY')} attrKey={'offsetX'} type={ControlType.NumberInput} min={-9999} style={{ width: '90px' }}>
-      <Control attrKey={'offsetY'} type={ControlType.NumberInput} min={-9999} style={{ width: '90px' }}>
+      mm
+      <Control attrKey={'offsetY'} type={ControlType.NumberInput} min={-9999} style={{ width: '90px', marginLeft: '41px' }}>
         mm
       </Control>
     </Control>
