@@ -59,26 +59,6 @@ export const initialState = Object.freeze({
 });
 window.OverviewStorage = {};
 
-const refreshCardStorage = (state) => {
-  const {CardList, Config} = state;
-  const { OverviewStorage } = window;
-  const usedImagePath = new Set();
-  CardList.forEach(card => {
-    const {face,back} = card;
-    const facePathKey  = face?.path.replaceAll('\\','');
-    const backPathKey  = back?.path.replaceAll('\\','');
-    usedImagePath.add(facePathKey);
-    usedImagePath.add(backPathKey);
-  });
-
-  if(Config.globalBackground?.path) {
-    const globalBackPathKey = Config.globalBackground?.path?.replaceAll('\\','');
-    usedImagePath.add(globalBackPathKey);
-  }
-
-  Object.keys(OverviewStorage).filter(key=> !usedImagePath.has(key)).forEach(key => delete OverviewStorage[key]);
-}
-
 export const pnpSlice = createSlice({
   name: 'pnp',
   initialState,
@@ -178,7 +158,6 @@ export const pnpSlice = createSlice({
       const backImageList = action.payload;
       const selection = state.CardList.filter(c => c.selected);
       selection.forEach((c, index) => (c.back = backImageList?.[index]));
-      refreshCardStorage(state);
     },
     CardEditById: (state, action) => {
       const card = state.CardList.find(c => c.id === action.payload.id);
@@ -188,7 +167,6 @@ export const pnpSlice = createSlice({
       }
       if (card) {
         fillByObjectValue(card, action.payload);
-        refreshCardStorage(state);
       }
     },
     SelectedCardsSwap: (state) => {
@@ -200,7 +178,6 @@ export const pnpSlice = createSlice({
       selection.toSorted((a, b) => {
         return state.CardList.findIndex(c => c.id === b.id) - state.CardList.findIndex(c => c.id === a.id);
       }).forEach(c => state.CardList.splice(state.CardList.findIndex(cc => cc.id === c.id), 1));
-      refreshCardStorage(state);
     },
     SelectedCardsDuplicate: (state) => {
       const selection = state.CardList.filter(c => c.selected);
@@ -218,11 +195,9 @@ export const pnpSlice = createSlice({
       selection.forEach(c => {
         fillByObjectValue(c, action.payload);
       });
-      refreshCardStorage(state);
     },
     CardRemoveByIds: (state, action) => {
       state.CardList = state.CardList.filter(c => !action.payload.includes(c.id));
-      refreshCardStorage(state);
     }
   },
 });

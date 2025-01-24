@@ -18,7 +18,11 @@ export const getResourcesPath = (path) => (isDev ? '' : '..') + path;
 export const isObject = data => typeof data === 'object' && data?.constructor === Object;
 
 export const getImageSrc = imageData => OverviewStorage[imageData?.path?.replaceAll('\\', '')] || emptyImg.path;
-
+const mergeState = (state) => {
+  const newState = JSON.parse(JSON.stringify(state));
+  const { OverviewStorage } = window;
+  return { ...newState, OverviewStorage };
+};
 export const fillByObjectValue = (source, value) => {
   if (isObject(source) && isObject(value)) {
     Object.keys(value).forEach(key => {
@@ -35,12 +39,29 @@ export const fillByObjectValue = (source, value) => {
   }
 };
 
-
-const mergeState = (state) => {
-  const newState = JSON.parse(JSON.stringify(state));
+const refreshCardStorage = (state) => {
+  const {CardList, Config} = state;
   const { OverviewStorage } = window;
-  return { ...newState, OverviewStorage };
-};
+  const newState = JSON.parse(JSON.stringify(state));
+  const newOverviewStorage = {...OverviewStorage};
+  const usedImagePath = new Set();
+  CardList.forEach(card => {
+    const {face,back} = card;
+    const facePathKey  = face?.path.replaceAll('\\','');
+    const backPathKey  = back?.path.replaceAll('\\','');
+    usedImagePath.add(facePathKey);
+    usedImagePath.add(backPathKey);
+  });
+
+  if(Config.globalBackground?.path) {
+    const globalBackPathKey = Config.globalBackground?.path?.replaceAll('\\','');
+    usedImagePath.add(globalBackPathKey);
+  }
+
+  Object.keys(OverviewStorage).filter(key=> !usedImagePath.has(key)).forEach(key => delete newOverviewStorage[key]);
+
+  return { ...newState, OverviewStorage: newOverviewStorage };
+}
 
 let triggerNotification = () => {};
 export const getNotificationTrigger = () => triggerNotification
@@ -66,10 +87,11 @@ export const openImage = (key) => callMain(eleActions.openImage, {
   if (imageDatas.length === 0) return;
   const imageData = imageDatas[0];
   imageData.ext = imageData.path.split('.').pop();
-  const imagePathKey = imageData?.path.replaceAll('\\','');
-  window.OverviewStorage[imagePathKey] = imageData.overviewData;
-  delete imageData.data;
-  delete imageData.overviewData;
+  if(imageData.overviewData) {
+    const imagePathKey = imageData?.path.replaceAll('\\','');
+    window.OverviewStorage[imagePathKey] = imageData.overviewData;
+    delete imageData.overviewData;
+  }
   return imageData;
 });
 
@@ -80,19 +102,21 @@ export const openMultiImage = (key) => callMain(eleActions.openImage, {
   const newImageDatas = [...imageDatas];
   for (const imageData of newImageDatas) {
     imageData.ext = imageData.path.split('.').pop();
-    const imagePathKey = imageData?.path.replaceAll('\\','');
-    window.OverviewStorage[imagePathKey] = imageData.overviewData;
-    delete imageData.data;
-    delete imageData.overviewData;
+    if(imageData.overviewData) {
+      const imagePathKey = imageData?.path.replaceAll('\\','');
+      window.OverviewStorage[imagePathKey] = imageData.overviewData;
+      delete imageData.overviewData;
+    }
   }
   return newImageDatas;
 });
+
 export const getImagePath = () => callMain(eleActions.getImagePath);
 export const checkImage = ({ pathList }) => callMain(eleActions.checkImage, { pathList });
 
 export const exportPdf = ({ state, onProgress }) => callMain('export-pdf', { state, onProgress });
 
-export const saveProject = ({ state }) => callMain(eleActions.saveProject, { state: mergeState(state) });
+export const saveProject = ({ state }) => callMain(eleActions.saveProject, { state: refreshCardStorage(state) });
 
 export const openProject = () => callMain(eleActions.openProject, {
     properties: [],
@@ -100,7 +124,7 @@ export const openProject = () => callMain(eleActions.openProject, {
 
 export const loadConfig = () => callMain(eleActions.loadConfig);
 
-export const saveConfig = ({ state }) => callMain(eleActions.saveConfig, { state: mergeState(state) });
+export const saveConfig = ({ state }) => callMain(eleActions.saveConfig, { state });
 
 export const setTemplate = (args) => callMain('set-template', { ...args });
 export const editTemplate = (args) => callMain('edit-template', { ...args });
@@ -112,6 +136,9 @@ const callMain = (key, params = {}, transform = d => d) => new Promise((resolve)
   const { returnChannel, onProgress, progressChannel, ...restParams } = params;
   const returnKey = returnChannel || `${key}-done`;
   const progressKey = progressChannel || `${key}-progress`;
+  if(restParams.state) {
+    restParams.state = JSON.parse(JSON.stringify(restParams.state));
+  }
   ipcRenderer.send(key, {
     returnChannel: returnKey,
     progressChannel: progressKey,

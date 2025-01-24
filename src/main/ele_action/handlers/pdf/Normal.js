@@ -103,7 +103,7 @@ const drawPageElements = async (doc, pageData, state) => {
       }
 
       const cardIndex = yy * hc + xx;
-      const image = imageList?.[cardIndex] || (type === 'back' ? Config.globalBackground : null);
+      const image = imageList?.[cardIndex] || (type === 'back' ? Config.globalBackground : {path: '_emptyImg'});
       const imageX = (cx - hc / 2) * imageW + (cx - (hc - 1) / 2) * (marginX - bleedX * 2);
       const imageY = (cy - vc / 2) * imageH + (cy - (vc - 1) / 2) * (marginY - bleedY * 2);
 
@@ -191,19 +191,32 @@ const drawPageElements = async (doc, pageData, state) => {
           }
         });
       }
-
     }
   }
 };
+const drawPageNumber = async (doc, state, pageIndex, totalPages) => {
+  if(!state.Config.showPageNumber) {
+    return;
+  }
+  doc.setFontSize(8);
+  doc.text(`${pageIndex}/${totalPages}`, 3, 5);
+}
+
 export const drawPdfNormal = async (doc, state, onProgress) => {
   const { Config } = state;
   const pagedImageList = getPagedImageListByCardList(state);
   if(Config.marginFilling) {
     await loadImageAverageColor();
   }
+  let currentPage = 0;
+  const totalPageCount = pagedImageList.filter(p => p.type === 'face').length;
   for (const index in pagedImageList) {
     const pageData = pagedImageList[index];
     index > 0 && doc.addPage();
+    if(pageData.type === 'face') {
+      currentPage++;
+      await drawPageNumber(doc,state,currentPage, totalPageCount);
+    }
     await drawPageElements(doc, pageData, state);
     onProgress(parseInt((index / pagedImageList.length) * 100));
   }

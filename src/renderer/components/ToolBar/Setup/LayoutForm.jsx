@@ -22,6 +22,7 @@ export const LayoutForm = () => {
       'sides',
       'globalBackground',
       'autoConfigFlip',
+      'showPageNumber',
       'flip'
     ])
   ), shallowEqual);
@@ -47,32 +48,37 @@ export const LayoutForm = () => {
                 onChange={(event) => dispatch(Actions.ConfigEdit({ landscape: event.target.checked }))}
       >{t('configDialog.landscape')}</Checkbox>
     </Control>
-    <Control label={t('configDialog.pageWidth')} attrKey={'pageWidth'} type={ControlType.NumberInput} onChange={(value) =>
+    <Control label={t('configDialog.pageWidthHeight')}
+             attrKey={'pageWidth'} type={ControlType.NumberInput}
+             style={{ width: '90px' }}
+             onChange={(value) =>
       dispatch(Actions.ConfigEdit({ pageWidth: value, pageSize: '' }))
     }>
-      mm
+      <Control attrKey={'pageHeight'} type={ControlType.NumberInput} style={{ width: '90px' }}
+               onChange={(value) =>
+        dispatch(Actions.ConfigEdit({ pageHeight: value, pageSize: '' }))
+      }>
+        mm
+      </Control>
     </Control>
-    <Control label={t('configDialog.pageHeight')} attrKey={'pageHeight'} type={ControlType.NumberInput} onChange={(value) =>
-      dispatch(Actions.ConfigEdit({ pageHeight: value, pageSize: '' }))
-    }>
-      mm
+
+    <Control label={t('configDialog.offsetXY')} attrKey={'offsetX'} type={ControlType.NumberInput} min={-9999} style={{ width: '90px' }}>
+      <Control attrKey={'offsetY'} type={ControlType.NumberInput} min={-9999} style={{ width: '90px' }}>
+        mm
+      </Control>
     </Control>
-    <Control label={t('configDialog.offsetX')} attrKey={'offsetX'} type={ControlType.NumberInput} min={-9999}>
-      mm
-    </Control>
-    <Control label={t('configDialog.offsetY')} attrKey={'offsetY'} type={ControlType.NumberInput} min={-9999}>
-      mm
-    </Control>
+
     <Control label={t('configDialog.side')}>
       <RadioGroup value={Config.sides} onChange={(v) => dispatch(Actions.ConfigEdit({ sides: v }))}>
-        <Stack direction='row'>
+        <Stack direction='row' wrap={'wrap'} width={'300px'}>
           <Radio value={layoutSides.oneSide}>{t('configDialog.oneSide')}</Radio>
+          {/*<Radio value={layoutSides.foldInHalf}>{t('configDialog.foldInHalf')}</Radio>*/}
           <Radio value={layoutSides.doubleSides}>{t('configDialog.doubleSides')}</Radio>
           <Radio value={layoutSides.brochure}>{t('configDialog.brochure')}</Radio>
         </Stack>
       </RadioGroup>
     </Control>
-    {Config.sides !== layoutSides.oneSide && (<Control label={t('configDialog.flip')}>
+    {![layoutSides.oneSide, layoutSides.foldInHalf].includes(Config.sides)  && (<Control label={t('configDialog.flip')}>
       {!Config.autoConfigFlip && <Select value={Config.flip} width={'230px'} onChange={(event) => {
         const flip = event.target.value || '';
         dispatch(Actions.ConfigEdit({ flip, autoConfigFlip: (flip === '') }));
@@ -88,5 +94,11 @@ export const LayoutForm = () => {
         }}>{t('configDialog.edit')}</Link>
       </Stack>)}
     </Control>)}
+
+    <Control label={t('configDialog.pageNumber')}>
+      <Checkbox isChecked={Config.showPageNumber} onChange={(e,d) => {
+        dispatch(Actions.ConfigEdit({ showPageNumber: e.target.checked }));
+      }} />
+    </Control>
   </div>);
 };

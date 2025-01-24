@@ -1,4 +1,3 @@
-import { layoutSides } from '../../../../public/constants';
 import { fixFloat, getLocateByCenterBase, ImageStorage } from './Utils';
 
 const getPagedImageListByCardList = (state) => {
@@ -70,7 +69,6 @@ const drawPageElements = async (doc, pageData, state) => {
 
   const lineWeight = Config.lineWeight;
   const cutlineColor = Config.cutlineColor;
-  const avoidDislocation = Config.avoidDislocation;
 
   const landscape = Config.landscape;
   let flipWay = ['none', 'long-edge binding', 'short-edge binding'].indexOf(Config.flip);
@@ -83,15 +81,6 @@ const drawPageElements = async (doc, pageData, state) => {
     if (landscape && flipWay === 2 || !landscape && flipWay === 1) {
       offsetX = offsetX * -1;
     }
-
-    // if (avoidDislocation) {
-    //   cardW = cardW + marginX;
-    //   cardH = cardH + marginY;
-    //   bleedX = marginX / 2;
-    //   bleedY = marginY / 2;
-    //   marginX = 0;
-    //   marginY = 0;
-    // }
   }
 
   const [imageW, imageH] = [cardW + bleedX, cardH + bleedY * 2];
@@ -110,7 +99,7 @@ const drawPageElements = async (doc, pageData, state) => {
       }
 
       const cardIndex = yy * hc + xx;
-      const image = imageList?.[cardIndex] || (type === 'back' ? Config.globalBackground : null);
+      const image = imageList?.[cardIndex] || (type === 'back' ? Config.globalBackground : {path: '_emptyImg'});
       const imageX = (cx - hc / 2) * maxWidthSplited / 2 + (cx % 2 === 0? (maxWidthSplited / 2 - imageW) : 0);
       const imageY = (cy - vc / 2) * maxHeightSplited + (maxHeightSplited - imageH) / 2;
 
@@ -127,11 +116,10 @@ const drawPageElements = async (doc, pageData, state) => {
       doc.setDrawColor(cutlineColor);
 
       const dashMarks = new Set();
-      if(cx % 2 === 1) {
-        dashMarks.add(`${imageXc + offsetX},${cy * maxHeightSplited}-${imageXc + offsetX},${imageYc + bleedY + offsetY}`);
-        dashMarks.add(`${imageXc + offsetX},${imageYc + imageH - bleedY + offsetY}-${imageXc + offsetX},${(cy + 1) * maxHeightSplited}`);
+      if(cx % 2 === (type === 'face' ? 1 : 0)) {
+        dashMarks.add(`${imageXc},${yy * maxHeightSplited}-${imageXc},${imageYc + bleedY}`);
+        dashMarks.add(`${imageXc},${imageYc + imageH - bleedY}-${imageXc},${(yy + 1) * maxHeightSplited}`);
       }
-
       dashMarks.forEach(nm => {
         const [loc1, loc2] = nm.split('-');
         const [x1, y1] = loc1.split(',');
@@ -169,6 +157,7 @@ const drawPageElements = async (doc, pageData, state) => {
           const [x1, y1] = loc1.split(',');
           const [x2, y2] = loc2.split(',');
           try {
+            doc.setLineDash([]);
             doc.line(parseFloat(x1), parseFloat(y1), parseFloat(x2), parseFloat(y2));
           } catch (e) {
           }
@@ -200,6 +189,7 @@ const drawPageElements = async (doc, pageData, state) => {
         crossMarks.forEach(cm => {
           const [x, y] = cm.split(',');
           try {
+            doc.setLineDash([]);
             doc.line(parseFloat(x) - fixFloat(2 * scale), parseFloat(y), parseFloat(x) + fixFloat(2 * scale), parseFloat(y));
             doc.line(parseFloat(x), parseFloat(y) - fixFloat(2 * scale), parseFloat(x), parseFloat(y) + fixFloat(2 * scale));
           } catch (e) {
@@ -220,12 +210,44 @@ const drawPageElements = async (doc, pageData, state) => {
     }
   }
 };
+const drawPageNumber = async (doc, state, pageIndex, totalPages) => {
+  if(!state.Config.showPageNumber) {
+    return;
+  }
+  const { Config } = state;
+  const { brochureRepeatPerPage } = Config;
+  const scale = fixFloat(Config.scale / 100);
+  const maxWidth = fixFloat(doc.getPageWidth(0));
+  const maxHeight = fixFloat(doc.getPageHeight(0));
+  const maxWidthSplited = maxWidth / Config.columns;
+  const maxHeightSplited = maxHeight / Config.rows;
+  let offsetX = fixFloat(scale * Config.offsetX);
+  let offsetY = fixFloat(scale * Config.offsetY);
 
+  doc.setFontSize(8);
+  if(brochureRepeatPerPage) {
+    doc.text(`${pageIndex}/${totalPages}`, 3, 5);
+  } else {
+    for(let x = 0;x<Config.columns;x++) {
+      for(let y = 0; y <Config.rows;y++) {
+        const pageIndexB = 1 + (pageIndex - 1) * Config.columns * Config.rows + x + y * Config.columns
+        const totalPagesB = totalPages * Config.columns * Config.rows;
+        doc.text(`${pageIndexB}/${totalPagesB}`, 3 + x * maxWidthSplited + offsetX, 5 + y * maxHeightSplited + offsetY);
+      }
+    }
+  }
+}
 export const drawPdfBrochure = async (doc, state, onProgress) => {
   const pagedImageList = getPagedImageListByCardList(state);
+  let currentPage = 0;
+  const totalPageCount = pagedImageList.filter(p => p.type === 'face').length;
   for (const index in pagedImageList) {
     const pageData = pagedImageList[index];
     index > 0 && doc.addPage();
+    if(pageData.type === 'face') {
+      currentPage++;
+      await drawPageNumber(doc,state,currentPage, totalPageCount);
+    }
     await drawPageElements(doc, pageData, state);
     onProgress(parseInt((index / pagedImageList.length) * 100));
   }

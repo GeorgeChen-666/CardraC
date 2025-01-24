@@ -10,14 +10,18 @@ const ImageStorageLoadingJobs = {
 }
 const pathToImageData = async path => {
   const ext = path.split('.').pop();
-  ImageStorageLoadingJobs[path] = async() => {
-    ImageStorage[path.replaceAll('\\','')] = await readCompressedImage(path, { format: ext });
-    delete ImageStorageLoadingJobs[path];
-  }
-  ImageStorageLoadingJobs[path]();
-  const overviewData = await readCompressedImage(path, { maxWidth: 100 });
+  const imagePathKey = path.replaceAll('\\','');
   const { mtime } = fs.statSync(path);
-  return ({ path, overviewData, mtime: mtime.getTime() });
+  const returnObj = { path, mtime: mtime.getTime() }
+  if(!Object.keys(ImageStorage).includes(imagePathKey)) {
+    ImageStorageLoadingJobs[path] = async() => {
+      ImageStorage[imagePathKey] = await readCompressedImage(path, { format: ext });
+      delete ImageStorageLoadingJobs[path];
+    }
+    ImageStorageLoadingJobs[path]();
+    returnObj.overviewData = await readCompressedImage(path, { maxWidth: 100 });
+  }
+  return returnObj;
 }
 
 export default (mainWindow) => {

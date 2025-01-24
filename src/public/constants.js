@@ -11,7 +11,8 @@ export const eleActions = Object.freeze({
 export const layoutSides = Object.freeze({
   oneSide: 'one side',
   doubleSides: 'double sides',
-  brochure: 'brochure'
+  brochure: 'brochure',
+  foldInHalf: 'fold in half'
 })
 
 export const flipWay = Object.freeze({

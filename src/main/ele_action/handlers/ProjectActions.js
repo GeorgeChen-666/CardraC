@@ -35,12 +35,20 @@ export default (mainWindow) => {
       }
     }
     const projectData = _.pick(state, ['Config', 'CardList']);
+
+    const imageStorageKeys = Object.keys(ImageStorage);
+    imageStorageKeys.forEach(key => {
+      if(!Object.keys(state.OverviewStorage).includes(key) && key !=='_emptyImg') {
+        delete ImageStorage[key];
+      }
+    })
+
     await saveDataToFile({ ...projectData, ImageStorage, OverviewStorage: state.OverviewStorage }, projectPath);
     mainWindow.webContents.send(returnChannel);
   });
 
   ipcMain.on(eleActions.openProject, async (event, args) => {
-    const { properties = [], returnChannel } = args;
+    const { properties = [], returnChannel, progressChannel } = args;
     const result = await dialog.showOpenDialog(mainWindow,{
       filters: [
         { name: 'Project File', extensions: ['cpnp'] }
@@ -51,15 +59,17 @@ export default (mainWindow) => {
       mainWindow.webContents.send(returnChannel, null);
     }
     else {
+      const { size } = fs.statSync(result.filePaths[0]);
       const readStream = fs.createReadStream(result.filePaths[0]);
       let resultString = '';
       readStream.on('data', (chunk) => {
         resultString += chunk;
+        mainWindow.webContents.send(progressChannel, resultString.length / size);
       });
 
       readStream.on('end', () => {
         try {
-          const imageStorageRegexp = new RegExp(/"ImageStorage":\{".*?"\}(,)?/g);
+          const imageStorageRegexp = new RegExp(/"ImageStorage":( )?\{(".*?")?\}(,)?/g);
           let [imageStorageString= ''] = resultString.match(imageStorageRegexp) || [];
           if(imageStorageString.endsWith(',')) {
             imageStorageString = imageStorageString.substring(0, imageStorageString.length - 1);
