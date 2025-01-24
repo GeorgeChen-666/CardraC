@@ -195,6 +195,9 @@ const drawPageElements = async (doc, pageData, state) => {
   }
 };
 const drawPageNumber = async (doc, state, pageIndex, totalPages) => {
+  if(!state.Config.showPageNumber) {
+    return;
+  }
   doc.setFontSize(8);
   doc.text(`${pageIndex}/${totalPages}`, 3, 5);
 }

@@ -211,6 +211,9 @@ const drawPageElements = async (doc, pageData, state) => {
   }
 };
 const drawPageNumber = async (doc, state, pageIndex, totalPages) => {
+  if(!state.Config.showPageNumber) {
+    return;
+  }
   const { Config } = state;
   const { brochureRepeatPerPage } = Config;
   const scale = fixFloat(Config.scale / 100);
