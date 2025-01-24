@@ -1,5 +1,6 @@
 import { ipcRenderer } from 'electron';
 import { eleActions } from '../public/constants';
+import { Actions, store } from './store';
 
 export const emptyImg = {
   path: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
@@ -146,14 +147,18 @@ const callMain = (key, params = {}, transform = d => d) => new Promise((resolve)
   });
 
   const onMainProgress = ($, value) => {
-    onProgress && onProgress(value);
-    if (value >= 100) {
+    if(onProgress) {
+      onProgress(value);
+    }
+    else {
+      store.dispatch(Actions.GlobalEdit({ isInProgress:true, progress: value }));
+    }
+    if (Math.round(value * 100) >= 100) {
+      store.dispatch(Actions.GlobalEdit({ isInProgress: false }));
       ipcRenderer.off(progressKey, onMainProgress);
     }
   };
-  if (onProgress) {
-    ipcRenderer.on(progressKey, onMainProgress);
-  }
+  ipcRenderer.on(progressKey, onMainProgress);
 
   const onDone = (event, data) => {
     ipcRenderer.off(progressKey, onMainProgress);
