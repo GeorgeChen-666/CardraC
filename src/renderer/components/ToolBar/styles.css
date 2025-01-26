@@ -8,3 +8,6 @@
 .ToolBar>.RightDiv {
     padding-right: 10px;
 }
+.ToolBar>.RightDiv>.chakra-form-control {
+    margin-left: 15px;
+}

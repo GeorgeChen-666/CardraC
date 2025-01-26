@@ -25,7 +25,7 @@ export const AddCard = () => {
     />
     <div>
       <Button width='100%' size='sm' onClick={() => { //
-        dispatch(Actions.CardAddByFaces([{ path:'_emptyImg' }]));
+        dispatch(Actions.CardAddByFaces([null]));
       }}>
         {t('cardEditor.addEmpty')}
       </Button>

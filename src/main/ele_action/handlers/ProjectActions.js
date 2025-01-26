@@ -38,7 +38,7 @@ export default (mainWindow) => {
 
     const imageStorageKeys = Object.keys(ImageStorage);
     imageStorageKeys.forEach(key => {
-      if(!Object.keys(state.OverviewStorage).includes(key) && key !=='_emptyImg') {
+      if(!Object.keys(state.OverviewStorage).includes(key)) {
         delete ImageStorage[key];
       }
     })
@@ -77,7 +77,7 @@ export default (mainWindow) => {
           (async () => {
             const imageStorageJson = JSON.parse(`{${imageStorageString}}`);
             Object.keys(ImageStorage).forEach(key => {
-              if(!Object.keys(imageStorageJson.ImageStorage).includes(key) && key !== '_emptyImg') {
+              if(!Object.keys(imageStorageJson.ImageStorage).includes(key)) {
                 delete ImageStorage[key];
               }
             });
@@ -88,6 +88,17 @@ export default (mainWindow) => {
           const result = resultString.replace(imageStorageString, ('"_":"_"'));
           const projectJson = JSON.parse(result);
           delete projectJson._;
+          if(projectJson.Config.globalBackground?.path === '_emptyImg') {
+            projectJson.Config.globalBackground = null;
+          }
+          projectJson.CardList.forEach(c => {
+            if(c.face?.path === '_emptyImg') {
+              c.face = null;
+            }
+            if(c.back?.path === '_emptyImg') {
+              c.back = null;
+            }
+          })
           mainWindow.webContents.send(returnChannel, projectJson);
         }
         catch (e) {

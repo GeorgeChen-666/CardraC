@@ -1,6 +1,8 @@
 import { layoutSides } from '../../../../public/constants';
 import { drawPdfNormal } from './Normal';
 import { drawPdfBrochure } from './Brochure';
+import { getPendingList } from '../ImageActions';
+import { waitCondition } from '../../functions';
 
 const { jsPDF } = require('jspdf');
 
@@ -9,6 +11,7 @@ const { jsPDF } = require('jspdf');
 
 
 export const exportPdf = async (state, onProgress) => {
+  await waitCondition(() => getPendingList().size() === 0)
   const { Config } = state;
   const format = (Config.pageSize.split(':')[0]).toLowerCase();
   const orientation = Config.landscape ? 'landscape' : 'portrait';

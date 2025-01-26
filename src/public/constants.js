@@ -6,6 +6,7 @@ export const eleActions = Object.freeze({
   saveConfig: 'save-config',
   checkImage: 'check-image',
   getImagePath: 'get-image-path',
+  getImageContent: 'get-image-Content',
 });
 
 export const layoutSides = Object.freeze({

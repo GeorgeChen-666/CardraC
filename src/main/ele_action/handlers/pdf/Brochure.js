@@ -249,6 +249,6 @@ export const drawPdfBrochure = async (doc, state, onProgress) => {
       await drawPageNumber(doc,state,currentPage, totalPageCount);
     }
     await drawPageElements(doc, pageData, state);
-    onProgress(parseInt((index / pagedImageList.length) * 100));
+    onProgress(index / pagedImageList.length);
   }
 }

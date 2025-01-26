@@ -1,0 +1,8 @@
+#ImageViewer {
+    position: fixed;
+    width: 350px;
+    min-height: 350px;
+    padding: 0.5em;
+    background-color: white;
+    z-index: 10;
+}

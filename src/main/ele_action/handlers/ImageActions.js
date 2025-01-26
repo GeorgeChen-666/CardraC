@@ -8,23 +8,36 @@ import { ImageStorage } from './pdf/Utils';
 const ImageStorageLoadingJobs = {
 
 }
-const pathToImageData = async path => {
+const pendingList = new Set();
+export const getPendingList = () => pendingList;
+
+const pathToImageData = async (path, cb) => {
   const ext = path.split('.').pop();
   const imagePathKey = path.replaceAll('\\','');
   const { mtime } = fs.statSync(path);
   const returnObj = { path, mtime: mtime.getTime() }
-  if(!Object.keys(ImageStorage).includes(imagePathKey)) {
+  if(!Object.keys(ImageStorage).includes(imagePathKey) && !pendingList.has(imagePathKey)) {
+    pendingList.add(imagePathKey);
     ImageStorageLoadingJobs[path] = async() => {
       ImageStorage[imagePathKey] = await readCompressedImage(path, { format: ext });
+      pendingList.delete(imagePathKey);
       delete ImageStorageLoadingJobs[path];
     }
     ImageStorageLoadingJobs[path]();
-    returnObj.overviewData = await readCompressedImage(path, { maxWidth: 100 });
   }
+  returnObj.overviewData = await readCompressedImage(path, { maxWidth: 100 });
+  cb && cb();
   return returnObj;
 }
 
 export default (mainWindow) => {
+  ipcMain.on(eleActions.getImageContent, async (event, args) => {
+    const { path, returnChannel } = args;
+    const imagePathKey = path.replaceAll('\\','');
+    await pathToImageData(path);
+    const imageData = ImageStorage[imagePathKey];
+    mainWindow.webContents.send(returnChannel, imageData);
+  });
   ipcMain.on(eleActions.getImagePath, async (event, args) => {
     const { properties = [], returnChannel } = args;
     const result = await dialog.showOpenDialog(mainWindow,{
@@ -41,7 +54,7 @@ export default (mainWindow) => {
     }
   });
   ipcMain.on(eleActions.openImage, async (event, args) => {
-    const { properties = [], returnChannel } = args;
+    const { properties = [], returnChannel, progressChannel } = args;
     const result = await dialog.showOpenDialog(mainWindow,{
       filters: [
         { name: 'Image File', extensions: ['jpg', 'png', 'gif'] }
@@ -53,10 +66,13 @@ export default (mainWindow) => {
     }
     else {
       const toRenderData = [];
+      let current = 0;
       for(const path of result.filePaths) {
-        toRenderData.push(pathToImageData(path))
+        toRenderData.push(pathToImageData(path, () => {
+          current ++;
+          mainWindow.webContents.send(progressChannel, current / result.filePaths.length);
+        }))
       }
-
       mainWindow.webContents.send(returnChannel, await Promise.all(toRenderData));
     }
   });
@@ -64,7 +80,6 @@ export default (mainWindow) => {
     const pathList = JSON.parse(JSON.stringify(args.pathList));
     const invalidImages = [];
     const checkImagePath = path => {
-      if(path === '_emptyImg') return;
       try {
         fs.accessSync(path,fs.constants.F_OK);
       }
@@ -84,7 +99,7 @@ export default (mainWindow) => {
     const { Config, CardList, OverviewStorage } = state;
     const reloadImageJobs = [];
     const newOverviewStorage = {};
-    Object.keys(ImageStorage).filter(k => k!=='_emptyImg').forEach(k => {
+    Object.keys(ImageStorage).forEach(k => {
       delete ImageStorage[k];
     })
     let totalCount = 0;
@@ -92,11 +107,10 @@ export default (mainWindow) => {
     const reloadImage = (args, cb) => {
       if(!args) return false;
       const { path, mtime: cardMtime} = args;
-      if(path === '_emptyImg') return true;
       const imagePathKey = path.replaceAll('\\','');
       try {
         const { mtime } = fs.statSync(path);
-        if(cardMtime !== mtime.getTime()) {
+        if(cardMtime !== mtime.getTime() || !Object.keys(ImageStorage).includes(imagePathKey)) {
           totalCount++;
           reloadImageJobs.push((async()=>{
             cb && cb(mtime.getTime())

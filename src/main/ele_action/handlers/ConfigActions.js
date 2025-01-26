@@ -19,7 +19,7 @@ export default (mainWindow) => {
   ipcMain.on(eleActions.saveConfig, (event, args) => {
     const { Global, Config } = args.state;
     delete Config.globalBackground;
-    store.set({ Global: _.pick(Global, ['currentLang']) });
+    store.set({ Global: _.pick(Global, ['currentLang', 'isShowOverView']) });
     store.set({ Config });
   });
   ipcMain.on(eleActions.loadConfig, (event, args) => {
