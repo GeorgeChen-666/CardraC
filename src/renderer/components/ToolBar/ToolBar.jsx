@@ -198,7 +198,7 @@ export const ToolBar = () => {
                 <NumberInput size='xs' maxW={16} value={repeat} min={1}
                              onClick={(e) => e.stopPropagation()}
                              onChange={($, value) => {
-                               setRepeat(value);
+                               setRepeat(isNaN(value) ? 1 : value);
                              }}>
                   <NumberInputField />
                   <NumberInputStepper>

@@ -115,32 +115,13 @@ export const CardForm = () => {
         mm
       </Control>
     </Control>
-    <Control label={t('configDialog.columns_rows')}>
-      <HStack>
-        <NumberInput isDisabled={Config.autoColumnsRows} width={'90px'}
-                     value={Config.rows} onChange={(s, v) => {
-          dispatch(Actions.ConfigEdit({ rows: v }));
-        }} mr={4}>
-          <NumberInputField />
-          <NumberInputStepper>
-            <NumberIncrementStepper />
-            <NumberDecrementStepper />
-          </NumberInputStepper>
-        </NumberInput>
-        <NumberInput isDisabled={Config.autoColumnsRows} width={'90px'}
-                     value={Config.columns} onChange={(s, v) => {
-          dispatch(Actions.ConfigEdit({ columns: v }));
-        }} mr={8}>
-          <NumberInputField />
-          <NumberInputStepper>
-            <NumberIncrementStepper />
-            <NumberDecrementStepper />
-          </NumberInputStepper>
-        </NumberInput>
-        <Checkbox value={'true'} isChecked={Config.autoColumnsRows}
-                  onChange={(event) => dispatch(Actions.ConfigEdit({ autoColumnsRows: event.target.checked }))}
-        >{t('configDialog.auto')}</Checkbox>
-      </HStack>
+    <Control label={t('configDialog.columns_rows')} type={ControlType.NumberInput} attrKey={'rows'} style={{ width: '90px' }} min={1}>
+      <Control type={ControlType.NumberInput} attrKey={'columns'} style={{ width: '90px' }} min={1}>
+
+      </Control>
+      <Checkbox value={'true'} isChecked={Config.autoColumnsRows}
+                onChange={(event) => dispatch(Actions.ConfigEdit({ autoColumnsRows: event.target.checked }))}
+      >{t('configDialog.auto')}</Checkbox>
     </Control>
     <Control
       label={t('configDialog.scale')}
