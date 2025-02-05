@@ -8,6 +8,7 @@ import { layoutSides } from '../../../../public/constants';
 export const ConfigOverview = () => {
   const Config = useSelector((state) => (
     _.pick(state.pnp.Config, [
+      'foldInHalfMargin',
       'pageWidth',
       'pageHeight',
       'columns',
@@ -21,7 +22,10 @@ export const ConfigOverview = () => {
     ])
   ), shallowEqual);
   const isBrochure = Config.sides === layoutSides.brochure;
+  const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
   const [boxCardSize, setBoxCardSize] = useState(`0,0`);
+  const [boxScale, setBoxScale] = useState(1);
+  const scaledFoldInHalfMargin = Config.foldInHalfMargin * boxScale;
   let [boxCardWidth, boxCardHeight] = boxCardSize.split(',');
   useEffect(() => {
     setTimeout(() => {
@@ -34,6 +38,7 @@ export const ConfigOverview = () => {
       const scaledPageWidth = Config.pageWidth * boxScale;
       const scaledCardHeight = Config.cardHeight * boxScale;
       const scaledCardWidth = Config.cardWidth * boxScale * (isBrochure ? 2:1);
+      setBoxScale(boxScale);
       if (Config.landscape) {
         overviewDiv.style.gap = `1px`;
         overviewDiv.style.height = `${scaledPageWidth}px`;
@@ -53,7 +58,13 @@ export const ConfigOverview = () => {
         {
           [...new Array(Config.rows)].map((e,i)=>(<tr key={'tr'+i}>
             {
-              [...new Array(Config.columns)].map((e,ii)=>(<td key={'td'+ii} style={{ width: `${boxCardWidth-1}px`, height: `${boxCardHeight-1}px` }} />))
+              [...new Array(Config.columns)].map((e,ii) => {
+                const cardStyle = { width: `${boxCardWidth - 1}px`, height: `${boxCardHeight - 1}px` }
+                if(i === Config.rows / 2 - 1 && isFoldInHalf) {
+                  cardStyle.marginBottom = `${Math.max(scaledFoldInHalfMargin - 1, 1)}px`
+                }
+                return (<td key={'td:' + i + '_' + ii} style={cardStyle} />)
+              })
             }
           </tr>))
         }

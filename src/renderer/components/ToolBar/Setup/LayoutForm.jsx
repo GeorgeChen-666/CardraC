@@ -73,7 +73,7 @@ export const LayoutForm = () => {
       <RadioGroup value={Config.sides} onChange={(v) => dispatch(Actions.ConfigEdit({ sides: v }))}>
         <Stack direction='row' wrap={'wrap'} width={'300px'}>
           <Radio value={layoutSides.oneSide}>{t('configDialog.oneSide')}</Radio>
-          {/*<Radio value={layoutSides.foldInHalf}>{t('configDialog.foldInHalf')}</Radio>*/}
+          <Radio value={layoutSides.foldInHalf}>{t('configDialog.foldInHalf')}</Radio>
           <Radio value={layoutSides.doubleSides}>{t('configDialog.doubleSides')}</Radio>
           <Radio value={layoutSides.brochure}>{t('configDialog.brochure')}</Radio>
         </Stack>

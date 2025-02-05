@@ -124,7 +124,7 @@ export default memo(({ data, index }) => {
           }}>
             {t('cardEditor.clearFace')}
           </MenuItem>
-          {Config.sides === layoutSides.doubleSides && (<>
+          {[layoutSides.doubleSides, layoutSides.foldInHalf].includes(Config.sides) && (<>
             <MenuItem onClick={async (e) => {
               e.stopPropagation();
               const filePath = await openImage('setCardBack');
@@ -151,7 +151,7 @@ export default memo(({ data, index }) => {
                }}
                src={faceUrl}
                 />
-        {Config.sides === 'double sides' && (
+        {[layoutSides.doubleSides, layoutSides.foldInHalf].includes(Config.sides) && (
           <Image className={'CardImage'}
                  boxSize={isBackEditing ? '160px' : '50px'}
                  onMouseOver={() => {

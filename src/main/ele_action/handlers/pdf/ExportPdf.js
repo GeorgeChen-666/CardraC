@@ -16,7 +16,7 @@ export const exportPdf = async (state, onProgress) => {
   const format = (Config.pageSize.split(':')[0]).toLowerCase();
   const orientation = Config.landscape ? 'landscape' : 'portrait';
   const doc = new jsPDF({ format, orientation, compress: true });
-  if([layoutSides.oneSide, layoutSides.doubleSides].includes(Config.sides)) {
+  if([layoutSides.oneSide, layoutSides.doubleSides, layoutSides.foldInHalf].includes(Config.sides)) {
     await drawPdfNormal(doc, state, onProgress);
   }
   else if(Config.sides === layoutSides.brochure) {

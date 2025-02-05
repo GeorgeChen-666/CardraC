@@ -24,11 +24,12 @@ const loadImageAverageColor = async () => {
 
 const getPagedImageListByCardList = (state) => {
   const { CardList, Config } = state;
+  const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
   let repeatCardList = CardList.reduce((arr, cv) => arr.concat(new Array(cv.repeat).fill(cv)), []);
 
   const pagedImageList = [];
   const sides = Config.sides;
-  const size = Config.rows * Config.columns;
+  const size = Config.rows * Config.columns / (isFoldInHalf?2:1);
 
   for (let i = 0; i < repeatCardList.length; i += size) {
     const result = repeatCardList.slice(i, i + size);
@@ -36,7 +37,7 @@ const getPagedImageListByCardList = (state) => {
       imageList: result.map(c => c.face),
       type: 'face',
     });
-    if (sides === layoutSides.doubleSides) {
+    if ([layoutSides.doubleSides, layoutSides.foldInHalf].includes(sides)) {
       pagedImageList.push({
         imageList: result.map(c => c.back?.mtime ? c.back : Config.globalBackground),
         type: 'back',
@@ -66,6 +67,24 @@ const drawPageElements = async (doc, pageData, state) => {
   const cutlineColor = Config.cutlineColor;
   const avoidDislocation = Config.avoidDislocation;
 
+  const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
+
+  if(isFoldInHalf) {
+    const dashMarks = new Set();
+    dashMarks.add(`${0},${maxHeight / 2}-${maxWidth},${maxHeight / 2}`);
+    dashMarks.forEach(nm => {
+      const [loc1, loc2] = nm.split('-');
+      const [x2, y2] = loc2.split(',');
+      const [x1, y1] = loc1.split(',');
+      try {
+        doc.setLineDash([0.5]);
+        doc.line(parseFloat(x1), parseFloat(y1), parseFloat(x2), parseFloat(y2));
+        doc.setLineDash([]);
+      } catch (e) {
+      }
+    });
+  }
+
   const landscape = Config.landscape;
   let flipWay = ['none', 'long-edge binding', 'short-edge binding'].indexOf(Config.flip);
 
@@ -93,20 +112,30 @@ const drawPageElements = async (doc, pageData, state) => {
       let cardRotation = 0;
       let cx = xx;
       let cy = yy;
-      if (type === 'back') {
-        if (flipWay === 1 && landscape || flipWay === 2 && !landscape) {//横长边 竖短边
+      if(isFoldInHalf) {
+        if (type === 'back') {
+          cy = vc / 2 + cy;
           cardRotation = 180;
-          cy = vc - cy - 1;
-        } else if (flipWay === 1 && !landscape || flipWay === 2 && landscape) {//竖长边 横短边
-          cx = hc - cx - 1;
+        } else {
+          cy = vc / 2 - cy - 1;
+        }
+      } else {
+        if (type === 'back') {
+          if (flipWay === 1 && landscape || flipWay === 2 && !landscape) {//横长边 竖短边
+            cardRotation = 180;
+            cy = vc - cy - 1;
+          } else if (flipWay === 1 && !landscape || flipWay === 2 && landscape) {//竖长边 横短边
+            cx = hc - cx - 1;
+          }
         }
       }
 
+
       const cardIndex = yy * hc + xx;
       let image = imageList?.[cardIndex];
-      if(type === 'back' && !image?.mtime) {
-        image = Config.globalBackground?.mtime? Config.globalBackground : {path: '_emptyImg'};
-      }
+      // if(type === 'back' && !image?.mtime) {
+      //   image = Config.globalBackground?.mtime? Config.globalBackground : {path: '_emptyImg'};
+      // }
       const imageX = (cx - hc / 2) * imageW + (cx - (hc - 1) / 2) * (marginX - bleedX * 2);
       const imageY = (cy - vc / 2) * imageH + (cy - (vc - 1) / 2) * (marginY - bleedY * 2);
 
@@ -137,7 +166,8 @@ const drawPageElements = async (doc, pageData, state) => {
       doc.setDrawColor(cutlineColor);
 
 
-      if (Config.fCutLine === '1' || Config.fCutLine === '3') {
+
+      if ((Config.fCutLine === '1' || Config.fCutLine === '3') && !(type === 'back' && isFoldInHalf)) {
         const [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc); //avoid card rotation
         const normalMarks = new Set();
         //add normal mark loc
@@ -177,7 +207,7 @@ const drawPageElements = async (doc, pageData, state) => {
         }
       }
 
-      if (Config.fCutLine === '2' || Config.fCutLine === '3') {
+      if ((Config.fCutLine === '2' || Config.fCutLine === '3') && !(type === 'back' && isFoldInHalf)) {
         const [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc); //avoid card rotation
         //add cross mark loc
         const crossMarks = new Set();
@@ -207,6 +237,7 @@ const drawPageNumber = async (doc, state, pageIndex, totalPages) => {
 
 export const drawPdfNormal = async (doc, state, onProgress) => {
   const { Config } = state;
+  const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
   const pagedImageList = getPagedImageListByCardList(state);
   if(Config.marginFilling) {
     await loadImageAverageColor();
@@ -215,7 +246,10 @@ export const drawPdfNormal = async (doc, state, onProgress) => {
   const totalPageCount = pagedImageList.filter(p => p.type === 'face').length;
   for (const index in pagedImageList) {
     const pageData = pagedImageList[index];
-    index > 0 && doc.addPage();
+    if(!(isFoldInHalf && pageData.type === 'back')) {
+      index > 0 && doc.addPage();
+    }
+
     if(pageData.type === 'face') {
       currentPage++;
       await drawPageNumber(doc,state,currentPage, totalPageCount);

@@ -3,7 +3,7 @@ import { eleActions } from '../../../public/constants';
 import _ from 'lodash';
 import { readFileToData, saveDataToFile } from '../functions';
 import fs from 'fs';
-import { ImageStorage } from './pdf/Utils';
+import { defaultImageStorage, ImageStorage } from './pdf/Utils';
 
 
 export default (mainWindow) => {
@@ -38,7 +38,7 @@ export default (mainWindow) => {
 
     const imageStorageKeys = Object.keys(ImageStorage);
     imageStorageKeys.forEach(key => {
-      if(!Object.keys(state.OverviewStorage).includes(key)) {
+      if(!Object.keys(state.OverviewStorage).includes(key) && key !== '_emptyImg') {
         delete ImageStorage[key];
       }
     })
@@ -84,6 +84,9 @@ export default (mainWindow) => {
             Object.keys(imageStorageJson.ImageStorage).forEach(key => {
               ImageStorage[key] = imageStorageJson.ImageStorage[key];
             });
+            if(!Object.keys(ImageStorage).includes('_emptyImg')) {
+              ImageStorage['_emptyImg'] = defaultImageStorage['_emptyImg'];
+            }
           })()
           const result = resultString.replace(imageStorageString, ('"_":"_"'));
           const projectJson = JSON.parse(result);

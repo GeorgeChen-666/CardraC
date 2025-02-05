@@ -34,17 +34,20 @@ export const CardForm = () => {
       'pageWidth',
       'pageHeight',
       'sides',
+      'foldInHalfMargin',
       'brochureRepeatPerPage'
     ])
   ), shallowEqual);
   const dispatch = useDispatch();
   const isBrochure = Config.sides === layoutSides.brochure;
+  const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
   useEffect(() => {
     if (Config.autoColumnsRows) {
       const pageWidth = Config.landscape ? Config.pageHeight : Config.pageWidth;
-      const pageHeight = Config.landscape ? Config.pageWidth : Config.pageHeight;
+      const pageHeight = (Config.landscape ? Config.pageWidth : Config.pageHeight) - Config.foldInHalfMargin;
       const autoColumns = parseInt((pageWidth * 0.95) / (Config.cardWidth * (isBrochure ? 2:1) + Config.marginX));
-      const autoRows = parseInt((pageHeight * 0.95) / (Config.cardHeight + Config.marginY));
+      let autoRows = parseInt((pageHeight * 0.95) / (Config.cardHeight + Config.marginY));
+      autoRows = autoRows - ((autoRows % 2 === 1 && isFoldInHalf) ? 1 : 0);
       const newConfig = { columns: autoColumns, rows: autoRows };
       dispatch(Actions.ConfigEdit(newConfig));
     }
@@ -59,6 +62,7 @@ export const CardForm = () => {
     Config.marginX,
     Config.marginY,
     Config.landscape,
+    Config.foldInHalfMargin,
     Config.sides
   ]);
 
@@ -96,6 +100,11 @@ export const CardForm = () => {
         </Control>
       </Control>
     )}
+    {isFoldInHalf && (
+      <Control label={'对贴间距'} type={ControlType.NumberInput} attrKey={'foldInHalfMargin'} style={{ width: '90px' }} min={0}>
+        mm
+      </Control>
+    )}
     <Control
       label={t('configDialog.bleed')}
       attrKey={'bleedX'}
@@ -115,7 +124,14 @@ export const CardForm = () => {
         mm
       </Control>
     </Control>
-    <Control label={t('configDialog.columns_rows')} type={ControlType.NumberInput} attrKey={'rows'} style={{ width: '90px' }} min={1}>
+    <Control
+      label={t('configDialog.columns_rows')}
+      type={ControlType.NumberInput}
+      attrKey={'rows'}
+      style={{ width: '90px' }}
+      min={isFoldInHalf ? 2 : 1}
+      step={isFoldInHalf ? 2 : 1}
+    >
       <Control type={ControlType.NumberInput} attrKey={'columns'} style={{ width: '90px' }} min={1}>
 
       </Control>
@@ -130,7 +146,7 @@ export const CardForm = () => {
       style={{ width: '90px' }}
       min={1}
     >%
-      <span style={{ width: '113px' }}></span>
+      {/*<span style={{ width: '113px' }}></span>*/}
     </Control>
     <Control label={' '}>
       {Config.sides === layoutSides.brochure && (<>

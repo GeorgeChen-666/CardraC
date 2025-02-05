@@ -41,6 +41,7 @@ export const initialState = Object.freeze({
     cardHeight: 88,
     marginX: 3,
     marginY: 3,
+    foldInHalfMargin: 0,
     bleedX: 1,
     bleedY: 1,
     columns: 4,
