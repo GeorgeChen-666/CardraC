@@ -66,6 +66,7 @@ const drawPageElements = async (doc, pageData, state) => {
   const lineWeight = Config.lineWeight;
   const cutlineColor = Config.cutlineColor;
   const avoidDislocation = Config.avoidDislocation;
+  const foldInHalfMargin = fixFloat(Config.foldInHalfMargin * scale);
 
   const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
 
@@ -140,6 +141,14 @@ const drawPageElements = async (doc, pageData, state) => {
       const imageY = (cy - vc / 2) * imageH + (cy - (vc - 1) / 2) * (marginY - bleedY * 2);
 
       let [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc);
+      if(isFoldInHalf) {
+        if (type === 'back') {
+          imageYc = imageYc + foldInHalfMargin / 2;
+        }
+        else {
+          imageYc = imageYc - foldInHalfMargin / 2;
+        }
+      }
       if (cardRotation === 180) {
         imageXc = imageXc + imageW + offsetX;
         imageYc = imageYc - imageH + offsetY;
@@ -150,7 +159,15 @@ const drawPageElements = async (doc, pageData, state) => {
 
       if (image && Config.marginFilling) {
         try {
-          const [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc);
+          let [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc);
+          if(isFoldInHalf) {
+            if (type === 'back') {
+              imageYc = imageYc + foldInHalfMargin / 2;
+            }
+            else {
+              imageYc = imageYc - foldInHalfMargin / 2;
+            }
+          }
           doc.setDrawColor(0);
           const averageColor = imageAverageColorSet.get(image.path?.replaceAll('\\', ''));
           if(averageColor && !(marginX / 2 - bleedX === 0 && marginY / 2 - bleedY === 0)) {
@@ -168,7 +185,15 @@ const drawPageElements = async (doc, pageData, state) => {
 
 
       if ((Config.fCutLine === '1' || Config.fCutLine === '3') && !(type === 'back' && isFoldInHalf)) {
-        const [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc); //avoid card rotation
+        let [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc); //avoid card rotation
+        if(isFoldInHalf) {
+          if (type === 'back') {
+            imageYc = imageYc + foldInHalfMargin / 2;
+          }
+          else {
+            imageYc = imageYc - foldInHalfMargin / 2;
+          }
+        }
         const normalMarks = new Set();
         //add normal mark loc
         if (cx === 0) {
@@ -208,7 +233,15 @@ const drawPageElements = async (doc, pageData, state) => {
       }
 
       if ((Config.fCutLine === '2' || Config.fCutLine === '3') && !(type === 'back' && isFoldInHalf)) {
-        const [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc); //avoid card rotation
+        let [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc); //avoid card rotation
+        if(isFoldInHalf) {
+          if (type === 'back') {
+            imageYc = imageYc + foldInHalfMargin / 2;
+          }
+          else {
+            imageYc = imageYc - foldInHalfMargin / 2;
+          }
+        }
         //add cross mark loc
         const crossMarks = new Set();
         crossMarks.add(`${imageXc + bleedX + offsetX},${imageYc + bleedY + offsetY}`);
