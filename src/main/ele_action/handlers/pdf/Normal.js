@@ -47,7 +47,7 @@ const getPagedImageListByCardList = (state) => {
 
   return pagedImageList;
 };
-const drawPageElements = async (doc, pageData, state) => {
+const drawPageElements = async (doc, pageData, state, cb) => {
   const { Config } = state;
   const hc = Config.columns;
   const vc = Config.rows;
@@ -70,32 +70,16 @@ const drawPageElements = async (doc, pageData, state) => {
 
   const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
 
-  if(isFoldInHalf) {
-    const dashMarks = new Set();
-    dashMarks.add(`${0},${maxHeight / 2}-${maxWidth},${maxHeight / 2}`);
-    dashMarks.forEach(nm => {
-      const [loc1, loc2] = nm.split('-');
-      const [x2, y2] = loc2.split(',');
-      const [x1, y1] = loc1.split(',');
-      try {
-        doc.setLineDash([0.5]);
-        doc.line(parseFloat(x1), parseFloat(y1), parseFloat(x2), parseFloat(y2));
-        doc.setLineDash([]);
-      } catch (e) {
-      }
-    });
-  }
-
   const landscape = Config.landscape;
   let flipWay = ['none', 'long-edge binding', 'short-edge binding'].indexOf(Config.flip);
 
   const { imageList, type } = pageData;
   if (type === 'back') {
     if (landscape && flipWay === 1 || !landscape && flipWay === 2) {
-      offsetY = offsetY * -1;
+      offsetY = offsetY * (isFoldInHalf ? 1 : -1);
     }
     if (landscape && flipWay === 2 || !landscape && flipWay === 1) {
-      offsetX = offsetX * -1;
+      offsetX = offsetX * (isFoldInHalf ? 1 : -1);
     }
     if (avoidDislocation) {
       bleedX = 0;
@@ -105,6 +89,22 @@ const drawPageElements = async (doc, pageData, state) => {
       marginX = 0;
       marginY = 0;
     }
+  }
+
+  if(isFoldInHalf) {
+    const dashMarks = new Set();
+    dashMarks.add(`${0},${maxHeight / 2}-${maxWidth},${maxHeight / 2}`);
+    dashMarks.forEach(nm => {
+      const [loc1, loc2] = nm.split('-');
+      const [x2, y2] = loc2.split(',');
+      const [x1, y1] = loc1.split(',');
+      try {
+        doc.setLineDash([0.5]);
+        doc.line(parseFloat(x1), parseFloat(y1) + offsetY, parseFloat(x2), parseFloat(y2) + offsetY);
+        doc.setLineDash([]);
+      } catch (e) {
+      }
+    });
   }
 
   const [imageW, imageH] = [cardW + bleedX * 2, cardH + bleedY * 2];
@@ -227,6 +227,7 @@ const drawPageElements = async (doc, pageData, state) => {
         try {
           const base64String = ImageStorage[image.path?.replaceAll('\\', '')];
           doc.addImage(base64String, image.ext, imageXc, imageYc, imageW, imageH, image.path, 'FAST', cardRotation);
+          cb && cb();
         } catch (e) {
           console.log('addImage error', e);
         }
@@ -272,6 +273,8 @@ export const drawPdfNormal = async (doc, state, onProgress) => {
   const { Config } = state;
   const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
   const pagedImageList = getPagedImageListByCardList(state);
+  let currentImageNumber = 0;
+  const totalImageNumber = [].concat(...pagedImageList.map(l=>l.imageList)).length;
   if(Config.marginFilling) {
     await loadImageAverageColor();
   }
@@ -287,7 +290,8 @@ export const drawPdfNormal = async (doc, state, onProgress) => {
       currentPage++;
       await drawPageNumber(doc,state,currentPage, totalPageCount);
     }
-    await drawPageElements(doc, pageData, state);
-    onProgress(index / pagedImageList.length);
+    await drawPageElements(doc, pageData, state, p => {
+      onProgress(++currentImageNumber / totalImageNumber);
+    });
   }
 }
