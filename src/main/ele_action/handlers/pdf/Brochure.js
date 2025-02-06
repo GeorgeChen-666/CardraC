@@ -50,7 +50,7 @@ const getPagedImageListByCardList = (state) => {
   return pagedImageList;
 };
 
-const drawPageElements = async (doc, pageData, state) => {
+const drawPageElements = async (doc, pageData, state, cb) => {
   const { Config } = state;
   const hc = Config.columns * 2;
   const vc = Config.rows;
@@ -168,6 +168,7 @@ const drawPageElements = async (doc, pageData, state) => {
         try {
           const base64String = ImageStorage[image.path?.replaceAll('\\', '')];
           doc.addImage(base64String, image.ext, imageXc, imageYc, imageW, imageH, image.path, 'FAST', cardRotation);
+          cb && cb();
         } catch (e) {
           console.log('addImage error', e);
         }
@@ -241,6 +242,8 @@ export const drawPdfBrochure = async (doc, state, onProgress) => {
   const pagedImageList = getPagedImageListByCardList(state);
   let currentPage = 0;
   const totalPageCount = pagedImageList.filter(p => p.type === 'face').length;
+  let currentImageNumber = 0;
+  const totalImageNumber = [].concat(...pagedImageList.map(l=>l.imageList)).length;
   for (const index in pagedImageList) {
     const pageData = pagedImageList[index];
     index > 0 && doc.addPage();
@@ -248,7 +251,8 @@ export const drawPdfBrochure = async (doc, state, onProgress) => {
       currentPage++;
       await drawPageNumber(doc,state,currentPage, totalPageCount);
     }
-    await drawPageElements(doc, pageData, state);
-    onProgress(parseInt((index / pagedImageList.length) * 100));
+    await drawPageElements(doc, pageData, state, () => {
+      onProgress(++currentImageNumber / totalImageNumber);
+    });
   }
 }

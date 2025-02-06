@@ -1,0 +1,12 @@
+#ImageViewer {
+    position: fixed;
+    width: 350px;
+    min-height: 350px;
+    padding: 0.5em;
+    background-color: white;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#ImageViewer img { flex-grow: 1 }

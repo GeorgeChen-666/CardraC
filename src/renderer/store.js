@@ -11,7 +11,6 @@ import {
 } from './functions';
 import { i18nInstance } from './i18n';
 import { flipWay, layoutSides } from '../public/constants';
-import { drawPdfBrochure } from '../main/ele_action/handlers/pdf/Brochure';
 
 export const initialState = Object.freeze({
   Global: {
@@ -24,6 +23,7 @@ export const initialState = Object.freeze({
     progress: 0,
     lastSelection: null,
     isBackEditing: false,
+    isShowOverView: true,
     selections: [],
   },
   Config: {
@@ -41,6 +41,7 @@ export const initialState = Object.freeze({
     cardHeight: 88,
     marginX: 3,
     marginY: 3,
+    foldInHalfMargin: 0,
     bleedX: 1,
     bleedY: 1,
     columns: 4,
@@ -50,7 +51,7 @@ export const initialState = Object.freeze({
     bCutLine: '1',
     lineWeight: 0.5,
     cutlineColor: '#000000',
-    globalBackground: { path:'_emptyImg' },
+    globalBackground: null,
     marginFilling: false,
     avoidDislocation: false,
     brochureRepeatPerPage: false,
@@ -58,6 +59,7 @@ export const initialState = Object.freeze({
   CardList: [],
 });
 window.OverviewStorage = {};
+window.ImageStorage = {};
 
 export const pnpSlice = createSlice({
   name: 'pnp',
@@ -116,7 +118,7 @@ export const pnpSlice = createSlice({
       state.CardList = state.CardList.concat(action.payload.map(p => ({
         id: crypto.randomUUID(),
         face: p,
-        back: { path:'_emptyImg' },
+        back: null,
         repeat: 1,
       })));
     },

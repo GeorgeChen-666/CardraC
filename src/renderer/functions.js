@@ -18,7 +18,7 @@ export const getResourcesPath = (path) => (isDev ? '' : '..') + path;
 
 export const isObject = data => typeof data === 'object' && data?.constructor === Object;
 
-export const getImageSrc = imageData => OverviewStorage[imageData?.path?.replaceAll('\\', '')] || emptyImg.path;
+export const getImageSrc = imageData => OverviewStorage[imageData?.path?.replaceAll?.('\\', '')] || emptyImg.path;
 const mergeState = (state) => {
   const newState = JSON.parse(JSON.stringify(state));
   const { OverviewStorage } = window;
@@ -133,7 +133,7 @@ export const getTemplate = (args) => callMain('get-template', { ...args });
 export const deleteTemplate = (args) => callMain('delete-template', { ...args });
 export const version = () => callMain('version');
 
-const callMain = (key, params = {}, transform = d => d) => new Promise((resolve) => {
+export const callMain = (key, params = {}, transform = d => d) => new Promise((resolve) => {
   const { returnChannel, onProgress, progressChannel, ...restParams } = params;
   const returnKey = returnChannel || `${key}-done`;
   const progressKey = progressChannel || `${key}-progress`;

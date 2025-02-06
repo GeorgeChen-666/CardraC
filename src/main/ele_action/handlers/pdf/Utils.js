@@ -1,4 +1,4 @@
-const defaultImageStorage = {
+export const defaultImageStorage = {
   '_emptyImg': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
     '12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg=='
 }

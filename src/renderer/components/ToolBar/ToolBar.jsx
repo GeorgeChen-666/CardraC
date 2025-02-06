@@ -45,14 +45,18 @@ import { LangSelectButton } from './Buttons/LangSelectButton';
 import './styles.css';
 import { ReloadDialog } from './ReloadImg/ReloadDialog';
 import { AboutDialog } from './About/AboutDialog';
+import { ImageViewer } from '../ImageViewer';
+import _ from 'lodash';
 
 
 export const ToolBar = () => {
-  const toast = getNotificationTrigger()
+  const toast = getNotificationTrigger();
   const { t } = useTranslation();
   const dialogSetupRef = useRef(null);
   const dialogReloadRef = useRef(null);
   const dialogAboutRef = useRef(null);
+  const imageViewerRef = useRef(null);
+  window.imageViewerRef = imageViewerRef;
   const Config = useSelector((state) => ({
     sides: state.pnp.Config.sides,
     globalBackground: state.pnp.Config.globalBackground,
@@ -61,6 +65,11 @@ export const ToolBar = () => {
     selectionLength: state.pnp.CardList.filter(c => c.selected).length,
   }), shallowEqual);
   const cardListLength = useSelector((state) => (state.pnp.CardList.length), shallowEqual);
+  const Global = useSelector((state) => (
+    _.pick(state.pnp.Global, [
+      'isShowOverView'
+    ])
+  ), shallowEqual);
   const [repeat, setRepeat] = useState(1);
   const dispatch = useDispatch();
   const messageSuccess = () => toast({
@@ -128,7 +137,13 @@ export const ToolBar = () => {
           />
           {Config.sides === 'double sides' && <GeneralButton
             label={t('toolbar.btnGlobalBackground')}
-            icon={<Image boxSize='30px' src={getImageSrc(Config.globalBackground)} />}
+            icon={<Image
+              boxSize='30px'
+              src={getImageSrc(Config.globalBackground)}
+              onMouseOver={() => {
+                imageViewerRef.current.update(Config.globalBackground?.path);
+              }}
+            />}
             onClick={() => loading(async () => {
               const filePath = await openImage('setGlobalBack');
               dispatch(Actions.ConfigEdit({ globalBackground: filePath }));
@@ -138,7 +153,7 @@ export const ToolBar = () => {
             label={'GitHub'}
             icon={<AiOutlineGithub size={'30'} />}
             onClick={() => {
-              window.open('https://github.com/GeorgeChen-666/CardraC')
+              window.open('https://github.com/GeorgeChen-666/CardraC');
             }}
           />
           <GeneralButton
@@ -183,7 +198,7 @@ export const ToolBar = () => {
                 <NumberInput size='xs' maxW={16} value={repeat} min={1}
                              onClick={(e) => e.stopPropagation()}
                              onChange={($, value) => {
-                               setRepeat(value);
+                               setRepeat(isNaN(value) ? 1 : value);
                              }}>
                   <NumberInputField />
                   <NumberInputStepper>
@@ -202,6 +217,15 @@ export const ToolBar = () => {
               </MenuItem>
             </MenuList>
           </Menu>
+          <FormControl display='ruby'>
+            <FormLabel>
+              显示预览
+            </FormLabel>
+            <Switch size={'lg'} isChecked={Global.isShowOverView} onChange={(e) => {
+              dispatch(Actions.GlobalEdit({ isShowOverView: e.target.checked }));
+              imageViewerRef.current.update();
+            }} />
+          </FormControl>
           {Config.sides === 'double sides' && (<FormControl display='ruby'>
             <FormLabel>
               {t('toolbar.lblSwitchView')}
@@ -214,7 +238,8 @@ export const ToolBar = () => {
       </div>
       <SetupDialog ref={dialogSetupRef} />
       <ReloadDialog ref={dialogReloadRef} />
-      <AboutDialog ref={dialogAboutRef}/>
+      <AboutDialog ref={dialogAboutRef} />
+      <ImageViewer ref={imageViewerRef} />
     </>
 
 

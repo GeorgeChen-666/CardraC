@@ -179,6 +179,7 @@ export const ReloadDialog = forwardRef(({}, ref) => {
             });
             if(stateData) {
               dispatch(Actions.StateFill(stateData));
+              setReloadProgress(1);
             }
           }}>{t('button.next')}</Button>)}
           <Button variant='ghost' onClick={onClose}>{t('button.close')}</Button>

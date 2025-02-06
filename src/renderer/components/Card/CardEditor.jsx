@@ -23,11 +23,12 @@ import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import _ from 'lodash';
 import { useDrag, useDrop } from 'react-dnd';
 import { useTranslation } from 'react-i18next';
-import { getImageSrc, openImage } from '../../functions';
+import { getImageSrc, getNotificationTrigger, openImage } from '../../functions';
 import { layoutSides } from '../../../public/constants';
 
 export default memo(({ data, index }) => {
   const dispatch = useDispatch();
+  const imageViewerRef = window.imageViewerRef;
   const { t } = useTranslation();
   const [, dropRef] = useDrop({
     accept: 'Card',
@@ -68,10 +69,10 @@ export default memo(({ data, index }) => {
     getImageSrc(data?.back),
   ];
   const onSelectCard = useCallback((event) => {
-    if(event.target.nodeName === 'SPAN') return;
+    if(event.target.nodeName === 'INPUT') return;
     if (event.shiftKey) {
       dispatch(Actions.CardShiftSelect(data.id));
-    } else if(event.ctrlKey || event.target.nodeName === 'INPUT') {
+    } else if(event.ctrlKey || event.target.nodeName === 'SPAN') {
       dispatch(Actions.CardCtrlSelect(data.id));
     } else {
       dispatch(Actions.CardSelect(data.id));
@@ -80,7 +81,7 @@ export default memo(({ data, index }) => {
   const isBackEditing = Global.isBackEditing;
   return (<Card ref={node => previewRef(dropRef(node))} style={{ display: (isDragging ? 'none' : 'unset') }}
                 className={'Card'} size={'sm'} padding={2}
-                onClick={onSelectCard}>
+                onMouseUp={onSelectCard}>
     <div className={'CardBar'}>
       <Menu>
         <IconButton
@@ -119,11 +120,11 @@ export default memo(({ data, index }) => {
           </MenuItem>
           <MenuItem onClick={async (e) => {
             e.stopPropagation();
-            dispatch(Actions.CardEditById({ id: data.id, face: { path:'_emptyImg' } }));
+            dispatch(Actions.CardEditById({ id: data.id, face: null }));
           }}>
             {t('cardEditor.clearFace')}
           </MenuItem>
-          {Config.sides === layoutSides.doubleSides && (<>
+          {[layoutSides.doubleSides, layoutSides.foldInHalf].includes(Config.sides) && (<>
             <MenuItem onClick={async (e) => {
               e.stopPropagation();
               const filePath = await openImage('setCardBack');
@@ -133,7 +134,7 @@ export default memo(({ data, index }) => {
             </MenuItem>
             <MenuItem onClick={async (e) => {
               e.stopPropagation();
-              dispatch(Actions.CardEditById({ id: data.id, back: { path:'_emptyImg' } }));
+              dispatch(Actions.CardEditById({ id: data.id, back: null }));
             }}>
               {t('cardEditor.clearBack')}
             </MenuItem>
@@ -143,12 +144,19 @@ export default memo(({ data, index }) => {
     </div>
     <div className={'CardMain'}>
       <Stack direction='row' justifyContent={'center'}>
-        <Image className={'CardImage'} boxSize={isBackEditing ? '50px' : '160px'}
+        <Image className={'CardImage'}
+               boxSize={isBackEditing ? '50px' : '160px'}
+               onMouseOver={() => {
+                 imageViewerRef.current.update(data?.face?.path);
+               }}
                src={faceUrl}
                 />
-        {Config.sides === 'double sides' && (
+        {[layoutSides.doubleSides, layoutSides.foldInHalf].includes(Config.sides) && (
           <Image className={'CardImage'}
                  boxSize={isBackEditing ? '160px' : '50px'}
+                 onMouseOver={() => {
+                   imageViewerRef.current.update(data?.back?.path);
+                 }}
                  src={backUrl}
                  
           />
@@ -173,6 +181,7 @@ export default memo(({ data, index }) => {
     <div>
       <Button width='100%' size='sm' onClick={() => {
         dispatch(Actions.CardRemoveByIds([data.id]));
+        imageViewerRef.current.update();
       }}>
         {t('cardEditor.btnRemove')}
       </Button>
