@@ -57,7 +57,7 @@ const drawPageElements = async (doc, pageData, state, cb) => {
   let marginX = fixFloat(Config.marginX * scale);
   let marginY = fixFloat(Config.marginY * scale);
   let bleedX = fixFloat(Config.bleedX * scale);
-  let bleedY = fixFloat(Config.bleedX * scale);
+  let bleedY = fixFloat(Config.bleedY * scale);
   let offsetX = fixFloat(scale * Config.offsetX);
   let offsetY = fixFloat(scale * Config.offsetY);
 

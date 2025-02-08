@@ -1,5 +1,6 @@
 {
   "util": {
+    "invalidFile": "Invalid File !",
     "noData": "No Data",
     "operating": "Operating...",
     "success": "Success!",

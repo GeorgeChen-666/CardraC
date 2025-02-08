@@ -107,7 +107,7 @@ export default (mainWindow) => {
         catch (e) {
           mainWindow.webContents.send('notification', {
             status: 'error',
-            description: "文件损坏.."
+            description: "util.invalidFile"
           });
           mainWindow.webContents.send(returnChannel, null);
         }

@@ -1,5 +1,6 @@
 {
   "util": {
+    "invalidFile": "文件损坏！",
     "noData": "无数据",
     "operating": "操作中。。。",
     "success": "操作成功！",

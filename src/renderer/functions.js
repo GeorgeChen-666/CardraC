@@ -1,6 +1,7 @@
 import { ipcRenderer } from 'electron';
 import { eleActions } from '../public/constants';
 import { Actions, store } from './store';
+import { i18nInstance } from './i18n';
 
 export const emptyImg = {
   path: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
@@ -69,7 +70,9 @@ export const getNotificationTrigger = () => triggerNotification
 export const regNotification = (cb) => {
   triggerNotification = cb;
 }
-ipcRenderer.on('notification', (ev, ...args) => triggerNotification(...args));
+ipcRenderer.on('notification', (ev, args) => {
+  return triggerNotification({...args, description: i18nInstance.t(args.description)})
+});
 
 ipcRenderer.on('console', (ev, ...args) => console.log(...args));
 export const onOpenProjectFile = (dispatch, Actions, cb) => {
