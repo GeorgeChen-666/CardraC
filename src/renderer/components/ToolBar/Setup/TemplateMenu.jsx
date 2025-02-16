@@ -81,13 +81,64 @@ const EditableControls = forwardRef(({id, state, defaultMenuLabel}, ref) => {
 
   </ButtonGroup>;
 })
-
-export const TemplateMenu = () => {
+const TemplateMenuItem = ({ setEditingId, item, saveButtonRef }) => {
   const { t } = useTranslation();
   const dispatch = useDispatch();
+  const { onOpen, onClose, isOpen } = useDisclosure();
+  return (<MenuItem as={Flex} justifyContent={'space-between'} onClick={() => {
+    dispatch(Actions.ConfigEdit(item.Config));
+  }}>
+    <Text fontSize='sm' marginRight={'10px'}>{item.TemplateName}</Text>
+    <div>
+      <IconButton
+        isRound={true}
+        variant='ghost'
+        size='sm'
+        onClick={(e) => {
+          setEditingId(item.id);
+          saveButtonRef.current?.click(e, item.TemplateName);
+        }}
+        icon={<AiOutlineEdit />}
+      />
+      <Popover
+        isOpen={isOpen}
+        onOpen={onOpen}
+        // onClose={onClose}
+      >
+        <PopoverTrigger>
+          <IconButton
+            isRound={true}
+            variant='ghost'
+            size='sm'
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+            icon={<AiOutlineDelete />}
+          />
+        </PopoverTrigger>
+        <PopoverContent p={1} width={'120px'}>
+          <FocusLock returnFocus persistentFocus={false}>
+            <PopoverArrow />
+            <div style={{textAlign: 'center'}}>
+              <Text fontSize={'sm'}>{t('util.confirmDelete')}</Text>
+              <Button variant='ghost' size={'sm'} onClick={async () => {
+                await deleteTemplate({id: item.id});
+                onClose();
+              }}>{t('button.yes')}</Button>
+              <Button variant='ghost' size={'sm'} marginLeft={'10px'} onClick={onClose}>{t('button.no')}</Button>
+            </div>
+          </FocusLock>
+        </PopoverContent>
+      </Popover>
+    </div>
+  </MenuItem>)
+}
+export const TemplateMenu = () => {
+  const { t } = useTranslation();
+
   const defaultMenuLabel = t('configDialog.clickMenuLoadConfig')
   const [menuLabel, setMenuLabel] = useState(defaultMenuLabel);
-  const { onOpen, onClose, isOpen } = useDisclosure();
+
   const [menuItems,  setMenuItems] = useState([]);
   const [editingId, setEditingId] = useState('');
   const saveButtonRef = useRef();
@@ -117,53 +168,7 @@ export const TemplateMenu = () => {
         </MenuButton>
         <MenuList>
           {menuItems.length === 0 &&(<MenuItem><Text fontSize='sm' marginRight={'10px'}>{t('util.noData')}</Text></MenuItem>)}
-          {menuItems.map(item => (<MenuItem as={Flex} justifyContent={'space-between'} onClick={() => {
-            dispatch(Actions.ConfigEdit(item.Config));
-          }}>
-            <Text fontSize='sm' marginRight={'10px'}>{item.TemplateName}</Text>
-            <div>
-              <IconButton
-                isRound={true}
-                variant='ghost'
-                size='sm'
-                onClick={(e) => {
-                  setEditingId(item.id);
-                  saveButtonRef.current?.click(e, item.TemplateName);
-                }}
-                icon={<AiOutlineEdit />}
-              />
-              <Popover
-                isOpen={isOpen}
-                onOpen={onOpen}
-                onClose={onClose}
-              >
-                <PopoverTrigger>
-                  <IconButton
-                    isRound={true}
-                    variant='ghost'
-                    size='sm'
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                    icon={<AiOutlineDelete />}
-                  />
-                </PopoverTrigger>
-                <PopoverContent p={1} width={'120px'}>
-                  <FocusLock returnFocus persistentFocus={false}>
-                    <PopoverArrow />
-                    <div style={{textAlign: 'center'}}>
-                      <Text fontSize={'sm'}>{t('util.confirmDelete')}</Text>
-                      <Button variant='ghost' size={'sm'} onClick={async () => {
-                        await deleteTemplate({id: item.id});
-                        onClose();
-                      }}>{t('button.yes')}</Button>
-                      <Button variant='ghost' size={'sm'} marginLeft={'10px'} onClick={onClose}>{t('button.no')}</Button>
-                    </div>
-                  </FocusLock>
-                </PopoverContent>
-              </Popover>
-            </div>
-          </MenuItem>))}
+          {menuItems.map(item => (<TemplateMenuItem key={item.id} item={item} setEditingId={setEditingId} saveButtonRef={saveButtonRef} />))}
 
         </MenuList>
       </Menu>
