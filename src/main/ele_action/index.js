@@ -1,5 +1,5 @@
-import './handlers/pdf/Utils'
-import ProjectActions  from './handlers/ProjectActions';
+import './handlers/pdf/Utils';
+import ProjectActions from './handlers/ProjectActions';
 import ConfigActions from './handlers/ConfigActions';
 import ImageActions from './handlers/ImageActions';
 import OtherActions from './handlers/OtherActions';

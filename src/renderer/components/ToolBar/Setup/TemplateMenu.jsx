@@ -14,25 +14,23 @@ import {
   MenuList,
   Popover,
   PopoverArrow,
-  PopoverCloseButton,
   PopoverContent,
   PopoverTrigger,
-  Text, Tooltip,
+  Text,
+  Tooltip,
   useDisclosure,
   useEditableControls,
 } from '@chakra-ui/react';
 import {
   AiFillCaretDown,
-  AiFillCheckCircle,
-  AiFillCloseCircle,
-  AiFillDelete,
-  AiFillEdit,
-  AiFillSave, AiOutlineCheck, AiOutlineClose, AiOutlineDelete, AiOutlineEdit, AiOutlineSave,
+  AiOutlineCheck,
+  AiOutlineClose,
+  AiOutlineDelete,
+  AiOutlineEdit,
+  AiOutlineSave,
 } from 'react-icons/ai';
-import { EditIcon } from '@chakra-ui/icons';
 import { deleteTemplate, editTemplate, getTemplate, setTemplate } from '../../../functions';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
-import _ from 'lodash';
 import { Actions } from '../../../store';
 import { useTranslation } from 'react-i18next';
 

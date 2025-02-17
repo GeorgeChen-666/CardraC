@@ -1,14 +1,9 @@
 import React from 'react';
-import { createSlice, configureStore } from '@reduxjs/toolkit';
+import { configureStore, createSlice } from '@reduxjs/toolkit';
 import _ from 'lodash';
 import logger from 'redux-logger';
 import { Provider } from 'react-redux';
-import {
-  fillByObjectValue,
-  loadConfig,
-  saveConfig,
-  onOpenProjectFile,
-} from './functions';
+import { fillByObjectValue, loadConfig, onOpenProjectFile, saveConfig } from './functions';
 import { i18nInstance } from './i18n';
 import { flipWay, layoutSides } from '../public/constants';
 

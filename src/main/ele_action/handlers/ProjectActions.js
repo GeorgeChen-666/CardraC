@@ -1,7 +1,7 @@
 import { dialog, ipcMain } from 'electron';
 import { eleActions } from '../../../public/constants';
 import _ from 'lodash';
-import { readFileToData, saveDataToFile } from '../functions';
+import { saveDataToFile } from '../functions';
 import fs from 'fs';
 import { defaultImageStorage, ImageStorage } from './pdf/Utils';
 
@@ -108,9 +108,18 @@ export default (mainWindow) => {
         delete ImageStorage[key];
       }
     })
-
-    await saveDataToFile({ ...projectData, ImageStorage, OverviewStorage: state.OverviewStorage }, projectPath);
-    mainWindow.webContents.send(returnChannel);
+    try {
+      await saveDataToFile({ ...projectData, ImageStorage, OverviewStorage: state.OverviewStorage }, projectPath);
+    }
+    catch (e) {
+      mainWindow.webContents.send('notification', {
+        status: 'error',
+        description: "util.operationFailed"
+      });
+    }
+    finally {
+      mainWindow.webContents.send(returnChannel);
+    }
   });
 
   ipcMain.on(eleActions.openProject, async (event, args) => {

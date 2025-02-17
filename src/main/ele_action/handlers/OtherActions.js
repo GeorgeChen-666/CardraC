@@ -1,4 +1,4 @@
-import { dialog, ipcMain, app } from 'electron';
+import { app, dialog, ipcMain } from 'electron';
 import { exportPdf } from './pdf/ExportPdf';
 import { saveDataToFile } from '../functions';
 
@@ -16,12 +16,21 @@ export default (mainWindow) => {
       mainWindow.webContents.send('export-pdf-done', false);
     }
     else {
-      const blob = await exportPdf(args.state, (progress) => {
-        mainWindow.webContents.send(progressChannel, progress);
-      });
-      const filePath = result.filePath;
-      await saveDataToFile(blob, filePath);
-      mainWindow.webContents.send(returnChannel, true);
+      try {
+        const blob = await exportPdf(args.state, (progress) => {
+          mainWindow.webContents.send(progressChannel, progress);
+        });
+        const filePath = result.filePath;
+        await saveDataToFile(blob, filePath);
+        mainWindow.webContents.send(returnChannel, true);
+      }
+      catch (e) {
+        mainWindow.webContents.send('notification', {
+          status: 'error',
+          description: "util.operationFailed"
+        });
+        mainWindow.webContents.send(returnChannel, false);
+      }
     }
   });
 

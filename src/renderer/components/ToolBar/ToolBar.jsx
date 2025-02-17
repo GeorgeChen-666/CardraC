@@ -1,44 +1,44 @@
 import React, { useRef, useState } from 'react';
 import { IoIosArrowDown } from 'react-icons/io';
 import {
-  AiFillFolderOpen,
   AiFillFileAdd,
-  AiFillSetting,
+  AiFillFolderOpen,
   AiFillSave,
+  AiFillSetting,
+  AiOutlineGithub,
+  AiOutlineInfo,
   AiOutlineReload,
-  AiOutlineInfo, AiOutlineGithub,
 } from 'react-icons/ai';
 import {
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
+  Button,
   FormControl,
   FormLabel,
-  Switch,
   Image,
-  Button,
+  Link,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+  NumberDecrementStepper,
+  NumberIncrementStepper,
   NumberInput,
   NumberInputField,
   NumberInputStepper,
-  NumberIncrementStepper,
-  NumberDecrementStepper,
-  Link, useToast,
+  Switch,
 } from '@chakra-ui/react';
 import { MdPictureAsPdf } from 'react-icons/md';
 import { SetupDialog } from './Setup/SetupDialog';
-import { Actions, initialState, store, loading } from '../../store';
+import { Actions, initialState, loading, store } from '../../store';
 import {
   exportPdf,
   getImageSrc,
+  getNotificationTrigger,
   openImage,
   openMultiImage,
   openProject,
-  reloadLocalImage,
   saveProject,
-  getNotificationTrigger,
 } from '../../functions';
-import { useDispatch, useSelector, shallowEqual } from 'react-redux';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { GeneralButton } from './Buttons/GeneralButton';
 import { LangSelectButton } from './Buttons/LangSelectButton';

@@ -1,8 +1,5 @@
 import React, { useRef } from 'react';
-import {
-  Tooltip,
-  IconButton,
-} from '@chakra-ui/react';
+import { IconButton, Tooltip } from '@chakra-ui/react';
 
 
 export const GeneralButton = ({label,icon, onClick, ...rest}) => {

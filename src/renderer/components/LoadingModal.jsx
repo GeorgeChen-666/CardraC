@@ -1,8 +1,13 @@
 import {
-  Box, CircularProgress, CircularProgressLabel,
-  Modal, ModalBody,
+  Box,
+  CircularProgress,
+  CircularProgressLabel,
+  Modal,
+  ModalBody,
   ModalContent,
-  ModalOverlay, Spinner, Text,
+  ModalOverlay,
+  Spinner,
+  Text,
 } from '@chakra-ui/react';
 import React from 'react';
 import { shallowEqual, useSelector } from 'react-redux';

@@ -1,18 +1,18 @@
-import React, { forwardRef,  useImperativeHandle } from 'react';
+import React, { forwardRef, useImperativeHandle } from 'react';
 import {
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
-  Modal,
   Button,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
+  Modal,
   ModalBody,
   ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
+  Tab,
+  TabList,
+  TabPanel,
+  TabPanels,
+  Tabs,
   useDisclosure,
 } from '@chakra-ui/react';
 import { LayoutForm } from './LayoutForm';
