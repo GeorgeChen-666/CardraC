@@ -61,9 +61,7 @@ export async function getBorderAverageColors(base64String, borderWidth = 5) {
           }
 
           // 提取区域并计算统计信息
-          const stats = await sharp(buffer)
-            .extract(rect)
-            .stats();
+          const stats = await sharp(await sharp(buffer).extract(rect).toBuffer()).stats();
 
           // 获取 RGB 通道平均值
           const [r, g, b] = stats.channels
