@@ -1,4 +1,4 @@
-import { getImageBorderAverageColor } from '../../functions';
+import { getBorderAverageColors } from '../../functions';
 import { layoutSides } from '../../../../public/constants';
 import { fixFloat, getLocateByCenterBase, ImageStorage } from './Utils';
 
@@ -9,7 +9,7 @@ const loadImageAverageColor = async () => {
     return (async () => {
       if(!imageAverageColorSet.has(key)) {
         try {
-          const averageColor = await getImageBorderAverageColor(ImageStorage[key]);
+          const averageColor = await getBorderAverageColors(ImageStorage[key]);
           imageAverageColorSet.set(key, averageColor);
         }
         catch (e) {

@@ -13,40 +13,83 @@ export const waitCondition = async ({ Condition = () => true, timeout = 500, tot
     }
   }, timeout);
 })
+export async function getBorderAverageColors(base64String) {
+  try {
+    const buffer = Buffer.from(base64String.split(',')[1], 'base64');
+    // 读取图片元数据
+    const metadata = await sharp(buffer).metadata();
+    const { width, height } = metadata;
 
-export const getImageBorderAverageColor = async (base64String, borderWidth= 10) => {
-  const buffer = Buffer.from(base64String.split(',')[1], 'base64');
-  const image = sharp(buffer);
-  const {width, height} = await image.metadata();
-  const rectangles = [
-    { width, height: Math.min(height, borderWidth), left: 0, top: 0 },
-    { width: Math.min(width, borderWidth), height, left: 0, top: 0 },
-    { width: Math.min(width, borderWidth), height, left: Math.max(width - borderWidth, 0), top: 0 },
-    { width, height: Math.min(height, borderWidth), left: 0, top: Math.max(height - borderWidth, 0) },
-  ];
-  let [tr,tg,tb]=[0,0,0];
-  for (const rectangle of rectangles) {
-    const { r, g, b, alpha } = await image
-      .extract(rectangle)
-      .stats()
-      .then(stats => ({
-        r: stats.channels[0].mean,
-        g: stats.channels[1].mean,
-        b: stats.channels[2].mean,
-        alpha: stats.channels[3] ? stats.channels[3].mean : 1
-      }));
+    // 定义四边裁剪区域（自动处理小尺寸图片）
+    const regions = {
+      top: {
+        left: 0,
+        top: 0,
+        width: width,
+        height: Math.min(10, height)
+      },
+      bottom: {
+        left: 0,
+        top: Math.max(0, height - 10),
+        width: width,
+        height: Math.min(10, height - Math.max(0, height - 10))
+      },
+      left: {
+        left: 0,
+        top: 0,
+        width: Math.min(10, width),
+        height: height
+      },
+      right: {
+        left: Math.max(0, width - 10),
+        top: 0,
+        width: Math.min(10, width - Math.max(0, width - 10)),
+        height: height
+      }
+    };
 
-    const averageColor = { r: Math.round(r), g: Math.round(g), b: Math.round(b), alpha };
-    tr += averageColor.r;
-    tg += averageColor.g;
-    tb += averageColor.b;
+    const colors = {};
+
+    // 并行处理所有区域
+    await Promise.all(
+      Object.entries(regions).map(async ([name, rect]) => {
+        try {
+          // 跳过无效区域
+          if (rect.width <= 0 || rect.height <= 0) {
+            colors[name] = null;
+            return;
+          }
+
+          // 提取区域并计算统计信息
+          const stats = await sharp(buffer)
+            .extract(rect)
+            .stats();
+
+          // 获取 RGB 通道平均值
+          const [r, g, b] = stats.channels
+            .slice(0, 3)
+            .map(c => Math.round(c.mean));
+
+          colors.r = (colors.r || 0) + Math.round(r);
+          colors.g = (colors.g || 0) + Math.round(g);
+          colors.b = (colors.b || 0) + Math.round(b);
+        } catch (error) {
+          console.error(`Error processing ${name}:`, error.message);
+          //colors[name] = null;
+        }
+      })
+    );
+
+    return {
+      r: Math.round(colors.r / 4),
+      g: Math.round(colors.g / 4),
+      b: Math.round(colors.b / 4),
+      alpha: 1
+    };
+  } catch (error) {
+    console.error('Error processing image:', error.message);
+    return null;
   }
-  return {
-    r: Math.round(tr / rectangles.length),
-    g: Math.round(tg / rectangles.length),
-    b: Math.round(tb / rectangles.length),
-    alpha: 1
-  };
 }
 export const readCompressedImage = async (path, options = {}) => {
   options.format = options.format === 'jpg' ? 'jpeg' : 'png';

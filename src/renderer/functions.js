@@ -75,11 +75,14 @@ ipcRenderer.on('notification', (ev, args) => {
 });
 
 ipcRenderer.on('console', (ev, ...args) => console.log(...args));
+
 export const onOpenProjectFile = (dispatch, Actions, cb) => {
   ipcRenderer.on('open-project-file', async (event, data) => {
-    const newState = JSON.parse(data)
-    await cb(newState);
-    dispatch(Actions.StateFill(newState));
+    debugger;
+    dispatch(Actions.GlobalEdit({isLoading: true, loadingText: ''}));
+    cb && await cb(data);
+    dispatch(Actions.StateFill(data));
+    store.dispatch(Actions.GlobalEdit({isLoading: false, isInProgress:false, loadingText: ''}));
   });
 };
 

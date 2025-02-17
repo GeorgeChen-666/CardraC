@@ -7,16 +7,6 @@ import TemplateActions from './handlers/TemplateActions';
 
 
 export const registerRendererActionHandlers = (mainWindow) => {
-  const filePath = process.argv.find(arg => arg.endsWith('.cpnp'))
-  if (filePath) {
-    setTimeout(()=>{
-      readFileToData(filePath).then(toRenderData => {
-        renderLog(filePath, toRenderData);
-        mainWindow.webContents.send('open-project-file', toRenderData);
-      });
-    },100)
-  }
-
   OtherActions(mainWindow);
   ProjectActions(mainWindow);
   ConfigActions(mainWindow);
