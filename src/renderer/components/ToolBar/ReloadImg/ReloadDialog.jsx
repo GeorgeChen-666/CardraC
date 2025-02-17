@@ -1,32 +1,32 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import {
-  Modal,
-  Button,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  useDisclosure,
-  useSteps,
-  Stepper,
-  Step,
-  StepIndicator,
-  StepStatus,
-  StepIcon,
-  StepNumber,
   Box,
-  StepTitle,
-  StepDescription,
-  StepSeparator,
-  IconButton,
+  Button,
   CircularProgress,
   CircularProgressLabel,
+  IconButton,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
+  Step,
+  StepDescription,
+  StepIcon,
+  StepIndicator,
+  StepNumber,
+  Stepper,
+  StepSeparator,
+  StepStatus,
+  StepTitle,
+  useDisclosure,
+  useSteps,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { checkImage, getImagePath, reloadLocalImage } from '../../../functions';
-import { Actions,  store } from '../../../store';
+import { Actions, store } from '../../../store';
 import { AiOutlineFileSearch } from 'react-icons/all';
 import { Grid } from 'react-spreadsheet-grid';
 import './style.css';

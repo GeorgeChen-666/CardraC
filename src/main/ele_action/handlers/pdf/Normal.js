@@ -1,15 +1,16 @@
-import { getImageBorderAverageColor } from '../../functions';
+import { getBorderAverageColors } from '../../functions';
 import { layoutSides } from '../../../../public/constants';
 import { fixFloat, getLocateByCenterBase, ImageStorage } from './Utils';
 
 
 const imageAverageColorSet = new Map();
 const loadImageAverageColor = async () => {
+  imageAverageColorSet.clear();
   const jobs = Object.keys(ImageStorage).map(key => {
     return (async () => {
       if(!imageAverageColorSet.has(key)) {
         try {
-          const averageColor = await getImageBorderAverageColor(ImageStorage[key]);
+          const averageColor = await getBorderAverageColors(ImageStorage[key]);
           imageAverageColorSet.set(key, averageColor);
         }
         catch (e) {
@@ -57,7 +58,7 @@ const drawPageElements = async (doc, pageData, state, cb) => {
   let marginX = fixFloat(Config.marginX * scale);
   let marginY = fixFloat(Config.marginY * scale);
   let bleedX = fixFloat(Config.bleedX * scale);
-  let bleedY = fixFloat(Config.bleedX * scale);
+  let bleedY = fixFloat(Config.bleedY * scale);
   let offsetX = fixFloat(scale * Config.offsetX);
   let offsetY = fixFloat(scale * Config.offsetY);
 

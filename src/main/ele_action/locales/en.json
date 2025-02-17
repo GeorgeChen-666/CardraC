@@ -1,7 +1,9 @@
 {
   "util": {
+    "invalidFile": "Invalid File !",
     "noData": "No Data",
     "operating": "Operating...",
+    "operationFailed": "Operation Failed.",
     "success": "Success!",
     "confirmDelete": "Do You Want Delete?"
   },

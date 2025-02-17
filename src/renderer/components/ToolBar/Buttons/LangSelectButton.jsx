@@ -1,13 +1,6 @@
 import React, { useEffect } from 'react';
-import {
-  Tooltip,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  Button,
-} from '@chakra-ui/react';
-import { useSelector, shallowEqual, useDispatch } from 'react-redux';
+import { Button, Menu, MenuButton, MenuItem, MenuList, Tooltip } from '@chakra-ui/react';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { ChevronDownIcon } from '@chakra-ui/icons';
 import _ from 'lodash';
 import { i18nInstance } from '../../../i18n';
