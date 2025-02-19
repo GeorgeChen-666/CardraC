@@ -47,10 +47,16 @@ const pathToImageData = async (path, cb) => {
 export default (mainWindow) => {
   ipcMain.on(eleActions.getImageContent, async (event, args) => {
     const { path, returnChannel } = args;
+    const { Config } = store.get() || {};
+    const cardWidth = Config.cardWidth;
+
+    const ext = path.split('.').pop();
     const imagePathKey = path.replaceAll('\\','');
     await pathToImageData(path);
     const imageData = ImageStorage[imagePathKey];
-    mainWindow.webContents.send(returnChannel, imageData);
+    const buffer = Buffer.from(imageData.split(',')[1], 'base64');
+    const newData = await readCompressedImage(buffer, { format: ext, maxWidth : cardWidth * 2, quality : 60 })
+    mainWindow.webContents.send(returnChannel, newData);
   });
   ipcMain.on(eleActions.getImagePath, async (event, args) => {
     const { properties = [], returnChannel } = args;
