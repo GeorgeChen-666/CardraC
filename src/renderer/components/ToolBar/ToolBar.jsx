@@ -213,7 +213,7 @@ export const ToolBar = () => {
           </Menu>
           <FormControl display='ruby'>
             <FormLabel>
-              显示预览
+              {t('toolbar.lblShowOverviewWindow')}
             </FormLabel>
             <Switch size={'lg'} isChecked={Global.isShowOverView} onChange={(e) => {
               dispatch(Actions.GlobalEdit({ isShowOverView: e.target.checked }));

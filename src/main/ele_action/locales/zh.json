@@ -32,6 +32,7 @@
       "menuSwap": "交换 卡面/卡背",
       "duplidate": "复制"
     },
+    "lblShowOverviewWindow": "显示预览",
     "btnAbout": "关于"
   },
   "cardEditor": {

@@ -32,6 +32,7 @@
       "menuSwap": "Swap Face/Back",
       "duplidate": "Duplidate"
     },
+    "lblShowOverviewWindow": "Show Overview Window",
     "btnAbout": "About"
   },
   "cardEditor": {
