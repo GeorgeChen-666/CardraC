@@ -104,20 +104,13 @@ export const ToolBar = () => {
             label={t('toolbar.btnReloadImage')}
             icon={<AiOutlineReload size={'30'} />}
             onClick={() => dialogReloadRef.current?.openDialog()}
-            // onClick={() => loading(async () => {
-            //   //await reloadImageFromFile(store.getState().pnp);
-            //   const stateData = await reloadLocalImage({ state: store.getState().pnp });
-            //   if(stateData) {
-            //     dispatch(Actions.StateFill(stateData));
-            //   }
-            //   messageSuccess();
-            // })}
           />
           <GeneralButton
             label={t('toolbar.btnSave')}
             icon={<AiFillSave size={'30'} />}
             onClick={async () => {
-              await saveProject({ state: store.getState().pnp });
+              const { CardList } = store.getState().pnp;
+              await saveProject({ globalBackground: Config.globalBackground, CardList });
               messageSuccess();
             }}
           />
@@ -131,7 +124,8 @@ export const ToolBar = () => {
             label={t('toolbar.btnExport')}
             icon={<MdPictureAsPdf size={'30'} />}
             onClick={() => loading(async () => {
-              const isSuccess = await exportPdf({ state: store.getState().pnp });
+              const { CardList } = store.getState().pnp;
+              const isSuccess = await exportPdf({ globalBackground: Config.globalBackground, CardList });
               isSuccess && messageSuccess();
             })}
           />

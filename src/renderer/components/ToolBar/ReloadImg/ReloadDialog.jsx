@@ -161,20 +161,22 @@ export const ReloadDialog = forwardRef(({}, ref) => {
         <ModalFooter>
           {activeStep < 2 && (<Button variant='ghost' onClick={async () => {
             goToNext();
-            const state = JSON.parse(JSON.stringify(store.getState().pnp));
+            const { CardList, Config } = JSON.parse(JSON.stringify(store.getState().pnp));
+
             const getNewPath = image => {
               if(image && image.path && newImagePath[image.path]) {
                 image.path = newImagePath[image.path];
                 delete image.mtime;
               }
             }
-            getNewPath(state.Config.globalBackground);
-            state.CardList.forEach((c, index) => {
+            getNewPath(Config.globalBackground);
+            CardList.forEach((c, index) => {
               getNewPath(c.face);
               getNewPath(c.back)
             });
             const stateData = await reloadLocalImage({
-              state,
+              globalBackground: Config.globalBackground,
+              CardList,
               onProgress: setReloadProgress
             });
             if(stateData) {

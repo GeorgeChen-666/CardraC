@@ -7,6 +7,7 @@ export const eleActions = Object.freeze({
   checkImage: 'check-image',
   getImagePath: 'get-image-path',
   getImageContent: 'get-image-Content',
+  reloadLocalImage: 'reload-local-image'
 });
 
 export const layoutSides = Object.freeze({

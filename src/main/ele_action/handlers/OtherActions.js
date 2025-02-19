@@ -4,7 +4,7 @@ import { saveDataToFile } from '../functions';
 
 export default (mainWindow) => {
   ipcMain.on('export-pdf', async (event, args) => {
-    const { returnChannel, progressChannel } = args;
+    const { CardList, globalBackground, returnChannel, progressChannel } = args;
     const result = await dialog.showSaveDialog(mainWindow,{
       title: 'Save PDF',
       defaultPath: 'pnp.pdf',
@@ -16,7 +16,7 @@ export default (mainWindow) => {
       mainWindow.webContents.send('export-pdf-done', false);
     }
     else {
-      const blob = await exportPdf(args.state, (progress) => {
+      const blob = await exportPdf({ CardList, globalBackground }, (progress) => {
         mainWindow.webContents.send(progressChannel, progress);
       });
       const filePath = result.filePath;

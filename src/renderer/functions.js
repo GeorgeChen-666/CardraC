@@ -41,30 +41,6 @@ export const fillByObjectValue = (source, value) => {
   }
 };
 
-const refreshCardStorage = (state) => {
-  const {CardList, Config} = state;
-  const { OverviewStorage } = window;
-  const newState = JSON.parse(JSON.stringify(state));
-  const newOverviewStorage = {...OverviewStorage};
-  const usedImagePath = new Set();
-  CardList.forEach(card => {
-    const {face,back} = card;
-    const facePathKey  = face?.path.replaceAll('\\','');
-    const backPathKey  = back?.path.replaceAll('\\','');
-    usedImagePath.add(facePathKey);
-    usedImagePath.add(backPathKey);
-  });
-
-  if(Config.globalBackground?.path) {
-    const globalBackPathKey = Config.globalBackground?.path?.replaceAll('\\','');
-    usedImagePath.add(globalBackPathKey);
-  }
-
-  Object.keys(OverviewStorage).filter(key=> !usedImagePath.has(key)).forEach(key => delete newOverviewStorage[key]);
-
-  return { ...newState, OverviewStorage: newOverviewStorage };
-}
-
 let triggerNotification = () => {};
 export const getNotificationTrigger = () => triggerNotification
 export const regNotification = (cb) => {
@@ -86,7 +62,7 @@ export const onOpenProjectFile = (dispatch, Actions, cb) => {
   });
 };
 
-export const reloadLocalImage = (args) => callMain('reload-local-image', {...args, state: mergeState(args.state)});
+export const reloadLocalImage = (args) => callMain(eleActions.reloadLocalImage, args);
 
 export const openImage = (key) => callMain(eleActions.openImage, {
   returnChannel: `${eleActions.openImage}-return-${key}`,
@@ -121,9 +97,10 @@ export const openMultiImage = (key) => callMain(eleActions.openImage, {
 export const getImagePath = () => callMain(eleActions.getImagePath);
 export const checkImage = ({ pathList }) => callMain(eleActions.checkImage, { pathList });
 
-export const exportPdf = ({ state, onProgress }) => callMain('export-pdf', { state, onProgress });
+export const exportPdf = (args) => callMain('export-pdf', args);
 
-export const saveProject = ({ state }) => callMain(eleActions.saveProject, { state: refreshCardStorage(state) });
+//export const saveProject = ({ state }) => callMain(eleActions.saveProject, { state: refreshCardStorage(state) });
+export const saveProject = (args) => callMain(eleActions.saveProject, args);
 
 export const openProject = () => callMain(eleActions.openProject, {
     properties: [],

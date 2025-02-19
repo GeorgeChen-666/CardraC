@@ -93,7 +93,10 @@
     "brochureRepeatPerPage": "Repeat Per Page",
     "reloadImageFinish": "Reload Finish!",
     "saveCurrentConfig": "Save Current Config",
-    "clickMenuLoadConfig": "Click Menu Item To Load Config"
+    "clickMenuLoadConfig": "Click Menu Item To Load Config",
+    "compressLevel": "Compress Level",
+    "compressLevelOption": "Lv {{lv}}",
+    "compressLevelDes": "Also need reload image"
   },
   "footer": {
     "files": "Files",

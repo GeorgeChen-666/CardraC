@@ -63,7 +63,7 @@ const EditableControls = forwardRef(({id, state, defaultMenuLabel}, ref) => {
             await editTemplate({templateName: state.menuLabel, id})
           }
           else {
-            await setTemplate({templateName: state.menuLabel, Config})
+            await setTemplate({templateName: state.menuLabel})
           }
           state.setMenuLabel(defaultMenuLabel);
           getSubmitButtonProps().onClick(e);
