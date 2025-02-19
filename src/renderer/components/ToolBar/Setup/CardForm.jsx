@@ -1,10 +1,4 @@
-import {
-  Checkbox, HStack, NumberDecrementStepper,
-  NumberIncrementStepper,
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
-} from '@chakra-ui/react';
+import { Checkbox } from '@chakra-ui/react';
 import React, { useEffect } from 'react';
 import { Control, ControlType } from './Control';
 import './styles.css';

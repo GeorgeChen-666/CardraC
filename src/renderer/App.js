@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
-import {
-  ChakraProvider,
-  theme, Flex,
-} from '@chakra-ui/react';
+import { ChakraProvider, Flex, theme } from '@chakra-ui/react';
 import { ToolBar } from './components/ToolBar/ToolBar';
 import { CardEditorList } from './components/Card/CardEditorList';
 import { Footer } from './components/Footer';

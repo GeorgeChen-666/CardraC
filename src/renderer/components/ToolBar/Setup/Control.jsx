@@ -1,9 +1,9 @@
 import {
-  Checkbox,
   FormControl,
   FormLabel,
   NumberDecrementStepper,
-  NumberIncrementStepper, NumberInput,
+  NumberIncrementStepper,
+  NumberInput,
   NumberInputField,
   NumberInputStepper,
 } from '@chakra-ui/react';

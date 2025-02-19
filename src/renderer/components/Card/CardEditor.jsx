@@ -1,29 +1,29 @@
 import React, { memo, useCallback } from 'react';
 import {
-  Card,
   Button,
-  Stack,
+  Card,
+  Checkbox,
+  IconButton,
   Image,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+  NumberDecrementStepper,
+  NumberIncrementStepper,
   NumberInput,
   NumberInputField,
   NumberInputStepper,
-  NumberIncrementStepper,
-  NumberDecrementStepper,
-  IconButton,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  Checkbox,
+  Stack,
 } from '@chakra-ui/react';
-import { IoIosMore, IoIosSwap, IoIosKeypad } from 'react-icons/io';
+import { IoIosKeypad, IoIosMore, IoIosSwap } from 'react-icons/io';
 import './styles.css';
 import { Actions } from '../../store';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import _ from 'lodash';
 import { useDrag, useDrop } from 'react-dnd';
 import { useTranslation } from 'react-i18next';
-import { getImageSrc, getNotificationTrigger, openImage } from '../../functions';
+import { getImageSrc, openImage } from '../../functions';
 import { layoutSides } from '../../../public/constants';
 
 export default memo(({ data, index }) => {

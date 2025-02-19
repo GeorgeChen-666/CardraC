@@ -6,6 +6,7 @@ import Store from 'electron-store';
 const store = new Store();
 const imageAverageColorSet = new Map();
 const loadImageAverageColor = async () => {
+  imageAverageColorSet.clear();
   const jobs = Object.keys(ImageStorage).map(key => {
     return (async () => {
       if(!imageAverageColorSet.has(key)) {

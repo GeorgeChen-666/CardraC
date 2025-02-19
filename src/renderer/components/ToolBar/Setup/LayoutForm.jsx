@@ -1,7 +1,4 @@
-import {
-  Checkbox, Input, Radio, RadioGroup,
-  Select, Stack, Link,
-} from '@chakra-ui/react';
+import { Checkbox, Input, Link, Radio, RadioGroup, Select, Stack } from '@chakra-ui/react';
 import React from 'react';
 import { Control, ControlType } from './Control';
 import './styles.css';

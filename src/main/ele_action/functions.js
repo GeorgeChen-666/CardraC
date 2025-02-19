@@ -13,7 +13,7 @@ export const waitCondition = async ({ Condition = () => true, timeout = 500, tot
     }
   }, timeout);
 })
-export async function getBorderAverageColors(base64String) {
+export async function getBorderAverageColors(base64String, borderWidth = 5) {
   try {
     const buffer = Buffer.from(base64String.split(',')[1], 'base64');
     // 读取图片元数据
@@ -26,24 +26,24 @@ export async function getBorderAverageColors(base64String) {
         left: 0,
         top: 0,
         width: width,
-        height: Math.min(10, height)
+        height: Math.min(borderWidth, height)
       },
       bottom: {
         left: 0,
-        top: Math.max(0, height - 10),
+        top: Math.max(0, height - borderWidth),
         width: width,
-        height: Math.min(10, height - Math.max(0, height - 10))
+        height: Math.min(borderWidth, height - Math.max(0, height - borderWidth))
       },
       left: {
         left: 0,
         top: 0,
-        width: Math.min(10, width),
+        width: Math.min(borderWidth, width),
         height: height
       },
       right: {
-        left: Math.max(0, width - 10),
+        left: Math.max(0, width - borderWidth),
         top: 0,
-        width: Math.min(10, width - Math.max(0, width - 10)),
+        width: Math.min(borderWidth, width - Math.max(0, width - borderWidth)),
         height: height
       }
     };
@@ -61,9 +61,7 @@ export async function getBorderAverageColors(base64String) {
           }
 
           // 提取区域并计算统计信息
-          const stats = await sharp(buffer)
-            .extract(rect)
-            .stats();
+          const stats = await sharp(await sharp(buffer).extract(rect).toBuffer()).stats();
 
           // 获取 RGB 通道平均值
           const [r, g, b] = stats.channels

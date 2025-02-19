@@ -1,6 +1,7 @@
 import { dialog, ipcMain } from 'electron';
 import { eleActions } from '../../../public/constants';
-import { saveDataToFile } from '../functions';
+import _ from 'lodash';
+import { readFileToData, saveDataToFile } from '../functions';
 import fs from 'fs';
 import { defaultImageStorage, ImageStorage, OverviewStorage } from './pdf/Utils';
 import Store from 'electron-store';
@@ -136,8 +137,18 @@ export default (mainWindow) => {
       }
     })
     refreshCardStorage(CardList);
-    await saveDataToFile({ ...projectData, ImageStorage, OverviewStorage }, projectPath);
-    mainWindow.webContents.send(returnChannel);
+    try {
+      await saveDataToFile({ ...projectData, ImageStorage, OverviewStorage }, projectPath);
+    }
+    catch (e) {
+      mainWindow.webContents.send('notification', {
+        status: 'error',
+        description: "util.operationFailed"
+      });
+    }
+    finally {
+      mainWindow.webContents.send(returnChannel);
+    }
   });
 
   ipcMain.on(eleActions.openProject, async (event, args) => {

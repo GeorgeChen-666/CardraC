@@ -3,8 +3,11 @@ import {
   AlertDialog,
   AlertDialogBody,
   AlertDialogContent,
-  AlertDialogFooter, Text,
-  AlertDialogOverlay, Button, useDisclosure,
+  AlertDialogFooter,
+  AlertDialogOverlay,
+  Button,
+  Text,
+  useDisclosure,
 } from '@chakra-ui/react';
 import { version } from '../../../functions';
 

@@ -3,7 +3,6 @@ import _ from 'lodash';
 import fs from 'fs';
 import path from 'path';
 import Store from 'electron-store';
-import { readFileToData } from '../functions';
 import { eleActions } from '../../../public/constants';
 
 const store = new Store();
