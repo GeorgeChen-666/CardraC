@@ -45,7 +45,7 @@ export const ImageViewer = forwardRef((props, ref) => {
     }
     else if (!Object.keys(ImageStorage).includes(imageKey)) {
       (async () => {
-        ImageStorage[imageKey] = await callMain(eleActions.getImageContent, { path });
+        ImageStorage[imageKey] = await callMain(eleActions.getImageContent, { path, returnChannel: `${eleActions.getImageContent}-done-${new Date().getTime()}` });
         setLoading(false);
       })();
     }
