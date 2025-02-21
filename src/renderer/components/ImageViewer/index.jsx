@@ -5,7 +5,6 @@ import { callMain } from '../../functions';
 import { eleActions } from '../../../public/constants';
 import { shallowEqual, useSelector } from 'react-redux';
 import _ from 'lodash';
-import { waitTime } from '../../../main/ele_action/functions';
 
 export const ImageViewer = forwardRef((props, ref) => {
   const Global = useSelector((state) => (
@@ -49,7 +48,6 @@ export const ImageViewer = forwardRef((props, ref) => {
       (async () => {
         ImageStorage[imageKey] = await callMain(eleActions.getImageContent, { path, returnChannel: `${eleActions.getImageContent}-done-${new Date().getTime()}` });
         setLoading(false);
-        await waitTime(10);
         setFrame(frame + 1);
       })();
     } else {
