@@ -2,11 +2,13 @@
     position: fixed;
     width: 350px;
     min-height: 350px;
+
     padding: 0.5em;
     background-color: white;
     z-index: 10;
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
 }
-#ImageViewer img { flex-grow: 1 }
+#ImageViewer img { flex-grow: 1;    max-height: 85vh; }
