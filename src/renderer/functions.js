@@ -42,6 +42,13 @@ export const getNotificationTrigger = () => triggerNotification
 export const regNotification = (cb) => {
   triggerNotification = cb;
 }
+
+export const notificationSuccess = () => triggerNotification({
+  description: i18nInstance.t('util.success'),
+  status: 'success',
+  duration: 9000,
+  isClosable: true,
+});
 ipcRenderer.on('notification', (ev, args) => {
   return triggerNotification({...args, description: i18nInstance.t(args.description)})
 });
