@@ -20,11 +20,7 @@ export const getResourcesPath = (path) => (isDev ? '' : '..') + path;
 export const isObject = data => typeof data === 'object' && data?.constructor === Object;
 
 export const getImageSrc = imageData => OverviewStorage[imageData?.path?.replaceAll?.('\\', '')] || emptyImg.path;
-const mergeState = (state) => {
-  const newState = JSON.parse(JSON.stringify(state));
-  const { OverviewStorage } = window;
-  return { ...newState, OverviewStorage };
-};
+
 export const fillByObjectValue = (source, value) => {
   if (isObject(source) && isObject(value)) {
     Object.keys(value).forEach(key => {
@@ -54,11 +50,10 @@ ipcRenderer.on('console', (ev, ...args) => console.log(...args));
 
 export const onOpenProjectFile = (dispatch, Actions, cb) => {
   ipcRenderer.on('open-project-file', async (event, data) => {
-    debugger;
     dispatch(Actions.GlobalEdit({isLoading: true, loadingText: ''}));
     cb && await cb(data);
     dispatch(Actions.StateFill(data));
-    store.dispatch(Actions.GlobalEdit({isLoading: false, isInProgress:false, loadingText: ''}));
+    dispatch(Actions.GlobalEdit({isLoading: false, isInProgress:false, loadingText: ''}));
   });
 };
 
@@ -147,12 +142,18 @@ export const callMain = (key, params = {}, transform = d => d) => new Promise((r
     ipcRenderer.off(progressKey, onMainProgress);
     ipcRenderer.off(returnKey, onDone);
     const newData = transform(data);
+    const resolveData = (rs) => {
+      if(data instanceof Uint8Array) {
+        resolve(new TextDecoder().decode(rs))
+      }
+      resolve(rs);
+    }
     if (isPromise(newData)) {
       newData.then(nd => {
-        resolve(nd);
+        resolveData(nd);
       });
     } else {
-      resolve(newData);
+      resolveData(newData);
     }
   };
   ipcRenderer.on(returnKey, onDone);

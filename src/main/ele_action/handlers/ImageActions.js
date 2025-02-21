@@ -56,7 +56,7 @@ export default (mainWindow) => {
     const imageData = ImageStorage[imagePathKey];
     const buffer = Buffer.from(imageData.split(',')[1], 'base64');
     const newData = await readCompressedImage(buffer, { format: ext, maxWidth : cardWidth * 2, quality : 60 })
-    mainWindow.webContents.send(returnChannel, newData);
+    mainWindow.webContents.send(returnChannel, Buffer.from(newData));
   });
   ipcMain.on(eleActions.getImagePath, async (event, args) => {
     const { properties = [], returnChannel } = args;
