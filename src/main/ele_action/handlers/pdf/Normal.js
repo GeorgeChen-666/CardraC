@@ -1,8 +1,9 @@
 import { getBorderAverageColors } from '../../functions';
 import { layoutSides } from '../../../../public/constants';
 import { fixFloat, getLocateByCenterBase, ImageStorage } from './Utils';
+import Store from 'electron-store';
 
-
+const store = new Store();
 const imageAverageColorSet = new Map();
 const loadImageAverageColor = async () => {
   imageAverageColorSet.clear();
@@ -23,8 +24,8 @@ const loadImageAverageColor = async () => {
 }
 
 
-const getPagedImageListByCardList = (state) => {
-  const { CardList, Config } = state;
+const getPagedImageListByCardList = ({ CardList, globalBackground }) => {
+  const { Config } = store.get() || {};
   const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
   let repeatCardList = CardList.reduce((arr, cv) => arr.concat(new Array(cv.repeat).fill(cv)), []);
 
@@ -40,7 +41,7 @@ const getPagedImageListByCardList = (state) => {
     });
     if ([layoutSides.doubleSides, layoutSides.foldInHalf].includes(sides)) {
       pagedImageList.push({
-        imageList: result.map(c => c.back?.mtime ? c.back : Config.globalBackground),
+        imageList: result.map(c => c.back?.mtime ? c.back : globalBackground),
         type: 'back',
       });
     }
@@ -49,7 +50,7 @@ const getPagedImageListByCardList = (state) => {
   return pagedImageList;
 };
 const drawPageElements = async (doc, pageData, state, cb) => {
-  const { Config } = state;
+  const { Config } = store.get() || {};
   const hc = Config.columns;
   const vc = Config.rows;
   const scale = fixFloat(Config.scale / 100);
@@ -263,7 +264,8 @@ const drawPageElements = async (doc, pageData, state, cb) => {
   }
 };
 const drawPageNumber = async (doc, state, pageIndex, totalPages) => {
-  if(!state.Config.showPageNumber) {
+  const { Config } = store.get() || {};
+  if(!Config.showPageNumber) {
     return;
   }
   doc.setFontSize(8);
@@ -271,7 +273,7 @@ const drawPageNumber = async (doc, state, pageIndex, totalPages) => {
 }
 
 export const drawPdfNormal = async (doc, state, onProgress) => {
-  const { Config } = state;
+  const { Config } = store.get() || {};
   const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
   const pagedImageList = getPagedImageListByCardList(state);
   let currentImageNumber = 0;

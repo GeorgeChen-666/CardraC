@@ -20,11 +20,7 @@ export const getResourcesPath = (path) => (isDev ? '' : '..') + path;
 export const isObject = data => typeof data === 'object' && data?.constructor === Object;
 
 export const getImageSrc = imageData => OverviewStorage[imageData?.path?.replaceAll?.('\\', '')] || emptyImg.path;
-const mergeState = (state) => {
-  const newState = JSON.parse(JSON.stringify(state));
-  const { OverviewStorage } = window;
-  return { ...newState, OverviewStorage };
-};
+
 export const fillByObjectValue = (source, value) => {
   if (isObject(source) && isObject(value)) {
     Object.keys(value).forEach(key => {
@@ -41,35 +37,18 @@ export const fillByObjectValue = (source, value) => {
   }
 };
 
-const refreshCardStorage = (state) => {
-  const {CardList, Config} = state;
-  const { OverviewStorage } = window;
-  const newState = JSON.parse(JSON.stringify(state));
-  const newOverviewStorage = {...OverviewStorage};
-  const usedImagePath = new Set();
-  CardList.forEach(card => {
-    const {face,back} = card;
-    const facePathKey  = face?.path.replaceAll('\\','');
-    const backPathKey  = back?.path.replaceAll('\\','');
-    usedImagePath.add(facePathKey);
-    usedImagePath.add(backPathKey);
-  });
-
-  if(Config.globalBackground?.path) {
-    const globalBackPathKey = Config.globalBackground?.path?.replaceAll('\\','');
-    usedImagePath.add(globalBackPathKey);
-  }
-
-  Object.keys(OverviewStorage).filter(key=> !usedImagePath.has(key)).forEach(key => delete newOverviewStorage[key]);
-
-  return { ...newState, OverviewStorage: newOverviewStorage };
-}
-
 let triggerNotification = () => {};
 export const getNotificationTrigger = () => triggerNotification
 export const regNotification = (cb) => {
   triggerNotification = cb;
 }
+
+export const notificationSuccess = () => triggerNotification({
+  description: i18nInstance.t('util.success'),
+  status: 'success',
+  duration: 9000,
+  isClosable: true,
+});
 ipcRenderer.on('notification', (ev, args) => {
   return triggerNotification({...args, description: i18nInstance.t(args.description)})
 });
@@ -78,15 +57,14 @@ ipcRenderer.on('console', (ev, ...args) => console.log(...args));
 
 export const onOpenProjectFile = (dispatch, Actions, cb) => {
   ipcRenderer.on('open-project-file', async (event, data) => {
-    debugger;
     dispatch(Actions.GlobalEdit({isLoading: true, loadingText: ''}));
     cb && await cb(data);
     dispatch(Actions.StateFill(data));
-    store.dispatch(Actions.GlobalEdit({isLoading: false, isInProgress:false, loadingText: ''}));
+    dispatch(Actions.GlobalEdit({isLoading: false, isInProgress:false, loadingText: ''}));
   });
 };
 
-export const reloadLocalImage = (args) => callMain('reload-local-image', {...args, state: mergeState(args.state)});
+export const reloadLocalImage = (args) => callMain(eleActions.reloadLocalImage, args);
 
 export const openImage = (key) => callMain(eleActions.openImage, {
   returnChannel: `${eleActions.openImage}-return-${key}`,
@@ -121,9 +99,10 @@ export const openMultiImage = (key) => callMain(eleActions.openImage, {
 export const getImagePath = () => callMain(eleActions.getImagePath);
 export const checkImage = ({ pathList }) => callMain(eleActions.checkImage, { pathList });
 
-export const exportPdf = ({ state, onProgress }) => callMain('export-pdf', { state, onProgress });
+export const exportPdf = (args) => callMain('export-pdf', args);
 
-export const saveProject = ({ state }) => callMain(eleActions.saveProject, { state: refreshCardStorage(state) });
+//export const saveProject = ({ state }) => callMain(eleActions.saveProject, { state: refreshCardStorage(state) });
+export const saveProject = (args) => callMain(eleActions.saveProject, args);
 
 export const openProject = () => callMain(eleActions.openProject, {
     properties: [],
@@ -170,12 +149,18 @@ export const callMain = (key, params = {}, transform = d => d) => new Promise((r
     ipcRenderer.off(progressKey, onMainProgress);
     ipcRenderer.off(returnKey, onDone);
     const newData = transform(data);
+    const resolveData = (rs) => {
+      if(data instanceof Uint8Array) {
+        resolve(new TextDecoder().decode(rs))
+      }
+      resolve(rs);
+    }
     if (isPromise(newData)) {
       newData.then(nd => {
-        resolve(nd);
+        resolveData(nd);
       });
     } else {
-      resolve(newData);
+      resolveData(newData);
     }
   };
   ipcRenderer.on(returnKey, onDone);

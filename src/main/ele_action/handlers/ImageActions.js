@@ -3,8 +3,10 @@ import fs from 'fs';
 
 import { readCompressedImage } from '../functions';
 import { eleActions } from '../../../public/constants';
-import { ImageStorage } from './pdf/Utils';
+import { ImageStorage, OverviewStorage } from './pdf/Utils';
+import Store from 'electron-store';
 
+const store = new Store();
 const ImageStorageLoadingJobs = {
 
 }
@@ -12,20 +14,32 @@ const pendingList = new Set();
 export const getPendingList = () => pendingList;
 
 const pathToImageData = async (path, cb) => {
+  const { Config } = store.get() || {};
+  const cardWidth = Config.cardWidth;
+  const compressLevel = Config.compressLevel || 2;
+  const compressParamsList = [
+    { maxWidth : cardWidth * 15, quality : 100},
+    { maxWidth : cardWidth * 12, quality : 90},
+    { maxWidth : cardWidth * 9, quality : 80},
+    { maxWidth : cardWidth * 6, quality : 70},
+  ]
+
   const ext = path.split('.').pop();
   const imagePathKey = path.replaceAll('\\','');
   const { mtime } = fs.statSync(path);
   const returnObj = { path, mtime: mtime.getTime() }
+
   if(!Object.keys(ImageStorage).includes(imagePathKey) && !pendingList.has(imagePathKey)) {
     pendingList.add(imagePathKey);
     ImageStorageLoadingJobs[path] = async() => {
-      ImageStorage[imagePathKey] = await readCompressedImage(path, { format: ext });
+      ImageStorage[imagePathKey] = await readCompressedImage(path, { format: ext, ...compressParamsList[compressLevel - 1] });
       pendingList.delete(imagePathKey);
       delete ImageStorageLoadingJobs[path];
     }
     ImageStorageLoadingJobs[path]();
   }
   returnObj.overviewData = await readCompressedImage(path, { maxWidth: 100 });
+  OverviewStorage[imagePathKey] = returnObj.overviewData;
   cb && cb();
   return returnObj;
 }
@@ -33,10 +47,16 @@ const pathToImageData = async (path, cb) => {
 export default (mainWindow) => {
   ipcMain.on(eleActions.getImageContent, async (event, args) => {
     const { path, returnChannel } = args;
+    const { Config } = store.get() || {};
+    const cardWidth = Config.cardWidth;
+
+    const ext = path.split('.').pop();
     const imagePathKey = path.replaceAll('\\','');
     await pathToImageData(path);
     const imageData = ImageStorage[imagePathKey];
-    mainWindow.webContents.send(returnChannel, imageData);
+    const buffer = Buffer.from(imageData.split(',')[1], 'base64');
+    const newData = await readCompressedImage(buffer, { format: ext, maxWidth : cardWidth * 2, quality : 60 })
+    mainWindow.webContents.send(returnChannel, Buffer.from(newData));
   });
   ipcMain.on(eleActions.getImagePath, async (event, args) => {
     const { properties = [], returnChannel } = args;
@@ -93,10 +113,11 @@ export default (mainWindow) => {
     })
     mainWindow.webContents.send(args.returnChannel, invalidImages);
   });
-  ipcMain.on('reload-local-image', async (event, args) => {
-    const { returnChannel, progressChannel } = args;
-    const state = JSON.parse(JSON.stringify(args.state));
-    const { Config, CardList, OverviewStorage } = state;
+  ipcMain.on(eleActions.reloadLocalImage, async (event, args) => {
+    const { CardList, globalBackground, returnChannel, progressChannel } = args;
+    const { Config } = store.get() || {};
+    Config.globalBackground = globalBackground;
+
     const reloadImageJobs = [];
     const newOverviewStorage = {};
     Object.keys(ImageStorage).forEach(k => {
@@ -116,6 +137,7 @@ export default (mainWindow) => {
             cb && cb(mtime.getTime())
             const {overviewData} = await pathToImageData(path);
             newOverviewStorage[imagePathKey] = overviewData;
+            OverviewStorage[imagePathKey] = overviewData;
             currentCound++;
             mainWindow.webContents.send(progressChannel, currentCound / totalCount);
           })());

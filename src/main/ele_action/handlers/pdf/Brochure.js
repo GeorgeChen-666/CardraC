@@ -1,7 +1,10 @@
 import { fixFloat, getLocateByCenterBase, ImageStorage } from './Utils';
+import Store from 'electron-store';
 
+const store = new Store();
 const getPagedImageListByCardList = (state) => {
-  const { CardList, Config } = state;
+  const { CardList } = state;
+  const { Config } = store.get() || {};
   const { brochureRepeatPerPage } = Config;
   let repeatCardList = CardList;
 
@@ -50,8 +53,8 @@ const getPagedImageListByCardList = (state) => {
   return pagedImageList;
 };
 
-const drawPageElements = async (doc, pageData, state, cb) => {
-  const { Config } = state;
+const drawPageElements = async (doc, pageData, { globalBackground }, cb) => {
+  const { Config } = store.get() || {};
   const hc = Config.columns * 2;
   const vc = Config.rows;
   const scale = fixFloat(Config.scale / 100);
@@ -99,7 +102,7 @@ const drawPageElements = async (doc, pageData, state, cb) => {
       }
 
       const cardIndex = yy * hc + xx;
-      const image = imageList?.[cardIndex] || (type === 'back' ? Config.globalBackground : {path: '_emptyImg'});
+      const image = imageList?.[cardIndex] || (type === 'back' ? globalBackground : {path: '_emptyImg'});
       const imageX = (cx - hc / 2) * maxWidthSplited / 2 + (cx % 2 === 0? (maxWidthSplited / 2 - imageW) : 0);
       const imageY = (cy - vc / 2) * maxHeightSplited + (maxHeightSplited - imageH) / 2;
 
@@ -212,10 +215,11 @@ const drawPageElements = async (doc, pageData, state, cb) => {
   }
 };
 const drawPageNumber = async (doc, state, pageIndex, totalPages) => {
-  if(!state.Config.showPageNumber) {
+  const { Config } = store.get() || {};
+  if(!Config.showPageNumber) {
     return;
   }
-  const { Config } = state;
+
   const { brochureRepeatPerPage } = Config;
   const scale = fixFloat(Config.scale / 100);
   const maxWidth = fixFloat(doc.getPageWidth(0));
@@ -238,6 +242,7 @@ const drawPageNumber = async (doc, state, pageIndex, totalPages) => {
     }
   }
 }
+
 export const drawPdfBrochure = async (doc, state, onProgress) => {
   const pagedImageList = getPagedImageListByCardList(state);
   let currentPage = 0;

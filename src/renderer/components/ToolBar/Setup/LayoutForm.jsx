@@ -20,6 +20,7 @@ export const LayoutForm = () => {
       'globalBackground',
       'autoConfigFlip',
       'showPageNumber',
+      'compressLevel',
       'flip'
     ])
   ), shallowEqual);
@@ -92,7 +93,20 @@ export const LayoutForm = () => {
         }}>{t('configDialog.edit')}</Link>
       </Stack>)}
     </Control>)}
-
+    <Control label={t('configDialog.compressLevel')}>
+      <Select value={Config.compressLevel} width={'80px'} mr={3} onChange={(event) => {
+        const newLevel = parseInt(event.target.value);
+        if (newLevel) {
+          dispatch(Actions.ConfigEdit({ compressLevel:newLevel }));
+        }
+      }}>
+        <option value={1}>{t('configDialog.compressLevelOption', {lv:1})}</option>
+        <option value={2}>{t('configDialog.compressLevelOption', {lv:2})}</option>
+        <option value={3}>{t('configDialog.compressLevelOption', {lv:3})}</option>
+        <option value={4}>{t('configDialog.compressLevelOption', {lv:4})}</option>
+      </Select>
+      {t('configDialog.compressLevelDes')}
+    </Control>
     <Control label={t('configDialog.pageNumber')}>
       <Checkbox isChecked={Config.showPageNumber} onChange={(e,d) => {
         dispatch(Actions.ConfigEdit({ showPageNumber: e.target.checked }));

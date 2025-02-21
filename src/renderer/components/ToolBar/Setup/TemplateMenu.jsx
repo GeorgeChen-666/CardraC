@@ -29,7 +29,13 @@ import {
   AiOutlineEdit,
   AiOutlineSave,
 } from 'react-icons/ai';
-import { deleteTemplate, editTemplate, getTemplate, setTemplate } from '../../../functions';
+import {
+  deleteTemplate,
+  editTemplate,
+  getTemplate,
+  notificationSuccess,
+  setTemplate,
+} from '../../../functions';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { Actions } from '../../../store';
 import { useTranslation } from 'react-i18next';
@@ -61,7 +67,7 @@ const EditableControls = forwardRef(({id, state, defaultMenuLabel}, ref) => {
             await editTemplate({templateName: state.menuLabel, id})
           }
           else {
-            await setTemplate({templateName: state.menuLabel, Config})
+            await setTemplate({templateName: state.menuLabel})
           }
           state.setMenuLabel(defaultMenuLabel);
           getSubmitButtonProps().onClick(e);
@@ -85,6 +91,7 @@ const TemplateMenuItem = ({ setEditingId, item, saveButtonRef }) => {
   const { onOpen, onClose, isOpen } = useDisclosure();
   return (<MenuItem as={Flex} justifyContent={'space-between'} onClick={() => {
     dispatch(Actions.ConfigEdit(item.Config));
+    notificationSuccess();
   }}>
     <Text fontSize='sm' marginRight={'10px'}>{item.TemplateName}</Text>
     <div>

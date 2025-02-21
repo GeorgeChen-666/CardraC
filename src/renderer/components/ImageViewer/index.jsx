@@ -1,5 +1,5 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
-import { Box, Image } from '@chakra-ui/react';
+import { Box, Image, Spinner } from '@chakra-ui/react';
 import './styles.css';
 import { callMain } from '../../functions';
 import { eleActions } from '../../../public/constants';
@@ -12,6 +12,7 @@ export const ImageViewer = forwardRef((props, ref) => {
       'isShowOverView'
     ])
   ), shallowEqual);
+  const [frame, setFrame] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [path, setPath] = useState('');
   const [loading, setLoading] = useState(false);
@@ -45,9 +46,12 @@ export const ImageViewer = forwardRef((props, ref) => {
     }
     else if (!Object.keys(ImageStorage).includes(imageKey)) {
       (async () => {
-        ImageStorage[imageKey] = await callMain(eleActions.getImageContent, { path });
+        ImageStorage[imageKey] = await callMain(eleActions.getImageContent, { path, returnChannel: `${eleActions.getImageContent}-done-${new Date().getTime()}` });
         setLoading(false);
+        setFrame(frame + 1);
       })();
+    } else {
+      setLoading(false);
     }
   }, [imageKey]);
   const leaveMouse = (e) => {
@@ -73,11 +77,11 @@ export const ImageViewer = forwardRef((props, ref) => {
       opacity={opacity}
       style={getBoxStyle()}
     >
-      {loading}
-      <Image className={'CardImage'}
-             src={ImageStorage[imageKey]}
+      {loading && (<Spinner />)}
+      {!loading && (<Image key={frame} className={'CardImage'}
+                           src={ImageStorage[imageKey]}
+      />)}
 
-      />
     </Box>);
   } else {
     return <></>;

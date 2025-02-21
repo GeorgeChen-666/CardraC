@@ -1,11 +1,33 @@
 import { dialog, ipcMain } from 'electron';
 import { eleActions } from '../../../public/constants';
 import _ from 'lodash';
-import { saveDataToFile } from '../functions';
+import { readFileToData, saveDataToFile } from '../functions';
 import fs from 'fs';
-import { defaultImageStorage, ImageStorage } from './pdf/Utils';
+import { defaultImageStorage, ImageStorage, OverviewStorage } from './pdf/Utils';
+import Store from 'electron-store';
 
+const store = new Store();
 
+const refreshCardStorage = (CardList) => {
+  const { Config } = store.get() || {};
+
+  const usedImagePath = new Set();
+  CardList.forEach(card => {
+    const {face,back} = card;
+    const facePathKey  = face?.path.replaceAll('\\','');
+    const backPathKey  = back?.path.replaceAll('\\','');
+    usedImagePath.add(facePathKey);
+    usedImagePath.add(backPathKey);
+  });
+
+  if(Config.globalBackground?.path) {
+    const globalBackPathKey = Config.globalBackground?.path?.replaceAll('\\','');
+    usedImagePath.add(globalBackPathKey);
+  }
+
+  Object.keys(OverviewStorage).filter(key=> !usedImagePath.has(key)).forEach(key => delete OverviewStorage[key]);
+  Object.keys(ImageStorage).filter(key=> !usedImagePath.has(key)).forEach(key => delete ImageStorage[key]);
+}
 const loadCpnpFile = (filePath, { onProgress, onFinish, onError }) => {
   const { size } = fs.statSync(filePath);
   const readStream = fs.createReadStream(filePath);
@@ -42,6 +64,15 @@ const loadCpnpFile = (filePath, { onProgress, onFinish, onError }) => {
       if(projectJson.Config.globalBackground?.path === '_emptyImg') {
         projectJson.Config.globalBackground = null;
       }
+
+      Object.keys(OverviewStorage).forEach(key => {
+        if(!Object.keys(projectJson.OverviewStorage).includes(key)) {
+          delete OverviewStorage[key];
+        }
+      });
+      Object.keys(projectJson.OverviewStorage).forEach(key => {
+        OverviewStorage[key] = projectJson.OverviewStorage[key];
+      });
       projectJson.CardList.forEach(c => {
         if(c.face?.path === '_emptyImg') {
           c.face = null;
@@ -85,31 +116,29 @@ export default (mainWindow) => {
   }
 
   ipcMain.on(eleActions.saveProject, async (event, args) => {
-    const { state, returnChannel } = args;
-    let projectPath = state.Global.projectPath;
-    if(projectPath === '') {
-      const result = await dialog.showSaveDialog(mainWindow,{
-        title: 'Save Project',
-        defaultPath: 'myProject.cpnp',
-        filters: [
-          { name: 'Project file', extensions: ['cpnp'] }
-        ]
-      });
-      if (result.canceled) { return; }
-      else {
-        projectPath = result.filePath;
-      }
-    }
-    const projectData = _.pick(state, ['Config', 'CardList']);
+    const { CardList, globalBackground, returnChannel } = args;
+    const result = await dialog.showSaveDialog(mainWindow,{
+      title: 'Save Project',
+      defaultPath: 'myProject.cpnp',
+      filters: [
+        { name: 'Project file', extensions: ['cpnp'] }
+      ]
+    });
+    if (result.canceled) { return; }
+    const projectPath = result.filePath;
+    const { Config } = store.get() || {};
+    Config.globalBackground = globalBackground;
+    const projectData = { Config, CardList };
 
     const imageStorageKeys = Object.keys(ImageStorage);
     imageStorageKeys.forEach(key => {
-      if(!Object.keys(state.OverviewStorage).includes(key) && key !== '_emptyImg') {
+      if(!Object.keys(OverviewStorage).includes(key) && key !== '_emptyImg') {
         delete ImageStorage[key];
       }
     })
+    refreshCardStorage(CardList);
     try {
-      await saveDataToFile({ ...projectData, ImageStorage, OverviewStorage: state.OverviewStorage }, projectPath);
+      await saveDataToFile({ ...projectData, ImageStorage, OverviewStorage }, projectPath);
     }
     catch (e) {
       mainWindow.webContents.send('notification', {

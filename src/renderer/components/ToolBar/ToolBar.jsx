@@ -32,7 +32,7 @@ import { Actions, initialState, loading, store } from '../../store';
 import {
   exportPdf,
   getImageSrc,
-  getNotificationTrigger,
+  getNotificationTrigger, notificationSuccess,
   openImage,
   openMultiImage,
   openProject,
@@ -50,7 +50,6 @@ import _ from 'lodash';
 
 
 export const ToolBar = () => {
-  const toast = getNotificationTrigger();
   const { t } = useTranslation();
   const dialogSetupRef = useRef(null);
   const dialogReloadRef = useRef(null);
@@ -72,12 +71,6 @@ export const ToolBar = () => {
   ), shallowEqual);
   const [repeat, setRepeat] = useState(1);
   const dispatch = useDispatch();
-  const messageSuccess = () => toast({
-    description: t('util.success'),
-    status: 'success',
-    duration: 9000,
-    isClosable: true,
-  });
   return (
     <>
       <div className={'ToolBar'}>
@@ -104,21 +97,14 @@ export const ToolBar = () => {
             label={t('toolbar.btnReloadImage')}
             icon={<AiOutlineReload size={'30'} />}
             onClick={() => dialogReloadRef.current?.openDialog()}
-            // onClick={() => loading(async () => {
-            //   //await reloadImageFromFile(store.getState().pnp);
-            //   const stateData = await reloadLocalImage({ state: store.getState().pnp });
-            //   if(stateData) {
-            //     dispatch(Actions.StateFill(stateData));
-            //   }
-            //   messageSuccess();
-            // })}
           />
           <GeneralButton
             label={t('toolbar.btnSave')}
             icon={<AiFillSave size={'30'} />}
             onClick={async () => {
-              await saveProject({ state: store.getState().pnp });
-              messageSuccess();
+              const { CardList } = store.getState().pnp;
+              await saveProject({ globalBackground: Config.globalBackground, CardList });
+              notificationSuccess();
             }}
           />
           <LangSelectButton label={t('toolbar.btnConfig')} />
@@ -131,8 +117,9 @@ export const ToolBar = () => {
             label={t('toolbar.btnExport')}
             icon={<MdPictureAsPdf size={'30'} />}
             onClick={() => loading(async () => {
-              const isSuccess = await exportPdf({ state: store.getState().pnp });
-              isSuccess && messageSuccess();
+              const { CardList } = store.getState().pnp;
+              const isSuccess = await exportPdf({ globalBackground: Config.globalBackground, CardList });
+              isSuccess && notificationSuccess();
             })}
           />
           {Config.sides === 'double sides' && <GeneralButton
@@ -219,7 +206,7 @@ export const ToolBar = () => {
           </Menu>
           <FormControl display='ruby'>
             <FormLabel>
-              显示预览
+              {t('toolbar.lblShowOverviewWindow')}
             </FormLabel>
             <Switch size={'lg'} isChecked={Global.isShowOverView} onChange={(e) => {
               dispatch(Actions.GlobalEdit({ isShowOverView: e.target.checked }));

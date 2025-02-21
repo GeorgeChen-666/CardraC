@@ -32,6 +32,7 @@
       "menuSwap": "交换 卡面/卡背",
       "duplidate": "复制"
     },
+    "lblShowOverviewWindow": "显示预览",
     "btnAbout": "关于"
   },
   "cardEditor": {
@@ -94,7 +95,10 @@
     "brochureRepeatPerPage": "在每页中重复",
     "reloadImageFinish": "加载完成！",
     "saveCurrentConfig": "保存当前配置",
-    "clickMenuLoadConfig": "点击菜单项加载模板"
+    "clickMenuLoadConfig": "点击菜单项加载模板",
+    "compressLevel": "压缩等级",
+    "compressLevelOption": "{{lv}}级",
+    "compressLevelDes": "变更后需重新加载图像"
   },
   "footer": {
     "files": "文件数",

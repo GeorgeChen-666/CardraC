@@ -34,6 +34,7 @@ export const initialState = Object.freeze({
     flip: flipWay.longEdgeBinding,
     cardWidth: 63,
     cardHeight: 88,
+    compressLevel: 2,
     marginX: 3,
     marginY: 3,
     foldInHalfMargin: 0,

@@ -3,6 +3,7 @@ export const defaultImageStorage = {
     '12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg=='
 }
 export const ImageStorage = { ...defaultImageStorage};
+export const OverviewStorage = { ...defaultImageStorage};
 
 export const fixFloat = num => parseFloat(num.toFixed(2));
 
