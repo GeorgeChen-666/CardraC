@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -35,6 +35,7 @@ import { useDispatch } from 'react-redux';
 
 export const ReloadDialog = forwardRef(({}, ref) => {
   const { t } = useTranslation();
+  const cancelCallbackRef = useRef();
   const [reloadProgress, setReloadProgress] = useState(0);
   const dispatch = useDispatch();
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -177,14 +178,20 @@ export const ReloadDialog = forwardRef(({}, ref) => {
             const stateData = await reloadLocalImage({
               globalBackground: Config.globalBackground,
               CardList,
-              onProgress: setReloadProgress
+              onProgress: setReloadProgress,
+              cancelCallback: (cancelReload) => {
+                cancelCallbackRef.current = cancelReload;
+              }
             });
-            if(stateData) {
-              dispatch(Actions.StateFill(stateData));
+            if(stateData && !stateData.isAborted) {
+              dispatch(Actions.StateFill({...stateData, CardList, Config}));
               setReloadProgress(1);
             }
           }}>{t('button.next')}</Button>)}
-          <Button variant='ghost' onClick={onClose}>{t('button.close')}</Button>
+          <Button variant='ghost' onClick={() => {
+            cancelCallbackRef.current?.();
+            onClose();
+          }}>{t('button.close')}</Button>
         </ModalFooter>
       </ModalContent>
     </Modal>

@@ -106,7 +106,6 @@ export default (mainWindow) => {
       catch (e) {
         invalidImages.push(path);
       }
-
     }
     pathList.forEach(path => {
       checkImagePath(path);
@@ -114,7 +113,7 @@ export default (mainWindow) => {
     mainWindow.webContents.send(args.returnChannel, invalidImages);
   });
   ipcMain.on(eleActions.reloadLocalImage, async (event, args) => {
-    const { CardList, globalBackground, returnChannel, progressChannel } = args;
+    const { CardList, globalBackground, returnChannel, progressChannel, cancelChannel } = args;
     const { Config } = store.get() || {};
     Config.globalBackground = globalBackground;
 
@@ -123,8 +122,14 @@ export default (mainWindow) => {
     Object.keys(ImageStorage).forEach(k => {
       delete ImageStorage[k];
     })
+
+    let isTerminated = false;
+    cancelChannel && ipcMain.once(cancelChannel, () => {
+      isTerminated = true;
+    });
+
     let totalCount = 0;
-    let currentCound = 0;
+    let currentCount = 0;
     const reloadImage = (args, cb) => {
       if(!args) return false;
       const { path, mtime: cardMtime} = args;
@@ -134,12 +139,15 @@ export default (mainWindow) => {
         if(cardMtime !== mtime.getTime() || !Object.keys(ImageStorage).includes(imagePathKey)) {
           totalCount++;
           reloadImageJobs.push((async()=>{
-            cb && cb(mtime.getTime())
+            if (isTerminated) return;
+            cb && cb(mtime.getTime());
+            if (isTerminated) return;
             const {overviewData} = await pathToImageData(path);
+            if (isTerminated) return;
             newOverviewStorage[imagePathKey] = overviewData;
             OverviewStorage[imagePathKey] = overviewData;
-            currentCound++;
-            mainWindow.webContents.send(progressChannel, currentCound / totalCount);
+            currentCount++;
+            mainWindow.webContents.send(progressChannel, currentCount / totalCount);
           })());
           return true;
         }
@@ -152,6 +160,7 @@ export default (mainWindow) => {
       return false;
     }
     CardList.forEach((card, index) => {
+
       reloadImage(card.face, newMtime => {
         CardList[index].face.mtime = newMtime;
         delete CardList[index].id;
@@ -165,7 +174,14 @@ export default (mainWindow) => {
       Config.globalBackground.mtime = newMtime;
     });
     await Promise.all(reloadImageJobs);
-    mainWindow.webContents.send(progressChannel, 1);
-    mainWindow.webContents.send(returnChannel, {...state, OverviewStorage: newOverviewStorage});
+
+    if (isTerminated) {
+      mainWindow.webContents.send(returnChannel, {
+        isAborted: true
+      });
+    } else {
+      mainWindow.webContents.send(progressChannel, 1);
+      mainWindow.webContents.send(returnChannel, {OverviewStorage: newOverviewStorage});
+    }
   });
 }
