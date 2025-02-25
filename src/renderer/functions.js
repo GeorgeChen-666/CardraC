@@ -119,9 +119,17 @@ export const deleteTemplate = (args) => callMain('delete-template', { ...args })
 export const version = () => callMain('version');
 
 export const callMain = (key, params = {}, transform = d => d) => new Promise((resolve) => {
-  const { returnChannel, onProgress, progressChannel, ...restParams } = params;
+  const { returnChannel, onProgress, progressChannel, cancelCallback, ...restParams } = params;
   const returnKey = returnChannel || `${key}-done`;
   const progressKey = progressChannel || `${key}-progress`;
+  const cancelKey = `${key}-cancel`;
+
+  cancelCallback && cancelCallback(() => {
+    ipcRenderer.off(progressKey, onMainProgress);
+    ipcRenderer.off(returnKey, onDone);
+    ipcRenderer.send(cancelKey);
+    onMainProgress(null, 0);
+  });
   if(restParams.state) {
     restParams.state = JSON.parse(JSON.stringify(restParams.state));
   }
