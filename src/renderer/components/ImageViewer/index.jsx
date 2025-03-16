@@ -1,10 +1,11 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { Box, Image, Spinner } from '@chakra-ui/react';
 import './styles.css';
 import { callMain } from '../../functions';
 import { eleActions } from '../../../public/constants';
 import { shallowEqual, useSelector } from 'react-redux';
 import _ from 'lodash';
+import { waitTime } from '../../../public/functions';
 
 export const ImageViewer = forwardRef((props, ref) => {
   const Global = useSelector((state) => (
@@ -13,6 +14,8 @@ export const ImageViewer = forwardRef((props, ref) => {
     ])
   ), shallowEqual);
   const [frame, setFrame] = useState(0);
+  const framePlus1 = useRef(() => {});
+  framePlus1.current = useCallback(() => setFrame(frame + 1), [frame, setFrame]);
   const [isOpen, setIsOpen] = useState(false);
   const [path, setPath] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,10 +30,14 @@ export const ImageViewer = forwardRef((props, ref) => {
   }
   const { ImageStorage } = window;
   useImperativeHandle(ref, () => ({
-    update: (path = '') => {
+    close: () => {
+      setIsOpen(false);
+      setPath('');
+    },
+    update: async (path = '') => {
       if(Global.isShowOverView) {
-        setIsOpen(true);
         setPath(path);
+        setIsOpen(true);
       } else {
         setIsOpen(false);
         setPath('');
@@ -47,13 +54,18 @@ export const ImageViewer = forwardRef((props, ref) => {
     else if (!Object.keys(ImageStorage).includes(imageKey)) {
       (async () => {
         ImageStorage[imageKey] = await callMain(eleActions.getImageContent, { path, returnChannel: `${eleActions.getImageContent}-done-${new Date().getTime()}` });
-        setLoading(false);
-        setFrame(frame + 1);
+        await waitTime(100)
+        framePlus1.current?.();
       })();
-    } else {
-      setLoading(false);
     }
   }, [imageKey]);
+  const hasGotImageData = !!ImageStorage[imageKey];
+  useEffect(() => {
+    if(hasGotImageData) {
+      setLoading(false);
+      framePlus1.current?.();
+    }
+  }, [hasGotImageData]);
   const leaveMouse = (e) => {
     let [x, y] = loc.split(',');
     const rect = e.target.getBoundingClientRect();

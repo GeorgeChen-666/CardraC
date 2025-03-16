@@ -119,7 +119,8 @@ const drawPageElements = async (doc, pageData, { globalBackground }, cb) => {
       doc.setDrawColor(cutlineColor);
 
       const dashMarks = new Set();
-      if(cx % 2 === (type === 'face' ? 1 : 0)) {
+      if(cx % 2 === 1) {
+        let [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc);
         dashMarks.add(`${imageXc},${yy * maxHeightSplited}-${imageXc},${imageYc + bleedY}`);
         dashMarks.add(`${imageXc},${imageYc + imageH - bleedY}-${imageXc},${(yy + 1) * maxHeightSplited}`);
       }
