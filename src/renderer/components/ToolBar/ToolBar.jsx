@@ -130,6 +130,7 @@ export const ToolBar = () => {
               onMouseOver={() => {
                 imageViewerRef.current.update(Config.globalBackground?.path);
               }}
+              onMouseLeave={() => imageViewerRef.current?.close?.()}
             />}
             onClick={() => loading(async () => {
               const filePath = await openImage('setGlobalBack');

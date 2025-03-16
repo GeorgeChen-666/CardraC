@@ -149,6 +149,7 @@ export default memo(({ data, index }) => {
                onMouseOver={() => {
                  imageViewerRef.current.update(data?.face?.path);
                }}
+               onMouseLeave={() => imageViewerRef.current?.close?.()}
                src={faceUrl}
                 />
         {[layoutSides.doubleSides, layoutSides.foldInHalf].includes(Config.sides) && (
@@ -157,6 +158,7 @@ export default memo(({ data, index }) => {
                  onMouseOver={() => {
                    imageViewerRef.current.update(data?.back?.path);
                  }}
+                 onMouseLeave={() => imageViewerRef.current?.close?.()}
                  src={backUrl}
                  
           />

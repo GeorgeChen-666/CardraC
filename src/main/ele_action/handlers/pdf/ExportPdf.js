@@ -2,8 +2,9 @@ import { layoutSides } from '../../../../public/constants';
 import { drawPdfNormal } from './Normal';
 import { drawPdfBrochure } from './Brochure';
 import { getPendingList } from '../ImageActions';
-import { waitCondition } from '../../functions';
+
 import Store from 'electron-store';
+import { waitCondition } from '../../../../public/functions';
 
 const { jsPDF } = require('jspdf');
 
