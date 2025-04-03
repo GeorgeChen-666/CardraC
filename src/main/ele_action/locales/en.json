@@ -1,6 +1,8 @@
 {
   "util": {
     "invalidFile": "Invalid File !",
+    "invalidConfig": "Invalid Config File !",
+    "invalidConfigOptions": "Found invalid config value, already auto-fix them!",
     "noData": "No Data",
     "operating": "Operating...",
     "operationFailed": "Operation Failed.",

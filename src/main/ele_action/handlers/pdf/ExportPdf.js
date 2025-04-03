@@ -2,17 +2,14 @@ import { layoutSides } from '../../../../public/constants';
 import { drawPdfNormal } from './Normal';
 import { drawPdfBrochure } from './Brochure';
 import { getPendingList } from '../ImageActions';
-
-import Store from 'electron-store';
 import { waitCondition } from '../../../../public/functions';
+import { getConfigStore } from '../../functions';
 
 const { jsPDF } = require('jspdf');
 
-const store = new Store();
-
 export const exportPdf = async (state, onProgress) => {
   await waitCondition(() => getPendingList().size() === 0);
-  const { Config } = store.get() || {};
+  const { Config } = getConfigStore();
   const format = (Config.pageSize.split(':')[0]).toLowerCase();
   const orientation = Config.landscape ? 'landscape' : 'portrait';
   const doc = new jsPDF({ format, orientation, compress: true });

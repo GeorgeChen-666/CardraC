@@ -3,15 +3,68 @@ import { configureStore, createSlice } from '@reduxjs/toolkit';
 import _ from 'lodash';
 import logger from 'redux-logger';
 import { Provider } from 'react-redux';
-import { fillByObjectValue, loadConfig, onOpenProjectFile, saveConfig } from './functions';
+import { fillByObjectValue, loadConfig, onOpenProjectFile, saveConfig, triggerNotification } from './functions';
 import { i18nInstance } from './i18n';
 import { flipWay, layoutSides } from '../public/constants';
+import * as yup from 'yup';
+
+const stateSchema = yup.object({
+  Global: yup.object({
+    currentLang: yup.string().required(),
+    isShowOverView: yup.boolean().required(),
+    availableLangs: yup.array().of(yup.string()).notRequired(),
+    isLoading: yup.boolean().notRequired(),
+    loadingText: yup.string().notRequired(),
+    isInProgress: yup.boolean().notRequired(),
+    progress: yup.number().notRequired(),
+    lastSelection: yup.object().notRequired(),
+    isBackEditing: yup.boolean().notRequired(),
+    selections: yup.array().of(yup.object()).notRequired(),
+  }).required(),
+  Config: yup.object({
+    pageSize: yup.string().required(), //'A4:210,297',
+    pageWidth: yup.number().min(1).required(), //210,
+    pageHeight: yup.number().min(1).required(), //297,
+    scale: yup.number().min(1).required(), //100,
+    offsetX: yup.number().required(), //0,
+    offsetY: yup.number().required(), //0,
+    landscape: yup.boolean().required(), //true,
+    sides: yup.string().oneOf([
+      layoutSides.oneSide,
+      layoutSides.doubleSides,
+      layoutSides.foldInHalf,
+      layoutSides.brochure]).required(), //layoutSides.doubleSides,
+    autoConfigFlip: yup.boolean().required(), //true,
+    flip: yup.string().oneOf([
+      flipWay.longEdgeBinding,
+      flipWay.shortEdgeBinding]).required(), //flipWay.longEdgeBinding,
+    cardWidth: yup.number().min(1).required(), //63,
+    cardHeight: yup.number().min(1).required(), //88,
+    compressLevel: yup.number().min(0).max(4).required(), //2,
+    marginX: yup.number().min(0).required(), //3,
+    marginY: yup.number().min(0).required(), //3,
+    foldInHalfMargin: yup.number().min(0).required(), //0,
+    bleedX: yup.number().min(0).required(), //1,
+    bleedY: yup.number().min(0).required(), //1,
+    columns: yup.number().min(1).required(), //4,
+    rows: yup.number().min(1).required(), //2,
+    autoColumnsRows: yup.boolean().required(), //true,
+    fCutLine: yup.string().oneOf(['1', '2', '3']).required(), //'1',
+    bCutLine: yup.string().oneOf(['1', '2', '3']).required(), //'1',
+    lineWeight: yup.number().min(0).required(), //0.5,
+    cutlineColor: yup.string().required(), //'#000000',
+    globalBackground: yup.object().notRequired(), //null,
+    marginFilling: yup.boolean().notRequired(), //false,
+    avoidDislocation: yup.boolean().notRequired(), //false,
+    brochureRepeatPerPage: yup.boolean().notRequired(), //false,
+  }).required(),
+  CardList: yup.array().of(yup.object()).notRequired()
+});
 
 export const initialState = Object.freeze({
   Global: {
     availableLangs: [],
     currentLang: 'zh',
-    projectPath: '',
     isLoading: false,
     loadingText: '',
     isInProgress: false,
@@ -223,7 +276,31 @@ export const loading = async (cb,text= i18nInstance.t('util.operating')) => {
     store.dispatch(Actions.GlobalEdit({isLoading: false, isInProgress:false, loadingText: ''}));
   }
 }
-const config = await loadConfig();
-store.dispatch(Actions.GlobalEdit({...config.Global}));
-store.dispatch(Actions.ConfigEdit({...config.Config}));
+
+let config = await loadConfig();
+i18nInstance.init({
+  supportedLngs: config.Global.availableLangs.length === 0 ? [config.Global.currentLang] : config.Global.availableLangs,
+  lng: config.Global.currentLang,
+  resources:
+    config.Global.availableLangs.map(lang => ({
+      [lang]: { translation: config.Global.locales[lang] }
+    })).reduce((l1, l2) => Object.assign(l1, l2), {}),
+});
+try {
+  await stateSchema.validate(config,{ abortEarly: false });
+} catch (e) {
+  e.inner.forEach(err => {
+    _.set(config, err.path, _.get(initialState, err.path));
+  })
+  triggerNotification({
+    description: i18nInstance.t('util.invalidConfigOptions'),
+    status: 'warning',
+    duration: 9000,
+    isClosable: true,
+  });
+} finally {
+  store.dispatch(Actions.GlobalEdit({...config.Global}));
+  store.dispatch(Actions.ConfigEdit({...config.Config}));
+}
+
 onOpenProjectFile(store.dispatch, Actions)

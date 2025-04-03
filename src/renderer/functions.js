@@ -37,10 +37,19 @@ export const fillByObjectValue = (source, value) => {
   }
 };
 
-let triggerNotification = () => {};
+let notificationList = [];
+export let triggerNotification = (args) => {
+  notificationList.push(args);
+};
 export const getNotificationTrigger = () => triggerNotification
 export const regNotification = (cb) => {
   triggerNotification = cb;
+  if(notificationList.length > 0) {
+    notificationList.forEach(arg => {
+      cb(arg);
+    });
+    notificationList = [];
+  }
 }
 
 export const notificationSuccess = () => triggerNotification({

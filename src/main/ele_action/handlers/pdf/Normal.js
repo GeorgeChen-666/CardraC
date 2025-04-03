@@ -1,9 +1,7 @@
-import { getBorderAverageColors } from '../../functions';
+import { getBorderAverageColors, getConfigStore } from '../../functions';
 import { layoutSides } from '../../../../public/constants';
 import { fixFloat, getLocateByCenterBase, ImageStorage } from './Utils';
-import Store from 'electron-store';
 
-const store = new Store();
 const imageAverageColorSet = new Map();
 const loadImageAverageColor = async () => {
   imageAverageColorSet.clear();
@@ -25,7 +23,7 @@ const loadImageAverageColor = async () => {
 
 
 const getPagedImageListByCardList = ({ CardList, globalBackground }) => {
-  const { Config } = store.get() || {};
+  const { Config } = getConfigStore();
   const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
   let repeatCardList = CardList.reduce((arr, cv) => arr.concat(new Array(cv.repeat).fill(cv)), []);
 
@@ -50,7 +48,7 @@ const getPagedImageListByCardList = ({ CardList, globalBackground }) => {
   return pagedImageList;
 };
 const drawPageElements = async (doc, pageData, state, cb) => {
-  const { Config } = store.get() || {};
+  const { Config } = getConfigStore();
   const hc = Config.columns;
   const vc = Config.rows;
   const scale = fixFloat(Config.scale / 100);
@@ -264,7 +262,7 @@ const drawPageElements = async (doc, pageData, state, cb) => {
   }
 };
 const drawPageNumber = async (doc, state, pageIndex, totalPages) => {
-  const { Config } = store.get() || {};
+  const { Config } = getConfigStore();
   if(!Config.showPageNumber) {
     return;
   }
@@ -273,7 +271,7 @@ const drawPageNumber = async (doc, state, pageIndex, totalPages) => {
 }
 
 export const drawPdfNormal = async (doc, state, onProgress) => {
-  const { Config } = store.get() || {};
+  const { Config } = getConfigStore();
   const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
   const pagedImageList = getPagedImageListByCardList(state);
   let currentImageNumber = 0;
