@@ -1,4 +1,6 @@
 import sharp from 'sharp';
+import Store from 'electron-store';
+import path from 'path';
 
 const fs = require('fs');
 
@@ -136,5 +138,33 @@ export const base64ToBuffer = (base64Data) => {
   return decodedString;
 };
 
+let store = null;
+export const updateConfigStore = (value) => {
+  getConfigStore();
+  store.set(value);
+}
+export const initConfigStore = async () => {
+  return new Promise((resolve, reject) => {
+    try {
+      if (!config) {
+        store = new Store();
+        resolve();
+      }
+    } catch (e) {
+      //APPDATA npm_package_name process
+      const {APPDATA, npm_package_name} = process.env;
+      const configPath = path.join(APPDATA, npm_package_name, 'config.json');
+      fs.unlink(configPath, () => {
+        store = new Store();
+        resolve();
+      });
+    }
+  })
+}
+
+export const getConfigStore = () => {
+
+  return store.get() || {};
+}
 
 

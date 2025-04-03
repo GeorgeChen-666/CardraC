@@ -1,6 +1,8 @@
 {
   "util": {
     "invalidFile": "文件损坏！",
+    "invalidConfig": "配置文件损坏！",
+    "invalidConfigOptions": "发现非法的配置项，已将相关配置项修复！",
     "noData": "无数据",
     "operating": "操作中。。。",
     "operationFailed": "操作失败。",

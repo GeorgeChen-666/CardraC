@@ -1,15 +1,12 @@
 import { dialog, ipcMain } from 'electron';
 import { eleActions } from '../../../public/constants';
-import _ from 'lodash';
-import { readFileToData, saveDataToFile } from '../functions';
+import { getConfigStore, saveDataToFile } from '../functions';
 import fs from 'fs';
 import { defaultImageStorage, ImageStorage, OverviewStorage } from './pdf/Utils';
-import Store from 'electron-store';
 
-const store = new Store();
 
 const refreshCardStorage = (CardList) => {
-  const { Config } = store.get() || {};
+  const { Config } = getConfigStore();
 
   const usedImagePath = new Set();
   CardList.forEach(card => {
@@ -126,7 +123,7 @@ export default (mainWindow) => {
     });
     if (result.canceled) { return; }
     const projectPath = result.filePath;
-    const { Config } = store.get() || {};
+    const { Config } = getConfigStore();
     Config.globalBackground = globalBackground;
     const projectData = { Config, CardList };
 

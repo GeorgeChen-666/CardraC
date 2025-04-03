@@ -1,12 +1,10 @@
 import { dialog, ipcMain } from 'electron';
 import fs from 'fs';
 
-import { readCompressedImage } from '../functions';
+import { getConfigStore, readCompressedImage } from '../functions';
 import { eleActions } from '../../../public/constants';
 import { ImageStorage, OverviewStorage } from './pdf/Utils';
-import Store from 'electron-store';
 
-const store = new Store();
 const ImageStorageLoadingJobs = {
 
 }
@@ -14,7 +12,7 @@ const pendingList = new Set();
 export const getPendingList = () => pendingList;
 
 const pathToImageData = async (path, cb) => {
-  const { Config } = store.get() || {};
+  const { Config } = getConfigStore();
   const cardWidth = Config.cardWidth;
   const compressLevel = Config.compressLevel || 2;
   const compressParamsList = [
@@ -47,7 +45,7 @@ const pathToImageData = async (path, cb) => {
 export default (mainWindow) => {
   ipcMain.on(eleActions.getImageContent, async (event, args) => {
     const { path, returnChannel } = args;
-    const { Config } = store.get() || {};
+    const { Config } = getConfigStore();
     const cardWidth = Config.cardWidth;
 
     const ext = path.split('.').pop();
@@ -114,7 +112,7 @@ export default (mainWindow) => {
   });
   ipcMain.on(eleActions.reloadLocalImage, async (event, args) => {
     const { CardList, globalBackground, returnChannel, progressChannel, cancelChannel } = args;
-    const { Config } = store.get() || {};
+    const { Config } = getConfigStore();
     Config.globalBackground = globalBackground;
 
     const reloadImageJobs = [];
