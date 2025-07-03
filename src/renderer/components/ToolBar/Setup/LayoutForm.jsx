@@ -93,6 +93,7 @@ export const LayoutForm = () => {
         }}>{t('configDialog.edit')}</Link>
       </Stack>)}
     </Control>)}
+
     <Control label={t('configDialog.compressLevel')}>
       <Select value={Config.compressLevel} width={'80px'} mr={3} onChange={(event) => {
         const newLevel = parseInt(event.target.value);
