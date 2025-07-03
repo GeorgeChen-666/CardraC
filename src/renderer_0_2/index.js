@@ -1,7 +1,7 @@
 import { ColorModeScript } from '@chakra-ui/react';
 import React from 'react';
 import * as ReactDOM from 'react-dom/client';
-import { } from './State/store';
+import './State/store';
 import { defaultTheme } from './Theme/default';
 import IconToolbar from './Parts/Toolbar';
 import { ThemeProvider } from '@mui/material';

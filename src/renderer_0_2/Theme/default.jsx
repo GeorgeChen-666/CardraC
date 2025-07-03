@@ -86,6 +86,12 @@ export const defaultTheme = createTheme({
           '&:hover:not(.Mui-disabled) .MuiOutlinedInput-notchedOutline': {
             borderColor: '#fff',
           },
+          '.MuiSvgIcon-root': {
+            color: borderColor,
+          },
+          '&.Mui-disabled .MuiSvgIcon-root': {
+            color: '#323337'
+          }
         },
         input: {
           // padding: '4px 12px',

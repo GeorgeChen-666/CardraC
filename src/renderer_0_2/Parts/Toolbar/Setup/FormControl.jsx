@@ -33,6 +33,9 @@ export const FormControl = (({
     {type === ControlType.NumberInput &&
       <TextField sx={{ width }} label={label} type='number' size='small' disabled={disabled}
                 slotProps={{
+                    inputLabel: {
+                      shrink: true,
+                    },
                     htmlInput: {
                       step: step ?? decimal ? 0.1 : 1,
                       min: min ?? 0,
@@ -50,6 +53,11 @@ export const FormControl = (({
     {type === ControlType.Select &&
       <TextField
         disabled={disabled}
+        slotProps={{
+          inputLabel: {
+            shrink: true,
+          },
+        }}
         sx={{ width }} label={label} select size='small'
         onChange={onChange || (e => mergeConfig({ [attrKey]: e.target.value }))}
         {...restProps}
