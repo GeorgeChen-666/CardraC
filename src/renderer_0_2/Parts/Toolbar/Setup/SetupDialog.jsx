@@ -10,6 +10,7 @@ import { ConfigOverview } from './ConfigOverview';
 import { LayoutForm } from './LayoutForm';
 import './styles.css';
 import { CardForm } from './CardForm';
+import { MarkFrom } from './MarkFrom';
 
 const CustomTabPanel = ({ children, value, index }) => (
   <div
@@ -64,7 +65,7 @@ export const SetupDialog = forwardRef(({},ref) => {
           <CardForm />
         </CustomTabPanel>
         <CustomTabPanel value={value} index={2}>
-          Item Three
+          <MarkFrom />
         </CustomTabPanel>
       </Box>
     </DialogContent>

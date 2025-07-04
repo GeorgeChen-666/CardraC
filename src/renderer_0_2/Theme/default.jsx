@@ -73,6 +73,9 @@ export const defaultTheme = createTheme({
         root: {
           '& .MuiSvgIcon-root': {
             color: borderColor,
+          },
+          '&.Mui-checked .MuiSvgIcon-root': {
+            color: '#fff',
           }
         }
       }

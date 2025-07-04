@@ -170,6 +170,7 @@ function createSelectors(storeHook) {
 useStore.setState({
   selectors: createSelectors(useStore)
 })
+
 // export const useStore = Object.assign(useStoreBase, {
 //   selectors: createSelectors(useStoreBase)
 // });
