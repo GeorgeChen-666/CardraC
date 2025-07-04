@@ -7,7 +7,7 @@ import { flipWay, layoutSides } from '../../../../public/constants';
 
 export const LayoutForm = () => {
   const { t } = useTranslation();
-  const { selectors: { Config }, mergeConfig } = useStore();
+  const { selectors: { Config }, mergeConfig } = useStore.getState();
 
   return (<div className={'FormPanel'}>
     <FormControl label={t('configDialog.size')} width={'260px'} attrKey={'pageSize'} type={ControlType.Select} items={[
@@ -20,15 +20,14 @@ export const LayoutForm = () => {
     ]}>
       <FormControl label={t('configDialog.landscape')} attrKey={'landscape'} type={ControlType.Checkbox}></FormControl>
     </FormControl>
-    <FormControl label={t('configDialog.pageWidthHeight')} width={'145px'} attrKey={'pageWidth'}
-                 type={ControlType.NumberInput} min={-9999}>
-      <FormControl width={'145px'} attrKey={'pageHeight'} type={ControlType.NumberInput} min={-9999}>
+    <FormControl label={t('configDialog.pageWidthHeight')} width={'145px'} attrKey={'pageWidth'} min={0}
+                 type={ControlType.NumberInput}>
+      <FormControl width={'145px'} attrKey={'pageHeight'} type={ControlType.NumberInput} min={0}>
         mm
       </FormControl>
     </FormControl>
-    <FormControl label={t('configDialog.offsetXY')} width={'145px'} attrKey={'offsetX'} type={ControlType.NumberInput} decimal
-                 min={-9999}>
-      <FormControl width={'145px'} attrKey={'offsetY'} type={ControlType.NumberInput} decimal min={-9999}>
+    <FormControl label={t('configDialog.offsetXY')} width={'145px'} attrKey={'offsetX'} type={ControlType.NumberInput}>
+      <FormControl width={'145px'} attrKey={'offsetY'} type={ControlType.NumberInput}>
         mm
       </FormControl>
     </FormControl>

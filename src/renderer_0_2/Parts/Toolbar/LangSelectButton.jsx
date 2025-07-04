@@ -17,7 +17,8 @@ export const LangSelectButton = ({ label }) => {
   const handleClose = () => {
     setAnchorEl(null);
   };
-  const { selectors, mergeGlobal } = useStore();
+
+  const { selectors, mergeGlobal } = useStore.getState();
   const { Global } = selectors;
   const availableLangs = Global.availableLangs();
   const currentLang = Global.currentLang();

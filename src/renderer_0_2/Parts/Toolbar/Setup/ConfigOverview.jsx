@@ -4,7 +4,7 @@ import { useStore } from '../../../State/store';
 
 
 export const ConfigOverview = () => {
-  const { selectors } = useStore();
+  const { selectors } = useStore.getState();
   const Config = selectors.Config
   const foldInHalfMargin = Config.foldInHalfMargin();
   const pageWidth = Config.pageWidth();
