@@ -46,7 +46,7 @@ export const SetupDialog = forwardRef(({},ref) => {
     <DialogTitle id="alert-dialog-title">
       {t('configDialog.setup')}:
     </DialogTitle>
-    <DialogContent>
+    <DialogContent sx={{height: '450px'}}>
       <ConfigOverview />
       <Box
         sx={{ flexGrow: 1, display: 'flex' }}

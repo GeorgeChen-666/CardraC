@@ -8,7 +8,6 @@ import { useStore } from '../../State/store';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 
 export const LangSelectButton = ({ label }) => {
-  console.log('render', new Date().getTime());
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   const handleClick = (event) => {
@@ -18,7 +17,7 @@ export const LangSelectButton = ({ label }) => {
     setAnchorEl(null);
   };
 
-  const { selectors, mergeGlobal } = useStore.getState();
+  const { selectors, mergeGlobal, mergeState } = useStore.getState();
   const { Global } = selectors;
   const availableLangs = Global.availableLangs();
   const currentLang = Global.currentLang();
@@ -31,8 +30,6 @@ export const LangSelectButton = ({ label }) => {
       <img style={{ height: '21px' }} src={getResourcesPath(`/public/language-icons/${currentLang}.svg`)} />
     </Button>
     <Menu
-      id="demo-positioned-menu"
-      aria-labelledby="demo-positioned-button"
       anchorEl={anchorEl}
       open={open}
       onClose={handleClose}

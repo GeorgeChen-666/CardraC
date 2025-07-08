@@ -3,12 +3,12 @@ import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 
 
-export const GeneralIconButton = ({label, icon, onClick, ...rest}) => {
+export const GeneralIconButton = ({label, icon, onClick,size= 'medium', ...rest}) => {
   return (
       <Tooltip title={label}>
         <IconButton
           color="inherit"
-          size="medium"
+          size={size}
           onClick={onClick}
           {...rest}
         >

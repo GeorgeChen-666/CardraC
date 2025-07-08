@@ -2,7 +2,6 @@ import { ipcRenderer } from 'electron';
 import { eleActions } from '../public/constants';
 // import { Actions, store } from './store';
 import { i18nInstance } from './i18n';
-import { useStore } from './State/store'
 import { triggerNotification } from './Parts/Notification';
 
 export const emptyImg = {
@@ -133,7 +132,6 @@ export const callMain = (key, params = {}, transform = d => d) => new Promise((r
   });
 
   const onMainProgress = ($, value) => {
-    console.log(useStore.getState())
     if(onProgress) {
       onProgress(value);
     }
@@ -167,3 +165,27 @@ export const callMain = (key, params = {}, transform = d => d) => new Promise((r
   };
   ipcRenderer.on(returnKey, onDone);
 });
+
+function isPlainObject(obj) {
+  return typeof obj === 'object' && obj !== null && !Array.isArray(obj);
+}
+
+/**
+ * 深度不可变合并，数组或对象的任意子字段引用变化时，父级对象/数组也会新建引用
+ */
+export function immutableMerge(oldVal, newVal) {
+  if (Array.isArray(oldVal) && Array.isArray(newVal)) {
+    // 新数组直接返回
+    return newVal;
+  }
+  if (isPlainObject(oldVal) && isPlainObject(newVal)) {
+    // 对象递归合并
+    const result = { ...oldVal };
+    for (const key of Object.keys(newVal)) {
+      result[key] = immutableMerge(oldVal[key], newVal[key]);
+    }
+    return result;
+  }
+  // 其它类型直接替换
+  return newVal;
+}

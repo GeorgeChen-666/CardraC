@@ -1,13 +1,16 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useToast } from '@chakra-ui/react';
+import { SnackbarProvider, useSnackbar } from 'notistack';
 import { i18nInstance } from '../i18n';
 
 let notificationList = [];
 export let triggerNotification = (args) => {
   notificationList.push(args);
 };
+
 export const getNotificationTrigger = () => triggerNotification
+
+window.triggerNotification = getNotificationTrigger;
 export const regNotification = (cb) => {
   triggerNotification = cb;
   if(notificationList.length > 0) {
@@ -27,12 +30,13 @@ export const notificationSuccess = () => triggerNotification({
 
 export const Notification = () => {
   const { t } = useTranslation();
-  const toast = useToast();
-  regNotification(({msgKey, ...rest}) => toast({
-    description: msgKey ? t(msgKey) : '',
-    status: 'success',
-    duration: 9000,
-    isClosable: true,
+  const { enqueueSnackbar } = useSnackbar();
+  window.enqueueSnackbar = enqueueSnackbar;
+  regNotification(({msgKey, ...rest}) => enqueueSnackbar((msgKey ? t(msgKey) : ''),{
+    variant: 'success',
+    anchorOrigin: { horizontal: 'center', vertical: 'bottom' },
+    autoHideDuration: 3000,
+    // isClosable: true,
     ...rest
   }));
   return <></>

@@ -6,6 +6,7 @@ import MuiFormControl from '@mui/material/FormControl';
 import FormLabel from '@mui/material/FormLabel';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
+import { NumberInput } from '../../../Componments/NumberInput';
 
 export const ControlType = Object.freeze({
   NumberInput: 'NumberInput',
@@ -14,23 +15,6 @@ export const ControlType = Object.freeze({
   RadioGroup: 'RadioGroup',
   ColorPicker: 'ColorPicker',
 });
-
-const getNumber = (value, defaultValue, min, max) => {
-  if(isNaN(value)) {
-    return defaultValue;
-  }
-  const newValue = parseFloat(value);
-  if(newValue<min) {
-    return min;
-  }
-  if(newValue > max) {
-    return max;
-  }
-  if(newValue === -0) {
-    return 0;
-  }
-  return newValue;
-}
 
 export const FormControl = (({
                                children,
@@ -47,13 +31,10 @@ export const FormControl = (({
                              }) => {
   const { selectors, mergeConfig } = useStore();
   const fieldValue = selectors.Config[attrKey]();
-  const [localValue, setLocalValue] = useState(fieldValue);
-  useEffect(() => {
-    setLocalValue(fieldValue);
-  }, [fieldValue]);
+
   return (<div className={'FormControl'}>
     {type === ControlType.ColorPicker &&
-      <TextField sx={{ width }} label={label} type='color' size='small' disabled={disabled} value={localValue}
+      <TextField sx={{ width }} label={label} type='color' size='small' disabled={disabled} value={fieldValue}
         onChange={onChange || (e => mergeConfig({ [attrKey]: e.target.value }))}
       />}
     {type === ControlType.RadioGroup && <MuiFormControl>
@@ -72,38 +53,12 @@ export const FormControl = (({
                   onChange={onChange || (e => mergeConfig({ [attrKey]: e.target.checked }))} />}
       />}
     {type === ControlType.NumberInput &&
-      <TextField sx={{ width }} label={label} type='number' size='small' disabled={disabled}
-                 slotProps={{
-                   inputLabel: {
-                     shrink: true,
-                   },
-                   htmlInput: {
-                     step: step ?? ((fieldValue % 1 > 0) ? 0.1 : 1),
-                     min,
-                     max,
-                     ...restProps.inputProps,
-                   },
-                 }}
-                 {...restProps}
-                 onBlur={e => {
-                   const fixedNumber = getNumber(e.target.value, fieldValue, min, max);
-                   if(fixedNumber !== fieldValue) {
-                     e.target.value = fixedNumber;
-                     mergeConfig({ [attrKey]: fixedNumber });
-                   }
-                 }}
-                 onChange={onChange || (e => {
-                   // console.log(fieldValue, e.nativeEvent.inputType, e.target.value);
-                   setLocalValue(e.target.value)
-                   if(!e.nativeEvent.inputType) { // up and down
-                     const fixedNumber = getNumber(e.target.value, fieldValue, min, max);
-                     if(fixedNumber !== fieldValue) {
-                       e.target.value = fixedNumber;
-                       mergeConfig({ [attrKey]: fixedNumber });
-                     }
-                   }
-                 })}
-                 value={localValue} />}
+      <NumberInput value={fieldValue} min={min} max={max}
+                   step={step ?? ((fieldValue % 1 > 0) ? 0.1 : 1)}
+                   width={width} label={label} disabled={disabled}
+                   onChange={onChange || ((e, v) => mergeConfig({ [attrKey]: v }))}
+                   {...restProps}
+      />}
     {type === ControlType.Select &&
       <TextField
         disabled={disabled}

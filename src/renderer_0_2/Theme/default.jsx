@@ -12,6 +12,20 @@ const mainBorder = {
 
 export const defaultTheme = createTheme({
   components: {
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          backgroundColor: 'rgba(115,115,115,.6)'
+        }
+      }
+    },
+    MuiSvgIcon: {
+      styleOverrides: {
+        root: {
+          color: '#fff',
+        }
+      }
+    },
     MuiDialog: {
       styleOverrides: {
         paper: {

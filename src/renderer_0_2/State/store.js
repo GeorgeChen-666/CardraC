@@ -1,12 +1,12 @@
 import * as yup from 'yup';
 import { eleActions, flipWay, layoutSides } from '../../public/constants';
 import { create } from 'zustand';
-import { loadConfig, regUpdateProgress, callMain } from '../functions';
+import { loadConfig, regUpdateProgress, callMain, immutableMerge, openMultiImage, saveConfig } from '../functions';
 import _ from 'lodash';
-import { initI18n } from '../i18n';
+import { i18nInstance, initI18n } from '../i18n';
 import { actionLogger } from './logger';
 import { triggerNotification } from '../Parts/Notification';
-import { i18nInstance } from '../../renderer/i18n';
+import { shallow } from 'zustand/shallow';
 
 const stateSchema = yup.object({
   Global: yup.object({
@@ -110,24 +110,46 @@ export const initialState = Object.freeze({
 window.OverviewStorage = {};
 window.ImageStorage = {};
 
-const middlewares = (args) => actionLogger(args);
+
+const middlewares = (args) => actionLogger(args, ({ action, params, prev, next }) => {
+  if (typeof window !== 'undefined' && window.console) {
+    console.groupCollapsed(`[Zustand Action] ${action}`, ...params);
+    console.log('Prev state:', prev);
+    console.log('Next state:', next);
+    console.groupEnd();
+  }
+});
 
 const mergeStateFn = (state, newState, path = '') => {
   if (path) {
-    return _.merge({ ...state }, _.set({}, path, newState));
+    const [first, ...rest] = path.split('.');
+    if (!first) return immutableMerge(state, newState);
+    return {
+      ...state,
+      [first]: mergeStateFn(state[first], newState, rest.join('.'))
+    };
   }
-  return _.merge({ ...state }, newState);
+  return immutableMerge(state, newState);
 };
 
 export const useStore = create(middlewares((set, get) => ({
   ...initialState,
   fillState: set,
-  mergeState: (newState, path = '') =>
-    set(state => mergeStateFn(state, newState, path)),
-  mergeGlobal: (newState) =>
-    set(state => mergeStateFn(state, newState, 'Global')),
-  mergeConfig: (newState) =>
-    set(state => mergeStateFn(state, newState, 'Config')),
+  mergeState: (newState, path = '') => {
+    const newStateData = mergeStateFn(get(), newState, path);
+    set(() => newStateData)
+    // callMain(eleActions.saveConfig, {state: newStateData});
+  },
+  mergeGlobal: (newState) => {
+    const newStateData = mergeStateFn(get(), newState, 'Global');
+    set(() => newStateData)
+    // callMain(eleActions.saveConfig, {state: newStateData});
+  },
+  mergeConfig: (newState) => {
+    const newStateData = mergeStateFn(get(), newState, 'Config');
+    set(() => newStateData)
+    // callMain(eleActions.saveConfig, {state: newStateData});
+  },
   loading: async (cb,text = i18nInstance.t('util.operating')) => {
     try {
       get().mergeGlobal({ isLoading: true, loadingText: text });
@@ -146,9 +168,53 @@ export const useStore = create(middlewares((set, get) => ({
   openProject:() => {
     get().loading(async () => {
       const projectData = await callMain(eleActions.openProject);
-      get().mergeState(projectData);
+      if(projectData) {
+        if(projectData?.OverviewStorage) {
+          window.OverviewStorage = projectData.OverviewStorage;
+          delete projectData.OverviewStorage;
+        }
+        delete projectData?.ImageStorage;
+        get().mergeState(projectData);
+      }
     })
-  }
+  },
+  openImage: (cb) => {
+    get().loading(async () => {
+      // const imageData = await openMultiImage('CardAddByFaces');
+      // cb && cb(imageData);
+    })
+  },
+  addCard: (images) => {
+    set(state => {
+      state.CardList = state.CardList.concat(images.map(p => ({
+        id: crypto.randomUUID(),
+        face: p,
+        back: null,
+        repeat: 1,
+      })));
+      return state;
+    })
+  },
+  cardEditById: (newState) =>
+    set(state => {
+      const { id, ...restNewState } = newState;
+      const card = state.CardList.find(c => c.id === id);
+      if (card) {
+        const newCardList = state.CardList.map(c => {
+          if (c.id === id) {
+            return { ...c, ...restNewState };
+          }
+          return c;
+        });
+        return { ...state, CardList: newCardList };
+      }
+        return state;
+      }),
+  cardRemoveByIds: (ids) =>
+    set(state => {
+      state.CardList = state.CardList.filter(c => !ids.includes(c.id));
+      return state;
+    })
 })));
 
 function createSelectors(storeHook) {
@@ -162,7 +228,7 @@ function createSelectors(storeHook) {
         return path.reduce((obj, key) => {
           return (obj !== undefined && obj !== null) ? obj[key] : undefined;
         }, state);
-      });
+      }, shallow);
     }
   });
   return createProxy();
@@ -187,12 +253,12 @@ try {
     _.set(config, err.path, _.get(initialState, err.path));
   })
   triggerNotification({
-    description: i18nInstance.t('util.invalidConfigOptions'),
-    status: 'warning',
-    duration: 9000,
-    isClosable: true,
+    msgKey: 'util.invalidConfigOptions',
+    variant: 'warning',
   });
 } finally {
-  state.fillState(_.pick(config, ['Global','Config']));
+  const newStateData = _.pick(config, ['Global','Config']);
+  state.fillState(newStateData);
+  callMain(eleActions.saveConfig, {state: newStateData});
   regUpdateProgress(state.progress);
 }

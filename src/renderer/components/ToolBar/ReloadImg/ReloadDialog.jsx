@@ -185,6 +185,8 @@ export const ReloadDialog = forwardRef(({}, ref) => {
             });
             if(stateData && !stateData.isAborted) {
               dispatch(Actions.StateFill({...stateData, CardList, Config}));
+              delete window.OverviewStorage;
+              delete window.ImageStorage;
               setReloadProgress(1);
             }
           }}>{t('button.next')}</Button>)}

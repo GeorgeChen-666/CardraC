@@ -8,6 +8,8 @@ import { ThemeProvider } from '@mui/material';
 import './global.css'
 import "toastr";
 import { Notification } from './Parts/Notification';
+import { CardList } from './Parts/Card/CardList';
+import { SnackbarProvider } from 'notistack';
 
 const container = document.getElementById('root');
 const root = ReactDOM.createRoot(container);
@@ -15,8 +17,11 @@ const root = ReactDOM.createRoot(container);
 //StrictMode
 root.render(
   <ThemeProvider theme={defaultTheme}>
-    <Notification />
-    <IconToolbar />
+    <SnackbarProvider>
+      <Notification />
+      <IconToolbar />
+      <CardList />
+    </SnackbarProvider>
   </ThemeProvider>
 );
 
