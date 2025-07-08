@@ -5,9 +5,7 @@ import fs from 'fs';
 import { defaultImageStorage, ImageStorage, OverviewStorage } from './pdf/Utils';
 
 
-const refreshCardStorage = (CardList) => {
-  const { Config } = getConfigStore();
-
+const refreshCardStorage = (CardList, globalBackground) => {
   const usedImagePath = new Set();
   CardList.forEach(card => {
     const {face,back} = card;
@@ -17,8 +15,8 @@ const refreshCardStorage = (CardList) => {
     usedImagePath.add(backPathKey);
   });
 
-  if(Config.globalBackground?.path) {
-    const globalBackPathKey = Config.globalBackground?.path?.replaceAll('\\','');
+  if(globalBackground?.path) {
+    const globalBackPathKey = globalBackground?.path?.replaceAll('\\','');
     usedImagePath.add(globalBackPathKey);
   }
 
@@ -133,7 +131,7 @@ export default (mainWindow) => {
         delete ImageStorage[key];
       }
     })
-    refreshCardStorage(CardList);
+    refreshCardStorage(CardList, globalBackground);
     try {
       await saveDataToFile({ ...projectData, ImageStorage, OverviewStorage }, projectPath);
     }
