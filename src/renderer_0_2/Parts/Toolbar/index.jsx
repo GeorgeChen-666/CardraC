@@ -14,8 +14,10 @@ import { useStore, initialState } from '../../State/store';
 import { LangSelectButton } from './LangSelectButton';
 import { AboutDialog } from './About/AboutDialog';
 import { SetupDialog } from './Setup/SetupDialog';
+import { ReloadDialog } from './ReloadImg/ReloadDialog';
 
 function IconToolbar() {
+  const dialogReloadRef = useRef(null);
   const dialogSetupRef = useRef(null);
   const dialogAboutRef = useRef(null);
   const { t } = useTranslation();
@@ -43,9 +45,7 @@ function IconToolbar() {
       <GeneralIconButton
         label={t('toolbar.btnReloadImage')}
         icon={<ReplayIcon />}
-        onClick={ () => mergeState({ Global: {
-            loadingText: new Date().getTime()
-          } }) }
+        onClick={ () => dialogReloadRef.current.openDialog() }
       />
       <GeneralIconButton
         label={t('toolbar.btnSave')}
@@ -78,6 +78,7 @@ function IconToolbar() {
         }}
       />
       <SetupDialog ref={dialogSetupRef} />
+      <ReloadDialog ref={dialogReloadRef} />
       <AboutDialog ref={dialogAboutRef} />
     </Box>
   );

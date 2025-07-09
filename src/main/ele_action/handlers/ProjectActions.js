@@ -34,7 +34,8 @@ const loadCpnpFile = (filePath, { onProgress, onFinish, onError }) => {
 
   readStream.on('end', () => {
     try {
-      const imageStorageRegexp = new RegExp(/"ImageStorage":( )?\{(".*?")?\}(,)?/g);
+      const regexPattern = '"ImageStorage"\\s*:\\s*\\{(?:[^\\{\\}]*|\\{[^\\{\\}]*\\})*\\}';
+      const imageStorageRegexp = new RegExp(regexPattern, 'g');
       let [imageStorageString= ''] = resultString.match(imageStorageRegexp) || [];
       if(imageStorageString.endsWith(',')) {
         imageStorageString = imageStorageString.substring(0, imageStorageString.length - 1);
