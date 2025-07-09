@@ -51,7 +51,8 @@ const useMenuState = (items) => {
       onClose={onClose}
     >
       {items.map((option) => (
-        <MenuItem key={option.label} onClick={() => {
+        <MenuItem key={option.label} onClick={(e) => {
+          e.stopPropagation();
           option?.onClick?.();
           onClose();
         }}>
@@ -69,7 +70,7 @@ export default memo(({ data, index }) => {
     selectors: {
       Config, Global, CardList,
     },
-    cardEditById, cardRemoveByIds,mergeGlobal
+    cardEditById, cardRemoveByIds,mergeGlobal, cardSelect, cardShiftSelect, cardCtrlSelect, dragHoverMove, dragCardsMove
   } = useStore.getState();
   const sides = Config.sides();
   const selected = CardList[index].selected() || false;
@@ -102,11 +103,11 @@ export default memo(({ data, index }) => {
     accept: 'Card',
     hover({ id: draggedId }) {
       if (draggedId !== data.id) {
-        // dispatch(Actions.DragHoverMove({ to: index }));
+        dragHoverMove(index);
       }
     },
     drop: () => {
-      // dispatch(Actions.SelectedCardsMove());
+      dragCardsMove();
     },
   });
 
@@ -127,30 +128,32 @@ export default memo(({ data, index }) => {
     getImageSrc(data?.back),
   ];
   const onSelectCard =(event) => {
-    // if (event.target.nodeName === 'INPUT') return;
+    if (event.type === 'change' || event.target.nodeName.toLowerCase() === 'svg' || event.target.classList.contains('MuiBackdrop-root')) return;
     if (event.shiftKey) {
-      // dispatch(Actions.CardShiftSelect(data.id));
-    } else if (event.ctrlKey || event.target.nodeName === 'SPAN') {
-      // dispatch(Actions.CardCtrlSelect(data.id));
+      cardShiftSelect(data.id)
+    } else if (event.ctrlKey || event.target.type === 'checkbox') {
+      cardCtrlSelect(data.id)
     } else {
-      cardEditById({ id: data.id, selected: !selected });
-      mergeGlobal({lastSelection: selected ? null : data.id});
+      cardSelect(data.id);
     }
   };
   return (<Card ref={node => previewRef(dropRef(node))} sx={{ display: (isDragging ? 'none' : 'unset') }}
-                className={'Card'} onMouseUp={onSelectCard}>
+                className={'Card'} onClick={onSelectCard}>
     <div className={'CardBar'}>
       <GeneralIconButton
-        label={t('cardEditor.swap')}
+        // label={t('cardEditor.swap')}
         icon={<SwapHorizIcon fontSize={'small'} />}
         size={'small'}
-        onClick={() => cardEditById({ id: data.id, face: data.back, back: data.face })}
+        onClick={(e) => {
+          e.stopPropagation();
+          cardEditById({ id: data.id, face: data.back, back: data.face })
+        }}
       />
       <span ref={dragRef} className={'CardDragHandler'}
             onMouseDown={e => {
+              e.stopPropagation();
               if (!selected) {
-                cardEditById({ id: data.id, selected: !selected });
-                mergeGlobal({lastSelection: selected ? null : data.id});
+                // cardSelect(data.id);
               }
             }}
             onClick={e => e.stopPropagation()}
@@ -159,7 +162,7 @@ export default memo(({ data, index }) => {
         <DragIndicatorIcon fontSize={'small'} />
       </span>
       <GeneralIconButton
-        label={t('cardEditor.swap')}
+        // label={t('cardEditor.swap')}
         icon={<MoreHorizIcon fontSize={'small'} />}
         size={'small'}
         onClick={onOpen}
@@ -196,7 +199,7 @@ export default memo(({ data, index }) => {
           checked={selected}
           onChange={onSelectCard}
         />
-        <span>#{index + 1}</span>
+        <span>#{index + 1} {selected}</span>
       </div>
 
       {Config.sides !== layoutSides.brochure && (

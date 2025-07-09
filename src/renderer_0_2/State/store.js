@@ -5,7 +5,7 @@ import { loadConfig, regUpdateProgress, callMain, immutableMerge, openMultiImage
 import _ from 'lodash';
 import { i18nInstance, initI18n } from '../i18n';
 import { actionLogger } from './logger';
-import { triggerNotification } from '../Parts/Notification';
+import { notificationFailed, notificationSuccess, triggerNotification } from '../Parts/Notification';
 import { shallow } from 'zustand/shallow';
 
 const stateSchema = yup.object({
@@ -117,6 +117,10 @@ const middlewares = (args) => actionLogger(args, ({ action, params, prev, next }
     console.log('Prev state:', prev);
     console.log('Next state:', next);
     console.groupEnd();
+    const newStateData = _.pick(next, ['Config', 'Global']);
+    if(['mergeState','mergeConfig', 'mergeGlobal'].includes(action)) {
+      callMain(eleActions.saveConfig, {state: newStateData});
+    }
   }
 });
 
@@ -135,21 +139,12 @@ const mergeStateFn = (state, newState, path = '') => {
 export const useStore = create(middlewares((set, get) => ({
   ...initialState,
   fillState: set,
-  mergeState: (newState, path = '') => {
-    const newStateData = mergeStateFn(get(), newState, path);
-    set(() => newStateData)
-    // callMain(eleActions.saveConfig, {state: newStateData});
-  },
-  mergeGlobal: (newState) => {
-    const newStateData = mergeStateFn(get(), newState, 'Global');
-    set(() => newStateData)
-    // callMain(eleActions.saveConfig, {state: newStateData});
-  },
-  mergeConfig: (newState) => {
-    const newStateData = mergeStateFn(get(), newState, 'Config');
-    set(() => newStateData)
-    // callMain(eleActions.saveConfig, {state: newStateData});
-  },
+  mergeState: (newState, path = '') =>
+    set((state) => mergeStateFn(state, newState, path)),
+  mergeGlobal: (newState) =>
+    set((state) => mergeStateFn(state, newState, 'Global')),
+  mergeConfig: (newState) =>
+    set((state) => mergeStateFn(state, newState, 'Config')),
   loading: async (cb,text = i18nInstance.t('util.operating')) => {
     try {
       get().mergeGlobal({ isLoading: true, loadingText: text });
@@ -178,13 +173,25 @@ export const useStore = create(middlewares((set, get) => ({
       }
     })
   },
-  openImage: (cb) => {
+  saveProject: () => {
     get().loading(async () => {
-      // const imageData = await openMultiImage('CardAddByFaces');
-      // cb && cb(imageData);
+      const param = {globalBackground: get().Global.globalBackground, CardList: get().CardList};
+      await callMain(eleActions.saveProject, param);
+      notificationSuccess();
     })
   },
-  addCard: (images) => {
+  exportPdf: () => {
+    get().loading(async () => {
+      const param = {globalBackground: get().Global.globalBackground, CardList: get().CardList};
+      const isSuccess = await callMain(eleActions.exportPdf, param);
+      if(isSuccess) {
+        notificationSuccess();
+      } else {
+        notificationFailed();
+      }
+    })
+  },
+  cardAdd: (images) => {
     set(state => {
       state.CardList = state.CardList.concat(images.map(p => ({
         id: crypto.randomUUID(),
@@ -214,7 +221,92 @@ export const useStore = create(middlewares((set, get) => ({
     set(state => {
       state.CardList = state.CardList.filter(c => !ids.includes(c.id));
       return state;
+    }),
+  cardSelect: (selectedId) => {
+    set(state => {
+      const selection = state.CardList.filter(c => c.selected);
+      if (_.some(selection, { id: selectedId }) && selection.length === 1) {
+        selection.forEach(c => c.selected = false);
+        state.Global.lastSelection = null;
+      } else {
+        selection.forEach(c => c.selected = false);
+        const selectedCard = state.CardList.find(c => c.id === selectedId);
+        selectedCard && (selectedCard.selected = true);
+        state.Global.lastSelection = selectedId;
+      }
+      state.CardList = [...state.CardList];
+      return state;
     })
+  },
+  cardShiftSelect: (selectedId) => {
+    set(state => {
+      const lastSelection = state.Global.lastSelection;
+      const lastSelectionIndex = state.CardList.findIndex(c => c.id === lastSelection);
+      const currentSelectionIndex = state.CardList.findIndex(c => c.id === selectedId);
+      if (lastSelectionIndex + currentSelectionIndex > -1) {
+        state.CardList.forEach((c, i) => {
+          const ia = [lastSelectionIndex, currentSelectionIndex];
+          c.selected = i >= Math.min(...ia) && i <= Math.max(...ia);
+        });
+      } else {
+        state.CardList.forEach(c => c.selected = false);
+      }
+      state.CardList = [...state.CardList];
+      return state;
+    })
+  },
+  cardCtrlSelect: (selectedId) => {
+    set(state => {
+      const selectedCard = state.CardList.find(c => c.id === selectedId);
+      selectedCard.selected = !selectedCard.selected
+      return state;
+    })
+  },
+  dragHoverMove: (to) => {
+    set(state => {
+      const id = 'dragTarget';
+      const from = state.CardList.findIndex(c => c.id === id);
+      if(from !== -1) {
+        state.CardList.splice(from, 1);
+      }
+      state.CardList.splice(to, 0, { id });
+      state.CardList = [...state.CardList];
+      return state;
+    })
+  },
+  dragHoverCancel: () => {
+    set(state => {
+      const dragTargetId = 'dragTarget';
+      const targetIndex = state.CardList.findIndex(c => c.id === dragTargetId);
+      if(targetIndex !== -1) {
+        state.CardList.splice(targetIndex, 1);
+        state.CardList = [...state.CardList];
+      }
+      return state;
+    })
+  },
+  dragCardsMove: () => {
+    set(state => {
+      const dragTargetId = 'dragTarget';
+      const selection = state.CardList.filter(c => c.selected);
+      const orderedSelection = selection.toSorted((a, b) => {
+        return state.CardList.findIndex(c => c.id === b.id) - state.CardList.findIndex(c => c.id === a.id);
+      })
+      orderedSelection.forEach(c => {
+        state.CardList.splice(state.CardList.findIndex(cc => cc.id === c.id), 1)
+      });
+      const to = state.CardList.findIndex(c => c.id === dragTargetId);
+      orderedSelection.forEach((s, index) => {
+        state.CardList.splice(to, 0, s);
+      });
+      const targetIndex = state.CardList.findIndex(c => c.id === dragTargetId);
+      if(targetIndex !== -1) {
+        state.CardList.splice(targetIndex, 1);
+      }
+      state.CardList = [...state.CardList];
+      return state;
+    })
+  },
 })));
 
 function createSelectors(storeHook) {
@@ -236,10 +328,6 @@ function createSelectors(storeHook) {
 useStore.setState({
   selectors: createSelectors(useStore)
 })
-
-// export const useStore = Object.assign(useStoreBase, {
-//   selectors: createSelectors(useStoreBase)
-// });
 
 const state = useStore.getState();
 

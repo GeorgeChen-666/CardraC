@@ -22,21 +22,24 @@ export const regNotification = (cb) => {
 }
 
 export const notificationSuccess = () => triggerNotification({
-  description: i18nInstance.t('util.success'),
-  status: 'success',
-  duration: 9000,
-  isClosable: true,
+  msgKey: 'util.success',
+  variant: 'success',
+  autoHideDuration: 3000,
+});
+export const notificationFailed = () => triggerNotification({
+  msgKey: 'util.operationFailed',
+  variant: 'error',
+  autoHideDuration: 3000,
 });
 
 export const Notification = () => {
   const { t } = useTranslation();
   const { enqueueSnackbar } = useSnackbar();
   window.enqueueSnackbar = enqueueSnackbar;
-  regNotification(({msgKey, ...rest}) => enqueueSnackbar((msgKey ? t(msgKey) : ''),{
-    variant: 'success',
+  regNotification(({msgKey, variant, ...rest}) => enqueueSnackbar((msgKey ? t(msgKey) : ''),{
+    variant,
     anchorOrigin: { horizontal: 'center', vertical: 'bottom' },
     autoHideDuration: 3000,
-    // isClosable: true,
     ...rest
   }));
   return <></>

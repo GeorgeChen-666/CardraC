@@ -10,6 +10,7 @@ import "toastr";
 import { Notification } from './Parts/Notification';
 import { CardList } from './Parts/Card/CardList';
 import { SnackbarProvider } from 'notistack';
+import { LoadingModal } from './Parts/LoadingModal';
 
 const container = document.getElementById('root');
 const root = ReactDOM.createRoot(container);
@@ -18,6 +19,7 @@ const root = ReactDOM.createRoot(container);
 root.render(
   <ThemeProvider theme={defaultTheme}>
     <SnackbarProvider>
+      <LoadingModal />
       <Notification />
       <IconToolbar />
       <CardList />

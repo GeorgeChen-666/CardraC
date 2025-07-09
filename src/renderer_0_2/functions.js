@@ -175,8 +175,7 @@ function isPlainObject(obj) {
  */
 export function immutableMerge(oldVal, newVal) {
   if (Array.isArray(oldVal) && Array.isArray(newVal)) {
-    // 新数组直接返回
-    return newVal;
+    return oldVal !== newVal ? newVal : oldVal;
   }
   if (isPlainObject(oldVal) && isPlainObject(newVal)) {
     // 对象递归合并

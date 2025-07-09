@@ -19,9 +19,9 @@ function IconToolbar() {
   const dialogSetupRef = useRef(null);
   const dialogAboutRef = useRef(null);
   const { t } = useTranslation();
-  const fillState = useStore(state => state.fillState);
-  const mergeState = useStore(state => state.mergeState);
-  const openProject = useStore(state => state.openProject);
+  const {
+    saveProject, mergeState,openProject
+  } = useStore.getState();
   return (
     <Box
       sx={{
@@ -31,7 +31,7 @@ function IconToolbar() {
       <GeneralIconButton
         label={t('toolbar.btnAdd')}
         icon={<NoteAddIcon />}
-        onClick={ () => fillState(initialState) }
+        onClick={ () => mergeState({ Config: initialState.Config, CardList:[]}) }
       />
       <GeneralIconButton
         label={t('toolbar.btnOpen')}
@@ -50,7 +50,7 @@ function IconToolbar() {
       <GeneralIconButton
         label={t('toolbar.btnSave')}
         icon={<SaveIcon />}
-        // onClick={}
+        onClick={() => saveProject()}
       />
       <LangSelectButton label={t('toolbar.btnLang')} />
       <GeneralIconButton
@@ -68,7 +68,7 @@ function IconToolbar() {
       <GeneralIconButton
         label='GitHub'
         icon={<GitHubIcon />}
-        // onClick={}
+        onClick={() => window.open('https://github.com/GeorgeChen-666/CardraC')}
       />
       <GeneralIconButton
         label={t('toolbar.btnAbout')}
