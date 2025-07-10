@@ -69,7 +69,7 @@ export interface StoreState {
 
 // For Zustand hook
 export declare const useGlobalStore: {
-  (): StoreState;
+  (selectors?: (state: Partial<StoreState>) => void): StoreState;
   getState: () => StoreState;
   setState: (state: Partial<StoreState>, replace?: boolean) => void;
   subscribe: StoreApi<StoreState>['subscribe'];

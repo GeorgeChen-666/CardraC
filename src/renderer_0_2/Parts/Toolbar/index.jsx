@@ -15,15 +15,22 @@ import { LangSelectButton } from './LangSelectButton';
 import { AboutDialog } from './About/AboutDialog';
 import { SetupDialog } from './Setup/SetupDialog';
 import { ReloadDialog } from './ReloadImg/ReloadDialog';
+import { getImageSrc, openImage } from '../../functions';
+import { layoutSides } from '../../../public/constants';
+import { CompressSelectButton } from './CompressSelectButton';
 
 function IconToolbar() {
-  const dialogReloadRef = useRef(null);
+
   const dialogSetupRef = useRef(null);
   const dialogAboutRef = useRef(null);
   const { t } = useTranslation();
   const {
-    saveProject, mergeState,openProject
+    saveProject, mergeState,openProject, mergeConfig
   } = useGlobalStore.getState();
+  const {Config, CardList } = useGlobalStore.selectors;
+  const cardListLength = CardList().length;
+  const selectionLength = useGlobalStore(state => state.CardList.filter(c => c.selected).length);
+  console.log(selectionLength);
   return (
     <Box
       sx={{
@@ -42,15 +49,21 @@ function IconToolbar() {
           openProject();
         }}
       />
-      <GeneralIconButton
-        label={t('toolbar.btnReloadImage')}
-        icon={<ReplayIcon />}
-        onClick={ () => dialogReloadRef.current.openDialog() }
+      {/*<GeneralIconButton*/}
+      {/*  label={t('toolbar.btnReloadImage')}*/}
+      {/*  icon={<ReplayIcon />}*/}
+      {/*  onClick={ () => dialogReloadRef.current.openDialog() }*/}
+      {/*  disabled={cardListLength === 0}*/}
+      {/*/>*/}
+      <CompressSelectButton
+        label={t('toolbar.compressLevel')}
+        disabled={cardListLength === 0}
       />
+
       <GeneralIconButton
         label={t('toolbar.btnSave')}
         icon={<SaveIcon />}
-        onClick={() => saveProject()}
+        onClick={saveProject}
       />
       <LangSelectButton label={t('toolbar.btnLang')} />
       <GeneralIconButton
@@ -65,6 +78,16 @@ function IconToolbar() {
         icon={<PictureAsPdfIcon />}
         // onClick={}
       />
+      {Config.sides() === layoutSides.doubleSides && (
+        <GeneralIconButton
+          label={t('toolbar.btnGlobalBackground')}
+          icon={<img src={getImageSrc(Config.globalBackground())} width={'30px'} height={'30px'} alt='' />}
+          onClick={async () => {
+            const filePath = await openImage('setGlobalBack');
+            mergeConfig({ globalBackground: filePath });
+          }}
+        />
+      )}
       <GeneralIconButton
         label='GitHub'
         icon={<GitHubIcon />}
@@ -77,8 +100,11 @@ function IconToolbar() {
           dialogAboutRef.current.openDialog();
         }}
       />
+
+
+      <div style={{float:'right'}}>asdsadsa</div>
+
       <SetupDialog ref={dialogSetupRef} />
-      <ReloadDialog ref={dialogReloadRef} />
       <AboutDialog ref={dialogAboutRef} />
     </Box>
   );

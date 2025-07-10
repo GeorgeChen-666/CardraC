@@ -137,6 +137,18 @@ export const defaultTheme = createTheme({
         textColorPrimary: mainColor
       }
     },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          '& span': {
+            color: '#fff'
+          },
+          '&.Mui-disabled span, &.Mui-disabled .MuiButton-icon svg': {
+            color: '#999'
+          }
+        }
+      }
+    },
     MuiIconButton: {
       styleOverrides: {
         root: {
@@ -158,6 +170,9 @@ export const defaultTheme = createTheme({
           '&:hover': {
             backgroundColor: 'rgba(0, 0, 0, 0.08)',
             transform: 'scale(1.05)'
+          },
+          '&.Mui-disabled svg': {
+            color: '#999'
           }
         }
       }

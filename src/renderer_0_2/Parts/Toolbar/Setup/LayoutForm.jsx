@@ -67,15 +67,15 @@ export const LayoutForm = () => {
         }}>{t('configDialog.edit')}</Link>)}
       </FormControl>)
     }
-    <FormControl label={t('configDialog.compressLevel')} width={'145px'} attrKey={'compressLevel'}
-                 type={ControlType.Select} items={[
-      { label: t('configDialog.compressLevelOption', { lv: 1 }), value: 1 },
-      { label: t('configDialog.compressLevelOption', { lv: 2 }), value: 2 },
-      { label: t('configDialog.compressLevelOption', { lv: 3 }), value: 3 },
-      { label: t('configDialog.compressLevelOption', { lv: 4 }), value: 4 },
-    ]}>
-      {t('configDialog.compressLevelDes')}
-    </FormControl>
+    {/*<FormControl label={t('configDialog.compressLevel')} width={'145px'} attrKey={'compressLevel'}*/}
+    {/*             type={ControlType.Select} items={[*/}
+    {/*  { label: t('configDialog.compressLevelOption', { lv: 1 }), value: 1 },*/}
+    {/*  { label: t('configDialog.compressLevelOption', { lv: 2 }), value: 2 },*/}
+    {/*  { label: t('configDialog.compressLevelOption', { lv: 3 }), value: 3 },*/}
+    {/*  { label: t('configDialog.compressLevelOption', { lv: 4 }), value: 4 },*/}
+    {/*]}>*/}
+    {/*  {t('configDialog.compressLevelDes')}*/}
+    {/*</FormControl>*/}
     <FormControl label={t('configDialog.pageNumber')} attrKey={'pageNumber'} type={ControlType.Checkbox}></FormControl>
   </div>);
 };

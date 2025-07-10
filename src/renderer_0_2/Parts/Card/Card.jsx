@@ -153,7 +153,7 @@ export default memo(({ data, index }) => {
             onMouseDown={e => {
               e.stopPropagation();
               if (!selected) {
-                // cardSelect(data.id);
+                cardSelect(data.id);
               }
             }}
             onClick={e => e.stopPropagation()}

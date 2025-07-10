@@ -176,8 +176,8 @@ export const useGlobalStore = create(middlewares((set, get) => ({
   saveProject: () => {
     get().loading(async () => {
       const param = {globalBackground: get().Global.globalBackground, CardList: get().CardList};
-      await callMain(eleActions.saveProject, param);
-      notificationSuccess();
+      const rs = await callMain(eleActions.saveProject, param);
+      // rs && notificationSuccess();
     })
   },
   exportPdf: () => {

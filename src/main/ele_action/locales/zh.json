@@ -25,6 +25,7 @@
     "btnExport" : "导出pdf。",
     "btnGlobalBackground" : "全局默认背景图。",
     "lblSwitchView": "切换视图",
+    "compressLevel": "压缩等级",
     "btnReloadImage": "从图片文件重新加载图像（可能很慢...）",
     "bulkMenu": {
       "labelSelection": "选择项...",
@@ -99,10 +100,7 @@
     "brochureRepeatPerPage": "在每页中重复",
     "reloadImageFinish": "加载完成！",
     "saveCurrentConfig": "保存当前配置",
-    "clickMenuLoadConfig": "点击菜单项加载模板",
-    "compressLevel": "压缩等级",
-    "compressLevelOption": "{{lv}}级",
-    "compressLevelDes": "变更后需重新加载图像"
+    "clickMenuLoadConfig": "点击菜单项加载模板"
   },
   "footer": {
     "files": "文件数",

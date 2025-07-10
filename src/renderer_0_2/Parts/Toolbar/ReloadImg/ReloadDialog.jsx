@@ -2,7 +2,7 @@ import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useState } 
 import { DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
-import { styled } from '@mui/material/styles';
+import SearchIcon from '@mui/icons-material/Search';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -16,35 +16,29 @@ import { useTranslation } from 'react-i18next';
 import { eleActions } from '../../../../public/constants';
 import { callMain } from '../../../functions';
 import { useGlobalStore } from '../../../State/store';
+import IconButton from '@mui/material/IconButton';
 
 export const ReloadDialog = forwardRef(({},ref) => {
   const { t } = useTranslation();
   const { Config: ConfigFn, CardList: CardListFn } = useGlobalStore.selectors;
   const { mergeConfig } = useGlobalStore.getState();
   const [open, setOpen] = React.useState(false);
+  const [invalidImages, setInvalidImages] = useState([]);
   const cancelRef = React.useRef()
   useImperativeHandle(ref, () => ({
-    openDialog: () => setOpen(true),
+    openDialog: (ivm) => {
+      setOpen(true);
+      setInvalidImages(ivm)
+    },
   }));
   const [newImagePath, setNewImagePath] = useState({});
-  const [invalidImages, setInvalidImages] = useState([]);
   const Config = ConfigFn();
   const CardList = CardListFn();
   useEffect(() => {
     if(open) {
       (async () => {
         // setReloadProgress(0);
-        setInvalidImages([])
-        const pathList = [];
-        Config.globalBackground?.path && pathList.push(Config.globalBackground?.path);
-        CardList.forEach((card, index) => {
-          card.face?.path && pathList.push(card.face?.path);
-          card.back?.path && pathList.push(card.back?.path);
-        });
-        const result = await callMain(eleActions.checkImage, { pathList })
-        if((result || []).length > 0) {
-          setInvalidImages(result);
-        }
+        setNewImagePath({})
       })();
     }
   }, [open]);
@@ -81,7 +75,32 @@ export const ReloadDialog = forwardRef(({},ref) => {
               <TableRow key={row.path}>
                 <TableCell>{row.path}</TableCell>
                 <TableCell>{row.newPath}</TableCell>
-                <TableCell></TableCell>
+                <TableCell>
+                  <IconButton onClick={async () => {
+                    const path = row.path;
+                    const getFileName = path => decodeURI(new URL(path).pathname.split('/').pop());
+                    const newPath = await callMain(eleActions.getImagePath);
+                    if(newPath) {
+                      setNewImagePath(last => ({...last, [path]: newPath}));
+                      const pathFileName = getFileName(path);
+                      if(pathFileName === getFileName(newPath)) {
+                        const replaceFrom = path.replace(pathFileName, '');
+                        const replaceTo = newPath.replace(pathFileName, '');
+                        const emptyInvalidImages = invalidImages.filter(p => !Object.keys(newImagePath).includes(p));
+                        const newPathList = emptyInvalidImages.map(p => p.replace(replaceFrom, replaceTo));
+                        const result = await callMain(eleActions.checkImage, { pathList: newPathList });
+                        newPathList.forEach((p, index) => {
+                          if(!result.includes(p)) {
+                            setNewImagePath(last => ({...last, [emptyInvalidImages[index]]: p}));
+                          }
+                        });
+                      }
+                    }
+
+                  }}>
+                    <SearchIcon />
+                  </IconButton>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

@@ -58,11 +58,11 @@ export const notificationSuccess = () => triggerNotification({
   duration: 9000,
   isClosable: true,
 });
-ipcRenderer.on('notification', (ev, args) => {
-  return triggerNotification({...args, description: i18nInstance.t(args.description)})
-});
-
-ipcRenderer.on('console', (ev, ...args) => console.log(...args));
+// ipcRenderer.on('notification', (ev, args) => {
+//   return triggerNotification({...args, description: i18nInstance.t(args.description)})
+// });
+//
+// ipcRenderer.on('console', (ev, ...args) => console.log(...args));
 
 export const onOpenProjectFile = (dispatch, Actions, cb) => {
   ipcRenderer.on('open-project-file', async (event, data) => {

@@ -120,30 +120,33 @@ export default (mainWindow) => {
         { name: 'Project file', extensions: ['cpnp'] }
       ]
     });
-    if (result.canceled) { return; }
-    const projectPath = result.filePath;
-    const { Config } = getConfigStore();
-    Config.globalBackground = globalBackground;
-    const projectData = { Config, CardList };
+    if (result.canceled) {
+      mainWindow.webContents.send(returnChannel, false);
+    } else {
+      const projectPath = result.filePath;
+      const { Config } = getConfigStore();
+      Config.globalBackground = globalBackground;
+      const projectData = { Config, CardList };
 
-    const imageStorageKeys = Object.keys(ImageStorage);
-    imageStorageKeys.forEach(key => {
-      if(!Object.keys(OverviewStorage).includes(key) && key !== '_emptyImg') {
-        delete ImageStorage[key];
+      const imageStorageKeys = Object.keys(ImageStorage);
+      imageStorageKeys.forEach(key => {
+        if(!Object.keys(OverviewStorage).includes(key) && key !== '_emptyImg') {
+          delete ImageStorage[key];
+        }
+      })
+      refreshCardStorage(CardList, globalBackground);
+      try {
+        await saveDataToFile({ ...projectData, ImageStorage, OverviewStorage }, projectPath);
       }
-    })
-    refreshCardStorage(CardList, globalBackground);
-    try {
-      await saveDataToFile({ ...projectData, ImageStorage, OverviewStorage }, projectPath);
-    }
-    catch (e) {
-      mainWindow.webContents.send('notification', {
-        status: 'error',
-        description: "util.operationFailed"
-      });
-    }
-    finally {
-      mainWindow.webContents.send(returnChannel);
+      catch (e) {
+        mainWindow.webContents.send('notification', {
+          status: 'error',
+          description: "util.operationFailed"
+        });
+      }
+      finally {
+        mainWindow.webContents.send(returnChannel, true);
+      }
     }
   });
 
