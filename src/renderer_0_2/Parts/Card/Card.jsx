@@ -22,7 +22,7 @@ import { useDrag, useDrop } from 'react-dnd';
 import { useTranslation } from 'react-i18next';
 import { getImageSrc, openImage } from '../../functions';
 import { layoutSides } from '../../../public/constants';
-import { useStore } from '../../State/store';
+import { useGlobalStore } from '../../State/store';
 import { GeneralIconButton } from '../../Componments/GeneralIconButton';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
@@ -70,7 +70,7 @@ export default memo(({ data, index }) => {
       Config, Global, CardList,
     },
     cardEditById, cardRemoveByIds,mergeGlobal
-  } = useStore.getState();
+  } = useGlobalStore.getState();
   const sides = Config.sides();
   const selected = CardList[index].selected() || false;
   const isBackEditing = Global.isBackEditing();

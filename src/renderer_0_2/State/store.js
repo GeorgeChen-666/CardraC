@@ -132,7 +132,7 @@ const mergeStateFn = (state, newState, path = '') => {
   return immutableMerge(state, newState);
 };
 
-export const useStore = create(middlewares((set, get) => ({
+export const useGlobalStore = create(middlewares((set, get) => ({
   ...initialState,
   fillState: set,
   mergeState: (newState, path = '') => {
@@ -233,15 +233,15 @@ function createSelectors(storeHook) {
   });
   return createProxy();
 }
-useStore.setState({
-  selectors: createSelectors(useStore)
+useGlobalStore.setState({
+  selectors: createSelectors(useGlobalStore)
 })
 
 // export const useStore = Object.assign(useStoreBase, {
 //   selectors: createSelectors(useStoreBase)
 // });
 
-const state = useStore.getState();
+const state = useGlobalStore.getState();
 
 let config = await loadConfig();
 await initI18n(config.Global);

@@ -1,37 +1,56 @@
-import React, { forwardRef, useImperativeHandle } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import { DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import { styled } from '@mui/material/styles';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
-import TableCell, { tableCellClasses } from '@mui/material/TableCell';
+import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
+import './style.css'
 
 import { useTranslation } from 'react-i18next';
-
-function createData(name, calories, fat, carbs, protein) {
-  return { name, calories, fat, carbs, protein };
-}
-
-const rows = [
-  createData('Frozen yoghurt', 159, 6.0, 24, 4.0),
-  createData('Ice cream sandwich', 237, 9.0, 37, 4.3),
-  createData('Eclair', 262, 16.0, 24, 6.0),
-  createData('Cupcake', 305, 3.7, 67, 4.3),
-  createData('Gingerbread', 356, 16.0, 49, 3.9),
-];
+import { eleActions } from '../../../../public/constants';
+import { callMain } from '../../../functions';
+import { useGlobalStore } from '../../../State/store';
 
 export const ReloadDialog = forwardRef(({},ref) => {
   const { t } = useTranslation();
+  const { selectors: { Config: ConfigFn, CardList: CardListFn }, mergeConfig } = useGlobalStore.getState();
   const [open, setOpen] = React.useState(false);
   const cancelRef = React.useRef()
   useImperativeHandle(ref, () => ({
     openDialog: () => setOpen(true),
   }));
+  const [newImagePath, setNewImagePath] = useState({});
+  const [invalidImages, setInvalidImages] = useState([]);
+  const Config = ConfigFn();
+  const CardList = CardListFn();
+  useEffect(() => {
+    if(open) {
+      (async () => {
+        // setReloadProgress(0);
+        setInvalidImages([])
+        const pathList = [];
+        Config.globalBackground?.path && pathList.push(Config.globalBackground?.path);
+        CardList.forEach((card, index) => {
+          card.face?.path && pathList.push(card.face?.path);
+          card.back?.path && pathList.push(card.back?.path);
+        });
+        const result = await callMain(eleActions.checkImage, { pathList })
+        if((result || []).length > 0) {
+          setInvalidImages(result);
+        }
+      })();
+    }
+  }, [open]);
+  const dataList = useMemo(() => invalidImages.map(p => ({
+    path: p,
+    newPath: newImagePath[p]
+  })), [newImagePath, invalidImages])
   return (<Dialog
     fullWidth={true}
     maxWidth={'md'}
@@ -47,30 +66,21 @@ export const ReloadDialog = forwardRef(({},ref) => {
       {t('configDialog.reloadImageWizard')}
     </DialogTitle>
     <DialogContent sx={{height: '450px'}}>
-      <TableContainer component={Paper}>
+      <TableContainer className={'reloadTableDiv'} component={Paper}>
         <Table sx={{ minWidth: 650 }} size="small" aria-label="a dense table">
           <TableHead>
             <TableRow>
-              <TableCell>Dessert (100g serving)</TableCell>
-              <TableCell align="right">Calories</TableCell>
-              <TableCell align="right">Fat&nbsp;(g)</TableCell>
-              <TableCell align="right">Carbs&nbsp;(g)</TableCell>
-              <TableCell align="right">Protein&nbsp;(g)</TableCell>
+              <TableCell>{t('configDialog.reloadImageTableColumn1')}</TableCell>
+              <TableCell>{t('configDialog.reloadImageTableColumn2')}</TableCell>
+              <TableCell className={'opCol'}>{t('configDialog.reloadImageTableColumn3')}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {rows.map((row) => (
-              <TableRow
-                key={row.name}
-                sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-              >
-                <TableCell component="th" scope="row">
-                  {row.name}
-                </TableCell>
-                <TableCell align="right">{row.calories}</TableCell>
-                <TableCell align="right">{row.fat}</TableCell>
-                <TableCell align="right">{row.carbs}</TableCell>
-                <TableCell align="right">{row.protein}</TableCell>
+            {dataList.map((row) => (
+              <TableRow key={row.path}>
+                <TableCell>{row.path}</TableCell>
+                <TableCell>{row.newPath}</TableCell>
+                <TableCell></TableCell>
               </TableRow>
             ))}
           </TableBody>

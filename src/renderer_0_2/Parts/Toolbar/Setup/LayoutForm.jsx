@@ -2,12 +2,12 @@ import React from 'react';
 import { FormControl, ControlType } from './FormControl';
 import { useTranslation } from 'react-i18next';
 import Link from '@mui/material/Link';
-import { useStore } from '../../../State/store';
+import { useGlobalStore } from '../../../State/store';
 import { flipWay, layoutSides } from '../../../../public/constants';
 
 export const LayoutForm = () => {
   const { t } = useTranslation();
-  const { selectors: { Config }, mergeConfig } = useStore.getState();
+  const { selectors: { Config }, mergeConfig } = useGlobalStore.getState();
 
   return (<div className={'FormPanel'}>
     <FormControl label={t('configDialog.size')} width={'260px'} attrKey={'pageSize'} type={ControlType.Select} items={[

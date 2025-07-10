@@ -10,7 +10,7 @@ import GitHubIcon from '@mui/icons-material/GitHub';
 import InfoIcon from '@mui/icons-material/Info';
 import {GeneralIconButton} from '../../Componments/GeneralIconButton'
 import { useTranslation } from 'react-i18next';
-import { useStore, initialState } from '../../State/store';
+import { useGlobalStore, initialState } from '../../State/store';
 import { LangSelectButton } from './LangSelectButton';
 import { AboutDialog } from './About/AboutDialog';
 import { SetupDialog } from './Setup/SetupDialog';
@@ -21,9 +21,9 @@ function IconToolbar() {
   const dialogSetupRef = useRef(null);
   const dialogAboutRef = useRef(null);
   const { t } = useTranslation();
-  const fillState = useStore(state => state.fillState);
-  const mergeState = useStore(state => state.mergeState);
-  const openProject = useStore(state => state.openProject);
+  const fillState = useGlobalStore(state => state.fillState);
+  const mergeState = useGlobalStore(state => state.mergeState);
+  const openProject = useGlobalStore(state => state.openProject);
   return (
     <Box
       sx={{

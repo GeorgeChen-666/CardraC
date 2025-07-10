@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { layoutSides } from '../../../../public/constants';
-import { useStore } from '../../../State/store';
+import { useGlobalStore } from '../../../State/store';
 
 
 export const ConfigOverview = () => {
-  const { selectors } = useStore.getState();
+  const { selectors } = useGlobalStore.getState();
   const Config = selectors.Config
   const foldInHalfMargin = Config.foldInHalfMargin();
   const pageWidth = Config.pageWidth();

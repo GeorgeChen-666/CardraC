@@ -1,13 +1,13 @@
 import { ControlType, FormControl } from './FormControl';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useStore } from '../../../State/store';
+import { useGlobalStore } from '../../../State/store';
 import { layoutSides } from '../../../../public/constants';
 
 
 export const MarkFrom = () => {
   const { t } = useTranslation();
-  const { selectors: { Config }, mergeConfig } = useStore.getState();
+  const { selectors: { Config }, mergeConfig } = useGlobalStore.getState();
   const items = [
     { label: t('configDialog.none'), value: '0' },
     { label: t('configDialog.normal'), value: '1' },

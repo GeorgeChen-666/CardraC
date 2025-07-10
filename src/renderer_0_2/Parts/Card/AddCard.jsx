@@ -4,14 +4,14 @@ import AddIcon from '@mui/icons-material/Add';
 import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
 import React from 'react';
-import { useStore } from '../../State/store';
+import { useGlobalStore } from '../../State/store';
 import { openMultiImage } from '../../functions';
 
 export default () => {
   const { t } = useTranslation();
   const {
     openImage, addCard
-  } = useStore.getState();
+  } = useGlobalStore.getState();
   return <Card className={'Card'}>
     <IconButton className={'AddCardButton'}
                 onClick={async () => {

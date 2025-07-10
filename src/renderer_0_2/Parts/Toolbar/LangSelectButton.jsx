@@ -4,7 +4,7 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import { i18nInstance } from '../../i18n';
 import { getResourcesPath } from '../../functions';
-import { useStore } from '../../State/store';
+import { useGlobalStore } from '../../State/store';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 
 export const LangSelectButton = ({ label }) => {
@@ -17,7 +17,7 @@ export const LangSelectButton = ({ label }) => {
     setAnchorEl(null);
   };
 
-  const { selectors, mergeGlobal, mergeState } = useStore.getState();
+  const { selectors, mergeGlobal, mergeState } = useGlobalStore.getState();
   const { Global } = selectors;
   const availableLangs = Global.availableLangs();
   const currentLang = Global.currentLang();

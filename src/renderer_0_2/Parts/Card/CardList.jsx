@@ -1,5 +1,5 @@
 import React from 'react';
-import { useStore } from '../../State/store';
+import { useGlobalStore } from '../../State/store';
 import { DndProvider, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { useTranslation } from 'react-i18next';
@@ -20,7 +20,7 @@ export const CardDragTarget = ({index}) => {
 export const CardList = () => {
   //const { selectors: { CardList }, mergeConfig } = useStore.getState();
   // const CardList = useStore(state => state.CardList);
-  const { selectors, mergeGlobal } = useStore.getState();
+  const { selectors, mergeGlobal } = useGlobalStore.getState();
   const { CardList: CardListFn } = selectors;
   const CardList = CardListFn();
   console.log('cccccc', CardList);

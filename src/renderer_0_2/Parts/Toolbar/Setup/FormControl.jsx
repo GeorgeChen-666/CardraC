@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useStore } from '../../../State/store';
+import { useGlobalStore } from '../../../State/store';
 import { Checkbox, FormControlLabel, TextField } from '@mui/material';
 import MenuItem from '@mui/material/MenuItem';
 import MuiFormControl from '@mui/material/FormControl';
@@ -29,7 +29,7 @@ export const FormControl = (({
                                step, max = 9999, min = -9999,
                                ...restProps
                              }) => {
-  const { selectors, mergeConfig } = useStore();
+  const { selectors, mergeConfig } = useGlobalStore();
   const fieldValue = selectors.Config[attrKey]();
 
   return (<div className={'FormControl'}>

@@ -1,11 +1,11 @@
 import React, { useEffect, useLayoutEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useStore } from '../../../State/store';
+import { useGlobalStore } from '../../../State/store';
 import { ControlType, FormControl } from './FormControl';
 import { layoutSides } from '../../../../public/constants';
 export const CardForm = () => {
   const { t } = useTranslation();
-  const { selectors: { Config }, mergeConfig } = useStore.getState();
+  const { selectors: { Config }, mergeConfig } = useGlobalStore.getState();
 
   const isBrochure = Config.sides() === layoutSides.brochure;
   const isFoldInHalf = Config.sides() === layoutSides.foldInHalf;
