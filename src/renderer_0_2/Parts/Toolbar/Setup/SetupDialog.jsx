@@ -1,6 +1,6 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
+import React, { forwardRef, useImperativeHandle } from 'react';
 import Dialog from '@mui/material/Dialog';
-import { DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
+import { DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
@@ -11,6 +11,7 @@ import { LayoutForm } from './LayoutForm';
 import './styles.css';
 import { CardForm } from './CardForm';
 import { MarkFrom } from './MarkFrom';
+import useAutoCalc from './useAutoCalc';
 
 const CustomTabPanel = ({ children, value, index }) => (
   <div
@@ -32,6 +33,9 @@ export const SetupDialog = forwardRef(({},ref) => {
   useImperativeHandle(ref, () => ({
     openDialog: () => setOpen(true),
   }));
+
+  useAutoCalc();
+
   return (<Dialog
     fullWidth={true}
     maxWidth={'md'}

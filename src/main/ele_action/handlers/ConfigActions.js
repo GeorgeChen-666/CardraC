@@ -16,8 +16,10 @@ const initLanguageJson = (lang) => {
 export default (mainWindow) => {
   ipcMain.on(eleActions.saveConfig, (event, args) => {
     const { Global, Config } = args.state;
-    delete Config.globalBackground;
-    updateConfigStore({ Config, Global: _.pick(Global, ['currentLang', 'isShowOverView']) });
+    if(Global && Config) {
+      delete Config?.globalBackground;
+      updateConfigStore({ Config, Global: _.pick(Global, ['currentLang', 'isShowOverView']) });
+    }
   });
   ipcMain.on(eleActions.loadConfig, (event, args) => {
     const { returnChannel } = args;

@@ -7,7 +7,8 @@ export const eleActions = Object.freeze({
   checkImage: 'check-image',
   getImagePath: 'get-image-path',
   getImageContent: 'get-image-Content',
-  reloadLocalImage: 'reload-local-image'
+  reloadLocalImage: 'reload-local-image',
+  exportPdf:'export-pdf'
 });
 
 export const layoutSides = Object.freeze({

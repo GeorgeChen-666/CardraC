@@ -10,14 +10,13 @@ import { openMultiImage } from '../../functions';
 export default () => {
   const { t } = useTranslation();
   const {
-    openImage, addCard
+    openImage, cardAdd
   } = useGlobalStore.getState();
   return <Card className={'Card'}>
     <IconButton className={'AddCardButton'}
                 onClick={async () => {
                   const imageData = await openMultiImage('CardAddByFaces');
-                  console.log(imageData)
-                  // openImage(imageData);
+                  cardAdd(imageData);
                 }}>
       <AddIcon fontSize="inherit" />
     </IconButton>
