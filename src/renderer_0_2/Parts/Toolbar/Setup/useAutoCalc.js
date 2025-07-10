@@ -1,9 +1,10 @@
-import { useStore } from '../../../State/store';
+import { useGlobalStore } from '../../../State/store';
 import { layoutSides } from '../../../../public/constants';
 import { useEffect } from 'react';
 
 export default () => {
-  const { selectors: { Config }, mergeConfig } = useStore.getState();
+  const { Config} = useGlobalStore.selectors;
+  const { mergeConfig } = useGlobalStore.getState();
   const marginFilling = Config.marginFilling();
   const bleedX = Config.bleedX();
   const bleedY = Config.bleedY();

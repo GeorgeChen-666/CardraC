@@ -4,7 +4,7 @@ import { useGlobalStore } from '../../../State/store';
 
 
 export const ConfigOverview = () => {
-  const { selectors } = useGlobalStore.getState();
+  const { selectors } = useGlobalStore;
   const Config = selectors.Config
   const foldInHalfMargin = Config.foldInHalfMargin();
   const pageWidth = Config.pageWidth();

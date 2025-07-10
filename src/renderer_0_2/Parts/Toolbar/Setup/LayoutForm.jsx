@@ -7,7 +7,8 @@ import { flipWay, layoutSides } from '../../../../public/constants';
 
 export const LayoutForm = () => {
   const { t } = useTranslation();
-  const { selectors: { Config }, mergeConfig } = useGlobalStore.getState();
+  const { mergeConfig } = useGlobalStore.getState();
+  const { Config } = useGlobalStore.selectors;
 
   return (<div className={'FormPanel'}>
     <FormControl label={t('configDialog.size')} width={'260px'} attrKey={'pageSize'} type={ControlType.Select}

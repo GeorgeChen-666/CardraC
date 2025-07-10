@@ -65,7 +65,6 @@ export interface StoreState {
   loading: (cb: () => Promise<void>, text?: string) => Promise<void>;
   progress: (v: number) => void;
   openProject: () => Promise<void>;
-  selectors: Selectorize<Pick<StoreState, 'Global' | 'Config' | 'CardList'>>;
 }
 
 // For Zustand hook
@@ -75,7 +74,7 @@ export declare const useGlobalStore: {
   setState: (state: Partial<StoreState>, replace?: boolean) => void;
   subscribe: StoreApi<StoreState>['subscribe'];
   destroy: StoreApi<StoreState>['destroy'];
-  selectors: any;
+  selectors: Selectorize<Pick<StoreState, 'Global' | 'Config' | 'CardList'>>;
 };
 
 // For initialState

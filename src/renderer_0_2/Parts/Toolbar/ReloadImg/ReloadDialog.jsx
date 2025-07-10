@@ -19,7 +19,8 @@ import { useGlobalStore } from '../../../State/store';
 
 export const ReloadDialog = forwardRef(({},ref) => {
   const { t } = useTranslation();
-  const { selectors: { Config: ConfigFn, CardList: CardListFn }, mergeConfig } = useGlobalStore.getState();
+  const { Config: ConfigFn, CardList: CardListFn } = useGlobalStore.selectors;
+  const { mergeConfig } = useGlobalStore.getState();
   const [open, setOpen] = React.useState(false);
   const cancelRef = React.useRef()
   useImperativeHandle(ref, () => ({

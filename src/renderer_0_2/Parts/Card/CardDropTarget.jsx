@@ -2,13 +2,13 @@ import { useTranslation } from 'react-i18next';
 import { useDrop } from 'react-dnd';
 import React from 'react';
 import Card from '@mui/material/Card';
-import { useStore } from '../../State/store';
+import { useGlobalStore } from '../../State/store';
 
 export default ({index}) => {
   const { t } = useTranslation();
   const {
     dragCardsMove
-  } = useStore.getState();
+  } = useGlobalStore.getState();
   const [, dropRef] = useDrop({
     accept: 'Card',
     drop: () => {

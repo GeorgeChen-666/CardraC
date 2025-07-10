@@ -5,7 +5,7 @@ import { ControlType, FormControl } from './FormControl';
 import { layoutSides } from '../../../../public/constants';
 export const CardForm = () => {
   const { t } = useTranslation();
-  const { selectors: { Config } } = useGlobalStore.getState();
+  const { Config } = useGlobalStore.selectors;
 
   const isBrochure = Config.sides() === layoutSides.brochure;
   const isFoldInHalf = Config.sides() === layoutSides.foldInHalf;
@@ -35,7 +35,7 @@ export const CardForm = () => {
     }
     <FormControl label={t('configDialog.bleed')} width={'145px'} attrKey={'bleedX'}
                  type={ControlType.NumberInput} step={0.1} min={0} max={Config.marginX() / 2}>
-      <FormControl width={'145px'} attrKey={'bleedY'} type={ControlType.NumberInput} step={0.1} min={0} max={Config.marginY / 2}>
+      <FormControl width={'145px'} attrKey={'bleedY'} type={ControlType.NumberInput} step={0.1} min={0} max={Config.marginY() / 2}>
         mm
       </FormControl>
     </FormControl>

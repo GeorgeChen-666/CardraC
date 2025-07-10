@@ -7,7 +7,7 @@ import { layoutSides } from '../../../../public/constants';
 
 export const MarkFrom = () => {
   const { t } = useTranslation();
-  const { selectors: { Config }, mergeConfig } = useGlobalStore.getState();
+  const { Config } = useGlobalStore.selectors;
   const items = [
     { label: t('configDialog.none'), value: '0' },
     { label: t('configDialog.normal'), value: '1' },

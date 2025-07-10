@@ -67,11 +67,11 @@ export default memo(({ data, index }) => {
   const imageViewerRef = window.imageViewerRef;
   const { t } = useTranslation();
   const {
-    selectors: {
-      Config, Global, CardList,
-    },
     cardEditById, cardRemoveByIds,mergeGlobal, cardSelect, cardShiftSelect, cardCtrlSelect, dragHoverMove, dragCardsMove
   } = useGlobalStore.getState();
+  const {
+    Config, Global, CardList,
+  } = useGlobalStore.selectors;
   const sides = Config.sides();
   const selected = CardList[index].selected() || false;
   const isBackEditing = Global.isBackEditing();

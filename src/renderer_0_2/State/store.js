@@ -310,24 +310,36 @@ export const useGlobalStore = create(middlewares((set, get) => ({
 })));
 
 function createSelectors(storeHook) {
+  const selectorCache = new Map();
+
   const createProxy = (path = []) => new Proxy(() => {}, {
     get: (target, key) => {
       const newPath = [...path, key];
       return createProxy(newPath);
     },
     apply: (target, thisArg, args) => {
-      return storeHook(state => {
-        return path.reduce((obj, key) => {
-          return (obj !== undefined && obj !== null) ? obj[key] : undefined;
-        }, state);
-      }, shallow);
+      const pathKey = path.join('.');
+
+      // 缓存 selector 函数
+      if (!selectorCache.has(pathKey)) {
+        const selector = (state) => {
+          return path.reduce((obj, key) => {
+            return (obj !== undefined && obj !== null) ? obj[key] : undefined;
+          }, state);
+        };
+        selectorCache.set(pathKey, selector);
+      }
+
+      return storeHook(selectorCache.get(pathKey), shallow);
     }
   });
   return createProxy();
 }
-useGlobalStore.setState({
-  selectors: createSelectors(useGlobalStore)
-})
+
+useGlobalStore.selectors = createSelectors(useGlobalStore);
+// useGlobalStore.setState({
+//   selectors: createSelectors(useGlobalStore)
+// })
 
 const state = useGlobalStore.getState();
 

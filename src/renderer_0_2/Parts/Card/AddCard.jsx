@@ -25,7 +25,7 @@ export default () => {
         fullWidth
         onClick={(e) => {
           e.stopPropagation();
-          addCard([null])
+          cardAdd([null])
         }}
       >
         {t('cardEditor.addEmpty')}

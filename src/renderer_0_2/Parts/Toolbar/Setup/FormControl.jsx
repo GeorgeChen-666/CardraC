@@ -29,7 +29,8 @@ export const FormControl = (({
                                step, max = 9999, min = -9999,
                                ...restProps
                              }) => {
-  const { selectors, mergeConfig } = useGlobalStore();
+  const selectors = useGlobalStore.selectors;
+  const { mergeConfig } = useGlobalStore.getState();
   const fieldValue = selectors.Config[attrKey]();
 
   return (<div className={'FormControl'}>

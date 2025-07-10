@@ -1,5 +1,5 @@
 import React from 'react';
-import { useStore } from '../State/store';
+import { useGlobalStore } from '../State/store';
 import Dialog from '@mui/material/Dialog';
 import { DialogContent, DialogContentText } from '@mui/material';
 import Box from '@mui/material/Box';
@@ -7,8 +7,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 
 export const LoadingModal = () => {
-  const { selectors, mergeGlobal, mergeState } = useStore.getState();
-  const { Global } = selectors;
+  const { Global } = useGlobalStore.selectors;
   const isLoading = Global.isLoading();
   const isInProgress = Global.isInProgress();
   const progress = Global.progress();
