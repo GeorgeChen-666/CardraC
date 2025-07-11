@@ -12,6 +12,7 @@ import './styles.css';
 import { CardForm } from './CardForm';
 import { MarkFrom } from './MarkFrom';
 import useAutoCalc from './useAutoCalc';
+import { TemplateMenu } from './TemplateMenu';
 
 const CustomTabPanel = ({ children, value, index }) => (
   <div
@@ -49,6 +50,7 @@ export const SetupDialog = forwardRef(({},ref) => {
   >
     <DialogTitle id="alert-dialog-title">
       {t('configDialog.setup')}:
+      <TemplateMenu />
     </DialogTitle>
     <DialogContent sx={{height: '450px'}}>
       <ConfigOverview />

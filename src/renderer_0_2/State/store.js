@@ -1,7 +1,7 @@
 import * as yup from 'yup';
 import { eleActions, flipWay, layoutSides } from '../../public/constants';
 import { create } from 'zustand';
-import { loadConfig, regUpdateProgress, callMain, immutableMerge, openMultiImage, saveConfig } from '../functions';
+import { loadConfig, regUpdateProgress, callMain, immutableMerge, fillByObjectValue } from '../functions';
 import _ from 'lodash';
 import { i18nInstance, initI18n } from '../i18n';
 import { actionLogger } from './logger';
@@ -58,7 +58,7 @@ const stateSchema = yup.object({
     avoidDislocation: yup.boolean().notRequired(), //false,
     brochureRepeatPerPage: yup.boolean().notRequired(), //false,
   }).required(),
-  CardList: yup.array().of(yup.object()).notRequired()
+  CardList: yup.array().of(yup.object()).notRequired(),
 });
 
 export const initialState = Object.freeze({
@@ -118,8 +118,8 @@ const middlewares = (args) => actionLogger(args, ({ action, params, prev, next }
     console.log('Next state:', next);
     console.groupEnd();
     const newStateData = _.pick(next, ['Config', 'Global']);
-    if(['mergeState','mergeConfig', 'mergeGlobal'].includes(action)) {
-      callMain(eleActions.saveConfig, {state: newStateData});
+    if (['mergeState', 'mergeConfig', 'mergeGlobal'].includes(action)) {
+      callMain(eleActions.saveConfig, { state: newStateData });
     }
   }
 });
@@ -130,7 +130,7 @@ const mergeStateFn = (state, newState, path = '') => {
     if (!first) return immutableMerge(state, newState);
     return {
       ...state,
-      [first]: mergeStateFn(state[first], newState, rest.join('.'))
+      [first]: mergeStateFn(state[first], newState, rest.join('.')),
     };
   }
   return immutableMerge(state, newState);
@@ -145,51 +145,61 @@ export const useGlobalStore = create(middlewares((set, get) => ({
     set((state) => mergeStateFn(state, newState, 'Global')),
   mergeConfig: (newState) =>
     set((state) => mergeStateFn(state, newState, 'Config')),
-  loading: async (cb,text = i18nInstance.t('util.operating')) => {
+  loading: async (cb, text = i18nInstance.t('util.operating')) => {
     try {
       get().mergeGlobal({ isLoading: true, loadingText: text });
       cb && await cb();
     } finally {
-      get().mergeGlobal({ isLoading: false, isInProgress:false, loadingText: '' });
+      get().mergeGlobal({ isLoading: false, isInProgress: false, loadingText: '' });
     }
   },
   progress: (v) => {
-    if(v > 0) {
-      get().mergeGlobal({ isInProgress:true, progress: v });
+    if (v > 0) {
+      get().mergeGlobal({ isInProgress: true, progress: v });
     } else {
-      get().mergeGlobal({ isInProgress:false });
+      get().mergeGlobal({ isInProgress: false });
     }
   },
-  openProject:() => {
+  openProject: () => {
     get().loading(async () => {
       const projectData = await callMain(eleActions.openProject);
-      if(projectData) {
-        if(projectData?.OverviewStorage) {
+      if (projectData) {
+        if (projectData?.OverviewStorage) {
           window.OverviewStorage = projectData.OverviewStorage;
           delete projectData.OverviewStorage;
         }
         delete projectData?.ImageStorage;
         get().mergeState(projectData);
       }
-    })
+    });
   },
   saveProject: () => {
     get().loading(async () => {
-      const param = {globalBackground: get().Global.globalBackground, CardList: get().CardList};
+      const param = { globalBackground: get().Global.globalBackground, CardList: get().CardList };
       const rs = await callMain(eleActions.saveProject, param);
-      // rs && notificationSuccess();
-    })
+      rs && notificationSuccess();
+    });
   },
   exportPdf: () => {
     get().loading(async () => {
-      const param = {globalBackground: get().Global.globalBackground, CardList: get().CardList};
+      const param = { globalBackground: get().Global.globalBackground, CardList: get().CardList };
       const isSuccess = await callMain(eleActions.exportPdf, param);
-      if(isSuccess) {
+      if (isSuccess) {
         notificationSuccess();
       } else {
         notificationFailed();
       }
-    })
+    });
+  },
+  reloadLocalImage: () => {
+    get().loading(async () => {
+      const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList };
+      const stateData = await callMain(eleActions.reloadLocalImage, param);
+      if (stateData && !stateData.isAborted) {
+        delete window.OverviewStorage;
+        delete window.ImageStorage;
+      }
+    });
   },
   cardAdd: (images) => {
     set(state => {
@@ -200,7 +210,7 @@ export const useGlobalStore = create(middlewares((set, get) => ({
         repeat: 1,
       })));
       return state;
-    })
+    });
   },
   cardEditById: (newState) =>
     set(state => {
@@ -215,8 +225,8 @@ export const useGlobalStore = create(middlewares((set, get) => ({
         });
         return { ...state, CardList: newCardList };
       }
-        return state;
-      }),
+      return state;
+    }),
   cardRemoveByIds: (ids) =>
     set(state => {
       state.CardList = state.CardList.filter(c => !ids.includes(c.id));
@@ -236,7 +246,7 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       }
       state.CardList = [...state.CardList];
       return state;
-    })
+    });
   },
   cardShiftSelect: (selectedId) => {
     set(state => {
@@ -253,37 +263,37 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       }
       state.CardList = [...state.CardList];
       return state;
-    })
+    });
   },
   cardCtrlSelect: (selectedId) => {
     set(state => {
       const selectedCard = state.CardList.find(c => c.id === selectedId);
-      selectedCard.selected = !selectedCard.selected
+      selectedCard.selected = !selectedCard.selected;
       return state;
-    })
+    });
   },
   dragHoverMove: (to) => {
     set(state => {
       const id = 'dragTarget';
       const from = state.CardList.findIndex(c => c.id === id);
-      if(from !== -1) {
+      if (from !== -1) {
         state.CardList.splice(from, 1);
       }
       state.CardList.splice(to, 0, { id });
       state.CardList = [...state.CardList];
       return state;
-    })
+    });
   },
   dragHoverCancel: () => {
     set(state => {
       const dragTargetId = 'dragTarget';
       const targetIndex = state.CardList.findIndex(c => c.id === dragTargetId);
-      if(targetIndex !== -1) {
+      if (targetIndex !== -1) {
         state.CardList.splice(targetIndex, 1);
         state.CardList = [...state.CardList];
       }
       return state;
-    })
+    });
   },
   dragCardsMove: () => {
     set(state => {
@@ -291,28 +301,82 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       const selection = state.CardList.filter(c => c.selected);
       const orderedSelection = selection.toSorted((a, b) => {
         return state.CardList.findIndex(c => c.id === b.id) - state.CardList.findIndex(c => c.id === a.id);
-      })
+      });
       orderedSelection.forEach(c => {
-        state.CardList.splice(state.CardList.findIndex(cc => cc.id === c.id), 1)
+        state.CardList.splice(state.CardList.findIndex(cc => cc.id === c.id), 1);
       });
       const to = state.CardList.findIndex(c => c.id === dragTargetId);
       orderedSelection.forEach((s, index) => {
         state.CardList.splice(to, 0, s);
       });
       const targetIndex = state.CardList.findIndex(c => c.id === dragTargetId);
-      if(targetIndex !== -1) {
+      if (targetIndex !== -1) {
         state.CardList.splice(targetIndex, 1);
       }
       state.CardList = [...state.CardList];
       return state;
-    })
+    });
+  },
+  selectedCardsRemove: () => {
+    set(state => {
+      const selection = state.CardList.filter(c => c.selected);
+      selection.toSorted((a, b) => {
+        return state.CardList.findIndex(c => c.id === b.id) - state.CardList.findIndex(c => c.id === a.id);
+      }).forEach(c => state.CardList.splice(state.CardList.findIndex(cc => cc.id === c.id), 1));
+      state.CardList = [...state.CardList];
+      return state;
+    });
+  },
+  selectedCardsDuplicate: () => {
+    set(state => {
+      const selection = state.CardList.filter(c => c.selected);
+      const orderedSelection = selection.toSorted((a, b) => {
+        return state.CardList.findIndex(c => c.id === b.id) - state.CardList.findIndex(c => c.id === a.id);
+      });
+      const to = state.CardList.findIndex(c => c.id === orderedSelection[0].id) + 1;
+      const newSelection = orderedSelection.map(c => ({ ...c, id: crypto.randomUUID(), selected: false }));
+      newSelection.forEach((s, index) => {
+        state.CardList.splice(to, 0, s);
+      });
+      state.CardList = [...state.CardList];
+      return state;
+    });
+  },
+  selectedCardsEdit: (newState) => {
+    set(state => {
+      const selection = state.CardList.filter(c => c.selected);
+      selection.forEach(c => {
+        fillByObjectValue(c, newState);
+      });
+      state.CardList = state.CardList.map(c => selection.includes(c) ? { ...c } : c);
+      return state;
+    });
+  },
+  selectedCardsFillBackWithEach: (backImageList) => {
+    set(state => {
+      const selection = state.CardList.filter(c => c.selected);
+      selection.forEach((c, index) => {
+        c.back = backImageList?.[index];
+      });
+      state.CardList = state.CardList.map(c => selection.includes(c) ? { ...c } : c);
+      return state;
+    });
+  },
+  selectedCardsSwap: () => {
+    set(state => {
+      const selection = state.CardList.filter(c => c.selected);
+      selection.forEach(c => ([c.face, c.back] = [c.back, c.face]));
+      state.CardList = state.CardList.map(c => selection.includes(c) ? { ...c } : c);
+      return state;
+    });
   },
 })));
 
 function createSelectors(storeHook) {
   const selectorCache = new Map();
 
-  const createProxy = (path = []) => new Proxy(() => {}, {
+  const createProxy = (path = []) => new Proxy(() => {
+  }, {
     get: (target, key) => {
       const newPath = [...path, key];
       return createProxy(newPath);
@@ -331,7 +395,7 @@ function createSelectors(storeHook) {
       }
 
       return storeHook(selectorCache.get(pathKey), shallow);
-    }
+    },
   });
   return createProxy();
 }
@@ -347,18 +411,18 @@ let config = await loadConfig();
 await initI18n(config.Global);
 
 try {
-  await stateSchema.validate(config,{ abortEarly: false });
+  await stateSchema.validate(config, { abortEarly: false });
 } catch (e) {
   e.inner.forEach(err => {
     _.set(config, err.path, _.get(initialState, err.path));
-  })
+  });
   triggerNotification({
     msgKey: 'util.invalidConfigOptions',
     variant: 'warning',
   });
 } finally {
-  const newStateData = _.pick(config, ['Global','Config']);
+  const newStateData = _.pick(config, ['Global', 'Config']);
   state.fillState(newStateData);
-  callMain(eleActions.saveConfig, {state: newStateData});
+  callMain(eleActions.saveConfig, { state: newStateData });
   regUpdateProgress(state.progress);
 }

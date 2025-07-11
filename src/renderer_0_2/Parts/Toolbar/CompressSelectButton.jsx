@@ -17,7 +17,7 @@ export const CompressSelectButton = ({ label, disabled }) => {
   const open = Boolean(anchorEl);
   const [invalidImages, setInvalidImages] = useState([]);
 
-  const { mergeConfig } = useGlobalStore.getState();
+  const { mergeConfig, reloadLocalImage } = useGlobalStore.getState();
   const { Config: ConfigFn, CardList:CardListFn } = useGlobalStore.selectors;
 
   const CardList = CardListFn();
@@ -32,9 +32,7 @@ export const CompressSelectButton = ({ label, disabled }) => {
       card.back?.path && pathList.push(card.back?.path);
     });
     const result = await callMain(eleActions.checkImage, { pathList })
-    if((result || []).length > 0) {
-      setInvalidImages(result);
-    }
+    setInvalidImages(result || []);
   };
   const handleClose = () => {
     setAnchorEl(null);
@@ -72,7 +70,10 @@ export const CompressSelectButton = ({ label, disabled }) => {
       </MenuItem>
       <Divider sx={{ my: 0.5 }} />
       {[1, 2, 3, 4].map((lv) => (
-        <MenuItem onClick={() => setCompressLevel(lv)} disabled={compressLevel === lv}>
+        <MenuItem onClick={() => {
+          setCompressLevel(lv);
+          !disabled && reloadLocalImage();
+        }} disabled={compressLevel === lv}>
           压缩等级Lv{lv}:{lvText[lv]}
         </MenuItem>
       ))}

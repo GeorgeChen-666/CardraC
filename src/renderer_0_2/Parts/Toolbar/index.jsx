@@ -18,6 +18,7 @@ import { ReloadDialog } from './ReloadImg/ReloadDialog';
 import { getImageSrc, openImage } from '../../functions';
 import { layoutSides } from '../../../public/constants';
 import { CompressSelectButton } from './CompressSelectButton';
+import { BulkOperationButton } from './BulkOperationButton';
 
 function IconToolbar() {
 
@@ -101,7 +102,7 @@ function IconToolbar() {
         }}
       />
 
-
+      <BulkOperationButton />
       <div style={{float:'right'}}>asdsadsa</div>
 
       <SetupDialog ref={dialogSetupRef} />

@@ -71,3 +71,16 @@
     background-color: #5d8bb3;
     margin: 0.5px;
 }
+
+.templateMenu .MuiMenu-paper{
+    width: 300px;
+}
+
+.templateMenu .MuiTypography-root {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.templateInput input {
+    padding: 1px;
+}

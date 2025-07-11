@@ -1,7 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { SnackbarProvider, useSnackbar } from 'notistack';
-import { i18nInstance } from '../i18n';
+import { useSnackbar } from 'notistack';
 
 let notificationList = [];
 export let triggerNotification = (args) => {

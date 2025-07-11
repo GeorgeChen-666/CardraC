@@ -21,7 +21,7 @@ import IconButton from '@mui/material/IconButton';
 export const ReloadDialog = forwardRef(({},ref) => {
   const { t } = useTranslation();
   const { Config: ConfigFn, CardList: CardListFn } = useGlobalStore.selectors;
-  const { mergeConfig } = useGlobalStore.getState();
+  const { mergeState, reloadLocalImage } = useGlobalStore.getState();
   const [open, setOpen] = React.useState(false);
   const [invalidImages, setInvalidImages] = useState([]);
   const cancelRef = React.useRef()
@@ -45,7 +45,7 @@ export const ReloadDialog = forwardRef(({},ref) => {
   const dataList = useMemo(() => invalidImages.map(p => ({
     path: p,
     newPath: newImagePath[p]
-  })), [newImagePath, invalidImages])
+  })), [newImagePath, invalidImages]);
   return (<Dialog
     fullWidth={true}
     maxWidth={'md'}
@@ -96,7 +96,6 @@ export const ReloadDialog = forwardRef(({},ref) => {
                         });
                       }
                     }
-
                   }}>
                     <SearchIcon />
                   </IconButton>
@@ -108,7 +107,22 @@ export const ReloadDialog = forwardRef(({},ref) => {
       </TableContainer>
     </DialogContent>
     <DialogActions>
-      <Button ref={cancelRef} onClick={() => setOpen(false)}>
+      <Button ref={cancelRef} onClick={() => {
+        setOpen(false);
+        const fillNewPath = (image) => {
+          if(image && image.path && newImagePath[image.path]) {
+            image.path = newImagePath[image.path];
+            delete image.mtime;
+          }
+        }
+        fillNewPath(Config.globalBackground);
+        CardList.forEach((c, index) => {
+          fillNewPath(c.face);
+          fillNewPath(c.back)
+        });
+        mergeState({ Config, CardList: [...CardList] });
+        reloadLocalImage();
+      }}>
         OK
       </Button>
     </DialogActions>

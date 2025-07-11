@@ -19,6 +19,13 @@ export const defaultTheme = createTheme({
         }
       }
     },
+    MuiTypography: {
+      styleOverrides: {
+        root: {
+          color: '#fff',
+        }
+      }
+    },
     MuiSvgIcon: {
       styleOverrides: {
         root: {
