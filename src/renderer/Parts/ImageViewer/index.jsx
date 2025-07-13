@@ -1,12 +1,11 @@
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { Box, Image, Spinner } from '@chakra-ui/react';
+// import { Box, Image, Spinner } from '@chakra-ui/react';
 import './styles.css';
-import { callMain, getMainImage } from '../../functions';
-import { eleActions } from '../../../public/constants';
-import { waitTime } from '../../../public/functions';
+import { getMainImage } from '../../functions';
 import { useGlobalStore } from '../../State/store';
 import Card from '@mui/material/Card';
 import { CardMedia } from '@mui/material';
+import Box from '@mui/material/Box';
 
 export const ImageViewer = forwardRef((props, ref) => {
   const { Global } = useGlobalStore.selectors;
@@ -82,7 +81,7 @@ export const ImageViewer = forwardRef((props, ref) => {
       opacity={opacity}
       style={getBoxStyle()}
     >
-      {loading && (<Spinner />)}
+      {/*{loading && (<Spinner />)}*/}
       {!loading && (<Card sx={{ width: '100%', height: '100%', margin: '1px', padding: '1px' }}>
         <CardMedia
           component="img"

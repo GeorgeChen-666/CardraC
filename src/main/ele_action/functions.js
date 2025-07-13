@@ -146,7 +146,7 @@ export const updateConfigStore = (value) => {
 export const initConfigStore = async () => {
   return new Promise((resolve, reject) => {
     try {
-      if (!config) {
+      if (!store) {
         store = new Store();
         resolve();
       }

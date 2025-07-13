@@ -419,7 +419,7 @@ try {
   e.inner.forEach(err => {
     _.set(config, err.path, _.get(initialState, err.path));
   });
-  console.log('Error!', e)
+  console.log('Error!', e.inner)
   triggerNotification({
     msgKey: 'util.invalidConfigOptions',
     variant: 'warning',

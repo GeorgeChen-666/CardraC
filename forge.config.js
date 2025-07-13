@@ -1,13 +1,13 @@
 const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 
-const renderKey = process.env.npm_lifecycle_event === 'renderer';
 module.exports = {
   packagerConfig: {
     icon: "icon",
     asar: {
       unpack: "**/node_modules/{sharp,@img}/**/*"
     }
+    // asar: false,
   },
   rebuildConfig: {},
   makers: [
@@ -43,7 +43,7 @@ module.exports = {
           entryPoints: [
             {
               html: './index.html',
-              js: `./src/${renderKey}/renderer.js`,
+              js: `./src/renderer/renderer.js`,
               name: 'main_window',
               preload: {
                 js: './src/renderer/preload.js',

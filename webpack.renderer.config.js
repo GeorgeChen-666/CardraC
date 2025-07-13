@@ -1,11 +1,10 @@
 const rules = require('./webpack.rules');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
-const renderKey = process.env.npm_lifecycle_event === 'renderer';
 module.exports = {
   // Put your normal webpack config below here
   target: 'electron-renderer',
-  entry: `./src/${renderKey}/index.js`,
+  entry: `./src/renderer/index.js`,
   resolve:{
     extensions:['.js','.jsx','.json']
   },
