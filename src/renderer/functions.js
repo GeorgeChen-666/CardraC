@@ -1,7 +1,9 @@
 import { ipcRenderer } from 'electron';
 import { eleActions } from '../public/constants';
-import { Actions, store } from './store';
+// import { Actions, store } from './store';
 import { i18nInstance } from './i18n';
+import { triggerNotification } from './Parts/Notification';
+import { useGlobalStore } from './State/store';
 
 export const emptyImg = {
   path: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
@@ -37,18 +39,7 @@ export const fillByObjectValue = (source, value) => {
   }
 };
 
-let triggerNotification = () => {};
-export const getNotificationTrigger = () => triggerNotification
-export const regNotification = (cb) => {
-  triggerNotification = cb;
-}
 
-export const notificationSuccess = () => triggerNotification({
-  description: i18nInstance.t('util.success'),
-  status: 'success',
-  duration: 9000,
-  isClosable: true,
-});
 ipcRenderer.on('notification', (ev, args) => {
   return triggerNotification({...args, description: i18nInstance.t(args.description)})
 });
@@ -57,12 +48,14 @@ ipcRenderer.on('console', (ev, ...args) => console.log(...args));
 
 export const onOpenProjectFile = (dispatch, Actions, cb) => {
   ipcRenderer.on('open-project-file', async (event, data) => {
-    dispatch(Actions.GlobalEdit({isLoading: true, loadingText: ''}));
-    cb && await cb(data);
-    dispatch(Actions.StateFill(data));
-    dispatch(Actions.GlobalEdit({isLoading: false, isInProgress:false, loadingText: ''}));
+    // dispatch(Actions.GlobalEdit({isLoading: true, loadingText: ''}));
+    // cb && await cb(data);
+    // dispatch(Actions.StateFill(data));
+    // dispatch(Actions.GlobalEdit({isLoading: false, isInProgress:false, loadingText: ''}));
   });
 };
+
+export const getMainImage = (args) => ipcRenderer.invoke(eleActions.getImageContent, args)
 
 export const reloadLocalImage = (args) => callMain(eleActions.reloadLocalImage, args);
 
@@ -118,10 +111,20 @@ export const getTemplate = (args) => callMain('get-template', { ...args });
 export const deleteTemplate = (args) => callMain('delete-template', { ...args });
 export const version = () => callMain('version');
 
+let updateProgress = () => {};
+export const regUpdateProgress = cb => updateProgress = cb;
 export const callMain = (key, params = {}, transform = d => d) => new Promise((resolve) => {
-  const { returnChannel, onProgress, progressChannel, ...restParams } = params;
+  const { returnChannel, onProgress, progressChannel, cancelCallback, ...restParams } = params;
   const returnKey = returnChannel || `${key}-done`;
   const progressKey = progressChannel || `${key}-progress`;
+  const cancelKey = `${key}-cancel`;
+
+  cancelCallback && cancelCallback(() => {
+    ipcRenderer.off(progressKey, onMainProgress);
+    ipcRenderer.off(returnKey, onDone);
+    ipcRenderer.send(cancelKey);
+    onMainProgress(null, 0);
+  });
   if(restParams.state) {
     restParams.state = JSON.parse(JSON.stringify(restParams.state));
   }
@@ -131,15 +134,20 @@ export const callMain = (key, params = {}, transform = d => d) => new Promise((r
     ...restParams,
   });
 
+  let lastProgress = -1;
   const onMainProgress = ($, value) => {
-    if(onProgress) {
-      onProgress(value);
-    }
-    else {
-      store.dispatch(Actions.GlobalEdit({ isInProgress:true, progress: value }));
+    const currentProgress = Math.round(value * 100);
+    if(currentProgress>lastProgress) {
+      if(onProgress) {
+        onProgress(currentProgress);
+      }
+      else {
+        updateProgress(currentProgress);
+      }
     }
     if (Math.round(value * 100) >= 100) {
-      store.dispatch(Actions.GlobalEdit({ isInProgress: false }));
+      updateProgress(-1);
+      lastProgress = -1;
       ipcRenderer.off(progressKey, onMainProgress);
     }
   };
@@ -165,3 +173,26 @@ export const callMain = (key, params = {}, transform = d => d) => new Promise((r
   };
   ipcRenderer.on(returnKey, onDone);
 });
+
+function isPlainObject(obj) {
+  return typeof obj === 'object' && obj !== null && !Array.isArray(obj);
+}
+
+/**
+ * 深度不可变合并，数组或对象的任意子字段引用变化时，父级对象/数组也会新建引用
+ */
+export function immutableMerge(oldVal, newVal) {
+  if (Array.isArray(oldVal) && Array.isArray(newVal)) {
+    return oldVal !== newVal ? newVal : oldVal;
+  }
+  if (isPlainObject(oldVal) && isPlainObject(newVal)) {
+    // 对象递归合并
+    const result = { ...oldVal };
+    for (const key of Object.keys(newVal)) {
+      result[key] = immutableMerge(oldVal[key], newVal[key]);
+    }
+    return result;
+  }
+  // 其它类型直接替换
+  return newVal;
+}

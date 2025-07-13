@@ -1,18 +1,9 @@
 import sharp from 'sharp';
+import Store from 'electron-store';
+import path from 'path';
 
 const fs = require('fs');
 
-export const waitTime = async timeout => new Promise(resolve => setTimeout(resolve, timeout));
-export const waitCondition = async ({ Condition = () => true, timeout = 500, totalWatingTime = 30000 }) => new Promise(resolve => {
-  const startTime = new Date().getTime() / 1000;
-  const timer = setInterval(() => {
-    const nowTime = new Date().getTime() / 1000;
-    if(Condition() || nowTime - startTime > totalWatingTime) {
-      clearInterval(timer);
-      resolve();
-    }
-  }, timeout);
-})
 export async function getBorderAverageColors(base64String, borderWidth = 5) {
   try {
     const buffer = Buffer.from(base64String.split(',')[1], 'base64');
@@ -147,5 +138,33 @@ export const base64ToBuffer = (base64Data) => {
   return decodedString;
 };
 
+let store = null;
+export const updateConfigStore = (value) => {
+  getConfigStore();
+  store.set(value);
+}
+export const initConfigStore = async () => {
+  return new Promise((resolve, reject) => {
+    try {
+      if (!store) {
+        store = new Store();
+        resolve();
+      }
+    } catch (e) {
+      //APPDATA npm_package_name process
+      const {APPDATA, npm_package_name} = process.env;
+      const configPath = path.join(APPDATA, npm_package_name, 'config.json');
+      fs.unlink(configPath, () => {
+        store = new Store();
+        resolve();
+      });
+    }
+  })
+}
+
+export const getConfigStore = () => {
+
+  return store.get() || {};
+}
 
 

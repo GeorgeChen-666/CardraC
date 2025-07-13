@@ -4,8 +4,8 @@ import fs from 'fs';
 import path from 'path';
 import Store from 'electron-store';
 import { eleActions } from '../../../public/constants';
+import { getConfigStore, updateConfigStore } from '../functions';
 
-const store = new Store();
 const initLanguageJson = (lang) => {
   const en = new Store({name: lang, cwd: 'locales'});
   const defaultLangStore = require(`../locales/${lang}.json`);
@@ -14,18 +14,18 @@ const initLanguageJson = (lang) => {
 
 
 export default (mainWindow) => {
-
   ipcMain.on(eleActions.saveConfig, (event, args) => {
     const { Global, Config } = args.state;
-    delete Config.globalBackground;
-    store.set({ Global: _.pick(Global, ['currentLang', 'isShowOverView']) });
-    store.set({ Config });
+    if(Global && Config) {
+      delete Config?.globalBackground;
+      updateConfigStore({ Config, Global: _.pick(Global, ['currentLang', 'isShowOverView']) });
+    }
   });
   ipcMain.on(eleActions.loadConfig, (event, args) => {
     const { returnChannel } = args;
     initLanguageJson('en');
     initLanguageJson('zh')
-    const config = store.get() || {};
+    const config = getConfigStore();
     config.Global = config.Global || {};
     config.Global.availableLangs = fs.readdirSync(path.join(app.getPath('userData'), 'locales')).map(p=>p?.split('.')?.[0] || '').filter(p=>!!p);
     config.Global.locales = {};

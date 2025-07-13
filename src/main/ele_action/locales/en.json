@@ -1,6 +1,8 @@
 {
   "util": {
     "invalidFile": "Invalid File !",
+    "invalidConfig": "Invalid Config File !",
+    "invalidConfigOptions": "Found invalid config value, already auto-fix them!",
     "noData": "No Data",
     "operating": "Operating...",
     "operationFailed": "Operation Failed.",
@@ -18,11 +20,20 @@
     "btnAdd" : "Create a New PNP File.",
     "btnOpen" : "Open a PNP File.",
     "btnSave" : "Save PNP File.",
-    "btnConfig" : "Settings Config.",
+    "btnLang" : "Language Setting.",
+    "btnConfig" : "Settings.",
     "btnExport" : "Export PDF.",
     "btnGlobalBackground" : "Global Default Background.",
     "lblSwitchView": "Switch View",
-    "btnReloadImage": "Reload All Images From File(May Slow..)",
+    "compressLevel": "Compress Level",
+    "compressMenu": {
+      "compressLevelDesc": "None|Mild|General|Strong|Very Strong",
+      "fixPath": "Fix Path",
+      "fixPathTooltip": "{{num}}images cannot determine the source image.",
+      "manualReload": "Manual Reload",
+      "compressItemTooltip": "After the change, the image will be automatically reloaded.",
+      "manualReloadTooltip": "Reload images based on compression level from the source image."
+    },
     "bulkMenu": {
       "labelSelection": "Selection ...",
       "menuRemove": "Remove",
@@ -66,12 +77,13 @@
     "card": "Card",
     "mark": "Mark",
     "cardWidth": "Card Width",
-    "cardHeight": "Card Height",
+    "cardHeight": "Height",
     "marginX": "Margin X",
-    "marginY": "Margin Y",
+    "marginY": "Y",
+    "foldInHalfMargin": "Fold In Half Margin",
     "bleed": "Bleed",
     "scale": "Scale",
-    "columns_rows": "Columns/Rows",
+    "columns_rows": "Rows/Columns",
     "fCutLine": "Front CutLine",
     "bCutLine": "Back CutLine",
     "none": "None",
@@ -95,13 +107,11 @@
     "brochureRepeatPerPage": "Repeat Per Page",
     "reloadImageFinish": "Reload Finish!",
     "saveCurrentConfig": "Save Current Config",
-    "clickMenuLoadConfig": "Click Menu Item To Load Config",
-    "compressLevel": "Compress Level",
-    "compressLevelOption": "Lv {{lv}}",
-    "compressLevelDes": "Also need reload image"
+    "clickMenuLoadConfig": "Click Menu Item To Load Config"
   },
   "footer": {
     "files": "Files",
-    "images": "Images"
+    "images": "Images",
+    "selectedFiles": "Selected Files"
   }
 }

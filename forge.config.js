@@ -7,6 +7,7 @@ module.exports = {
     asar: {
       unpack: "**/node_modules/{sharp,@img}/**/*"
     }
+    // asar: false,
   },
   rebuildConfig: {},
   makers: [
@@ -42,7 +43,7 @@ module.exports = {
           entryPoints: [
             {
               html: './index.html',
-              js: './src/renderer/renderer.js',
+              js: `./src/renderer/renderer.js`,
               name: 'main_window',
               preload: {
                 js: './src/renderer/preload.js',

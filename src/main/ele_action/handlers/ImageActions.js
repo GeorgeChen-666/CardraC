@@ -1,12 +1,10 @@
 import { dialog, ipcMain } from 'electron';
 import fs from 'fs';
 
-import { readCompressedImage } from '../functions';
+import { getConfigStore, readCompressedImage } from '../functions';
 import { eleActions } from '../../../public/constants';
 import { ImageStorage, OverviewStorage } from './pdf/Utils';
-import Store from 'electron-store';
 
-const store = new Store();
 const ImageStorageLoadingJobs = {
 
 }
@@ -14,7 +12,7 @@ const pendingList = new Set();
 export const getPendingList = () => pendingList;
 
 const pathToImageData = async (path, cb) => {
-  const { Config } = store.get() || {};
+  const { Config } = getConfigStore();
   const cardWidth = Config.cardWidth;
   const compressLevel = Config.compressLevel || 2;
   const compressParamsList = [
@@ -45,18 +43,9 @@ const pathToImageData = async (path, cb) => {
 }
 
 export default (mainWindow) => {
-  ipcMain.on(eleActions.getImageContent, async (event, args) => {
-    const { path, returnChannel } = args;
-    const { Config } = store.get() || {};
-    const cardWidth = Config.cardWidth;
-
-    const ext = path.split('.').pop();
+  ipcMain.handle(eleActions.getImageContent, async (event, path) => {
     const imagePathKey = path.replaceAll('\\','');
-    await pathToImageData(path);
-    const imageData = ImageStorage[imagePathKey];
-    const buffer = Buffer.from(imageData.split(',')[1], 'base64');
-    const newData = await readCompressedImage(buffer, { format: ext, maxWidth : cardWidth * 2, quality : 60 })
-    mainWindow.webContents.send(returnChannel, Buffer.from(newData));
+    return ImageStorage[imagePathKey];
   });
   ipcMain.on(eleActions.getImagePath, async (event, args) => {
     const { properties = [], returnChannel } = args;
@@ -106,7 +95,6 @@ export default (mainWindow) => {
       catch (e) {
         invalidImages.push(path);
       }
-
     }
     pathList.forEach(path => {
       checkImagePath(path);
@@ -114,8 +102,8 @@ export default (mainWindow) => {
     mainWindow.webContents.send(args.returnChannel, invalidImages);
   });
   ipcMain.on(eleActions.reloadLocalImage, async (event, args) => {
-    const { CardList, globalBackground, returnChannel, progressChannel } = args;
-    const { Config } = store.get() || {};
+    const { CardList, globalBackground, returnChannel, progressChannel, cancelChannel } = args;
+    const { Config } = getConfigStore();
     Config.globalBackground = globalBackground;
 
     const reloadImageJobs = [];
@@ -123,8 +111,14 @@ export default (mainWindow) => {
     Object.keys(ImageStorage).forEach(k => {
       delete ImageStorage[k];
     })
+
+    let isTerminated = false;
+    cancelChannel && ipcMain.once(cancelChannel, () => {
+      isTerminated = true;
+    });
+
     let totalCount = 0;
-    let currentCound = 0;
+    let currentCount = 0;
     const reloadImage = (args, cb) => {
       if(!args) return false;
       const { path, mtime: cardMtime} = args;
@@ -134,12 +128,15 @@ export default (mainWindow) => {
         if(cardMtime !== mtime.getTime() || !Object.keys(ImageStorage).includes(imagePathKey)) {
           totalCount++;
           reloadImageJobs.push((async()=>{
-            cb && cb(mtime.getTime())
+            if (isTerminated) return;
+            cb && cb(mtime.getTime());
+            if (isTerminated) return;
             const {overviewData} = await pathToImageData(path);
+            if (isTerminated) return;
             newOverviewStorage[imagePathKey] = overviewData;
             OverviewStorage[imagePathKey] = overviewData;
-            currentCound++;
-            mainWindow.webContents.send(progressChannel, currentCound / totalCount);
+            currentCount++;
+            mainWindow.webContents.send(progressChannel, currentCount / totalCount);
           })());
           return true;
         }
@@ -152,20 +149,28 @@ export default (mainWindow) => {
       return false;
     }
     CardList.forEach((card, index) => {
+
       reloadImage(card.face, newMtime => {
         CardList[index].face.mtime = newMtime;
-        delete CardList[index].id;
+        // delete CardList[index].id;
       });
       reloadImage(card.back, newMtime => {
         CardList[index].back.mtime = newMtime;
-        delete CardList[index].id;
+        // delete CardList[index].id;
       });
     });
     reloadImage(Config.globalBackground, newMtime => {
       Config.globalBackground.mtime = newMtime;
     });
     await Promise.all(reloadImageJobs);
-    mainWindow.webContents.send(progressChannel, 1);
-    mainWindow.webContents.send(returnChannel, {...state, OverviewStorage: newOverviewStorage});
+
+    if (isTerminated) {
+      mainWindow.webContents.send(returnChannel, {
+        isAborted: true
+      });
+    } else {
+      mainWindow.webContents.send(progressChannel, 1);
+      mainWindow.webContents.send(returnChannel, {OverviewStorage: newOverviewStorage, CardList, Config});
+    }
   });
 }

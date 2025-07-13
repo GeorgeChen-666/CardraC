@@ -1,9 +1,7 @@
-import { getBorderAverageColors } from '../../functions';
+import { getBorderAverageColors, getConfigStore } from '../../functions';
 import { layoutSides } from '../../../../public/constants';
 import { fixFloat, getLocateByCenterBase, ImageStorage } from './Utils';
-import Store from 'electron-store';
 
-const store = new Store();
 const imageAverageColorSet = new Map();
 const loadImageAverageColor = async () => {
   imageAverageColorSet.clear();
@@ -25,7 +23,7 @@ const loadImageAverageColor = async () => {
 
 
 const getPagedImageListByCardList = ({ CardList, globalBackground }) => {
-  const { Config } = store.get() || {};
+  const { Config } = getConfigStore();
   const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
   let repeatCardList = CardList.reduce((arr, cv) => arr.concat(new Array(cv.repeat).fill(cv)), []);
 
@@ -50,7 +48,7 @@ const getPagedImageListByCardList = ({ CardList, globalBackground }) => {
   return pagedImageList;
 };
 const drawPageElements = async (doc, pageData, state, cb) => {
-  const { Config } = store.get() || {};
+  const { Config } = getConfigStore();
   const hc = Config.columns;
   const vc = Config.rows;
   const scale = fixFloat(Config.scale / 100);
@@ -196,23 +194,29 @@ const drawPageElements = async (doc, pageData, state, cb) => {
             imageYc = imageYc - foldInHalfMargin / 2;
           }
         }
+        let bleedXM = bleedX;
+        let bleedYM = bleedY;
+        if(avoidDislocation && type === 'back') {
+          bleedXM = fixFloat(Config.marginX * scale) / 2  + fixFloat(Config.bleedX * scale);
+          bleedYM = fixFloat(Config.marginY * scale) / 2 + fixFloat(Config.bleedY * scale);
+        }
         const normalMarks = new Set();
         //add normal mark loc
         if (cx === 0) {
-          normalMarks.add(`0,${imageYc + bleedY + offsetY}-${imageXc + bleedX + offsetX},${imageYc + bleedY + offsetY}`);
-          normalMarks.add(`0,${imageYc + imageH - bleedY + offsetY}-${imageXc + bleedX + offsetX},${imageYc + imageH - bleedY + offsetY}`);
+          normalMarks.add(`0,${imageYc + bleedYM + offsetY}-${imageXc + bleedXM + offsetX},${imageYc + bleedYM + offsetY}`);
+          normalMarks.add(`0,${imageYc + imageH - bleedYM + offsetY}-${imageXc + bleedXM + offsetX},${imageYc + imageH - bleedYM + offsetY}`);
         }
         if (cx === hc - 1) {
-          normalMarks.add(`${imageXc + imageW - bleedX + offsetX},${imageYc + bleedY + offsetY}-${maxWidth},${imageYc + bleedY + offsetY}`);
-          normalMarks.add(`${imageXc + imageW - bleedX + offsetX},${imageYc + imageH - bleedY + offsetY}-${maxWidth},${imageYc + imageH - bleedY + offsetY}`);
+          normalMarks.add(`${imageXc + imageW - bleedXM + offsetX},${imageYc + bleedYM + offsetY}-${maxWidth},${imageYc + bleedYM + offsetY}`);
+          normalMarks.add(`${imageXc + imageW - bleedXM + offsetX},${imageYc + imageH - bleedYM + offsetY}-${maxWidth},${imageYc + imageH - bleedYM + offsetY}`);
         }
         if (cy === 0) {
-          normalMarks.add(`${imageXc + bleedX + offsetX},0-${imageXc + bleedX + offsetX},${imageYc + bleedY + offsetY}`);
-          normalMarks.add(`${imageXc + imageW - bleedX + offsetX},0-${imageXc + imageW - bleedX + offsetX},${imageYc + bleedY + offsetY}`);
+          normalMarks.add(`${imageXc + bleedXM + offsetX},0-${imageXc + bleedXM + offsetX},${imageYc + bleedYM + offsetY}`);
+          normalMarks.add(`${imageXc + imageW - bleedXM + offsetX},0-${imageXc + imageW - bleedXM + offsetX},${imageYc + bleedYM + offsetY}`);
         }
         if (cy === vc - 1) {
-          normalMarks.add(`${imageXc + bleedX + offsetX},${imageYc + imageH - bleedY + offsetY}-${imageXc + bleedX + offsetX},${maxHeight}`);
-          normalMarks.add(`${imageXc + imageW - bleedX + offsetX},${imageYc + imageH - bleedY + offsetY}-${imageXc + imageW - bleedX + offsetX},${maxHeight}`);
+          normalMarks.add(`${imageXc + bleedXM + offsetX},${imageYc + imageH - bleedYM + offsetY}-${imageXc + bleedXM + offsetX},${maxHeight}`);
+          normalMarks.add(`${imageXc + imageW - bleedXM + offsetX},${imageYc + imageH - bleedYM + offsetY}-${imageXc + imageW - bleedXM + offsetX},${maxHeight}`);
         }
         normalMarks.forEach(nm => {
           const [loc1, loc2] = nm.split('-');
@@ -245,12 +249,18 @@ const drawPageElements = async (doc, pageData, state, cb) => {
             imageYc = imageYc - foldInHalfMargin / 2;
           }
         }
+        let bleedXM = bleedX;
+        let bleedYM = bleedY;
+        if(avoidDislocation && type === 'back') {
+          bleedXM = fixFloat(Config.marginX * scale) / 2  + fixFloat(Config.bleedX * scale);
+          bleedYM = fixFloat(Config.marginY * scale) / 2 + fixFloat(Config.bleedY * scale);
+        }
         //add cross mark loc
         const crossMarks = new Set();
-        crossMarks.add(`${imageXc + bleedX + offsetX},${imageYc + bleedY + offsetY}`);
-        crossMarks.add(`${imageXc + imageW - bleedX + offsetX},${imageYc + imageH - bleedY + offsetY}`);
-        crossMarks.add(`${imageXc + bleedX + offsetX},${imageYc + imageH - bleedY + offsetY}`);
-        crossMarks.add(`${imageXc + imageW - bleedX + offsetX},${imageYc + bleedY + offsetY}`);
+        crossMarks.add(`${imageXc + bleedXM + offsetX},${imageYc + bleedYM + offsetY}`);
+        crossMarks.add(`${imageXc + imageW - bleedXM + offsetX},${imageYc + imageH - bleedYM + offsetY}`);
+        crossMarks.add(`${imageXc + bleedXM + offsetX},${imageYc + imageH - bleedYM + offsetY}`);
+        crossMarks.add(`${imageXc + imageW - bleedXM + offsetX},${imageYc + bleedYM + offsetY}`);
         crossMarks.forEach(cm => {
           const [x, y] = cm.split(',');
           try {
@@ -264,7 +274,7 @@ const drawPageElements = async (doc, pageData, state, cb) => {
   }
 };
 const drawPageNumber = async (doc, state, pageIndex, totalPages) => {
-  const { Config } = store.get() || {};
+  const { Config } = getConfigStore();
   if(!Config.showPageNumber) {
     return;
   }
@@ -273,7 +283,7 @@ const drawPageNumber = async (doc, state, pageIndex, totalPages) => {
 }
 
 export const drawPdfNormal = async (doc, state, onProgress) => {
-  const { Config } = store.get() || {};
+  const { Config } = getConfigStore();
   const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
   const pagedImageList = getPagedImageListByCardList(state);
   let currentImageNumber = 0;

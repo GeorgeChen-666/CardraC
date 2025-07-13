@@ -1,6 +1,5 @@
-body *:not(input), body *:not(textarea) {
-    -webkit-user-select: none; /* Chrome/Safari */
-    -moz-user-select: none; /* Firefox */
-    -ms-user-select: none; /* IE10+/Edge */
-    user-select: none; /* 标准语法 */
+body {
+    margin: 0;
+    background: #2E2E2E;
+    color: #F7F7F7;
 }

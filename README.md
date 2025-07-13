@@ -6,7 +6,7 @@ Cardrac是一款仿造PnpTools用于桌游PNP的排版辅助软件。
 
 ![app](https://raw.githubusercontent.com/GeorgeChen-666/CardraC/refs/heads/master/doc/image/2025-01-16_144026.png?raw=true)
 
-[更新日志](./doc/CHANGELOG.zh-CN.md) · [报告问题][github-issues-url] · [特性需求][github-issues-url]
+[报告问题][github-issues-url] · [特性需求][github-issues-url]
 
 [github-issues-url]: https://github.com/GeorgeChen-666/CardraC/issues/new
 

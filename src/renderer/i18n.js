@@ -8,13 +8,13 @@ i18n
   .use(LanguageDetector)
   .use(initReactI18next);
 
-  // .init({
-  //   supportedLngs: ['zh', 'en'],
-  //   lng: 'zh',
-  //   fallbackLng: 'en',
-  //   backend: {
-  //     loadPath: getResourcesPath('/public/locales/{{lng}}.json'),
-  //   },
-  //   // debug: true,
-  // });
+export const initI18n = Global => i18n.init({
+  supportedLngs: Global.availableLangs.length === 0 ? [Global.currentLang] : Global.availableLangs,
+  lng: Global.currentLang,
+  resources:
+    Global.availableLangs.map(lang => ({
+      [lang]: { translation: Global.locales[lang] }
+    })).reduce((l1, l2) => Object.assign(l1, l2), {}),
+});
+
 export const i18nInstance = i18n;

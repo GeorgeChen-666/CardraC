@@ -1,10 +1,9 @@
 import { fixFloat, getLocateByCenterBase, ImageStorage } from './Utils';
-import Store from 'electron-store';
+import { getConfigStore } from '../../functions';
 
-const store = new Store();
 const getPagedImageListByCardList = (state) => {
   const { CardList } = state;
-  const { Config } = store.get() || {};
+  const { Config } = getConfigStore();
   const { brochureRepeatPerPage } = Config;
   let repeatCardList = CardList;
 
@@ -54,7 +53,7 @@ const getPagedImageListByCardList = (state) => {
 };
 
 const drawPageElements = async (doc, pageData, { globalBackground }, cb) => {
-  const { Config } = store.get() || {};
+  const { Config } = getConfigStore();
   const hc = Config.columns * 2;
   const vc = Config.rows;
   const scale = fixFloat(Config.scale / 100);
@@ -119,7 +118,8 @@ const drawPageElements = async (doc, pageData, { globalBackground }, cb) => {
       doc.setDrawColor(cutlineColor);
 
       const dashMarks = new Set();
-      if(cx % 2 === (type === 'face' ? 1 : 0)) {
+      if(cx % 2 === 1) {
+        let [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc);
         dashMarks.add(`${imageXc},${yy * maxHeightSplited}-${imageXc},${imageYc + bleedY}`);
         dashMarks.add(`${imageXc},${imageYc + imageH - bleedY}-${imageXc},${(yy + 1) * maxHeightSplited}`);
       }
@@ -215,7 +215,7 @@ const drawPageElements = async (doc, pageData, { globalBackground }, cb) => {
   }
 };
 const drawPageNumber = async (doc, state, pageIndex, totalPages) => {
-  const { Config } = store.get() || {};
+  const { Config } = getConfigStore();
   if(!Config.showPageNumber) {
     return;
   }

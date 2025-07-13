@@ -1,16 +1,11 @@
 import { dialog, ipcMain } from 'electron';
 import { eleActions } from '../../../public/constants';
-import _ from 'lodash';
-import { readFileToData, saveDataToFile } from '../functions';
+import { getConfigStore, saveDataToFile } from '../functions';
 import fs from 'fs';
 import { defaultImageStorage, ImageStorage, OverviewStorage } from './pdf/Utils';
-import Store from 'electron-store';
 
-const store = new Store();
 
-const refreshCardStorage = (CardList) => {
-  const { Config } = store.get() || {};
-
+const refreshCardStorage = (CardList, globalBackground) => {
   const usedImagePath = new Set();
   CardList.forEach(card => {
     const {face,back} = card;
@@ -20,8 +15,8 @@ const refreshCardStorage = (CardList) => {
     usedImagePath.add(backPathKey);
   });
 
-  if(Config.globalBackground?.path) {
-    const globalBackPathKey = Config.globalBackground?.path?.replaceAll('\\','');
+  if(globalBackground?.path) {
+    const globalBackPathKey = globalBackground?.path?.replaceAll('\\','');
     usedImagePath.add(globalBackPathKey);
   }
 
@@ -39,7 +34,8 @@ const loadCpnpFile = (filePath, { onProgress, onFinish, onError }) => {
 
   readStream.on('end', () => {
     try {
-      const imageStorageRegexp = new RegExp(/"ImageStorage":( )?\{(".*?")?\}(,)?/g);
+      const regexPattern = '"ImageStorage"\\s*:\\s*\\{(?:[^\\{\\}]*|\\{[^\\{\\}]*\\})*\\}';
+      const imageStorageRegexp = new RegExp(regexPattern, 'g');
       let [imageStorageString= ''] = resultString.match(imageStorageRegexp) || [];
       if(imageStorageString.endsWith(',')) {
         imageStorageString = imageStorageString.substring(0, imageStorageString.length - 1);
@@ -124,30 +120,33 @@ export default (mainWindow) => {
         { name: 'Project file', extensions: ['cpnp'] }
       ]
     });
-    if (result.canceled) { return; }
-    const projectPath = result.filePath;
-    const { Config } = store.get() || {};
-    Config.globalBackground = globalBackground;
-    const projectData = { Config, CardList };
+    if (result.canceled) {
+      mainWindow.webContents.send(returnChannel, false);
+    } else {
+      const projectPath = result.filePath;
+      const { Config } = getConfigStore();
+      Config.globalBackground = globalBackground;
+      const projectData = { Config, CardList };
 
-    const imageStorageKeys = Object.keys(ImageStorage);
-    imageStorageKeys.forEach(key => {
-      if(!Object.keys(OverviewStorage).includes(key) && key !== '_emptyImg') {
-        delete ImageStorage[key];
+      const imageStorageKeys = Object.keys(ImageStorage);
+      imageStorageKeys.forEach(key => {
+        if(!Object.keys(OverviewStorage).includes(key) && key !== '_emptyImg') {
+          delete ImageStorage[key];
+        }
+      })
+      refreshCardStorage(CardList, globalBackground);
+      try {
+        await saveDataToFile({ ...projectData, ImageStorage, OverviewStorage }, projectPath);
       }
-    })
-    refreshCardStorage(CardList);
-    try {
-      await saveDataToFile({ ...projectData, ImageStorage, OverviewStorage }, projectPath);
-    }
-    catch (e) {
-      mainWindow.webContents.send('notification', {
-        status: 'error',
-        description: "util.operationFailed"
-      });
-    }
-    finally {
-      mainWindow.webContents.send(returnChannel);
+      catch (e) {
+        mainWindow.webContents.send('notification', {
+          status: 'error',
+          description: "util.operationFailed"
+        });
+      }
+      finally {
+        mainWindow.webContents.send(returnChannel, true);
+      }
     }
   });
 

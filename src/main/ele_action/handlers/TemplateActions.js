@@ -1,13 +1,13 @@
 import { ipcMain } from 'electron';
 import Store from 'electron-store';
+import { getConfigStore } from '../functions';
 
-const store = new Store();
 export default (mainWindow) => {
   const templateStore = new Store({name: 'templates'});
   ipcMain.on('set-template', async (event, args) => {
     const { templateName: TemplateName } = args;
 
-    const { Config } = store.get() || {}
+    const { Config } = getConfigStore()
     const lastStore = templateStore.get();
     const newStore = { templates: [...(lastStore.templates || []).filter(t=> t.TemplateName !== TemplateName), {
         id: new Date().getTime(),

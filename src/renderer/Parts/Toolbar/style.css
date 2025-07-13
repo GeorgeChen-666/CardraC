@@ -1,0 +1,8 @@
+
+.MuiMenuItem-root input {
+    padding: 3px;
+}
+
+.MuiMenuItem-root .MuiTextField-root{
+    margin-left: 5px;
+}

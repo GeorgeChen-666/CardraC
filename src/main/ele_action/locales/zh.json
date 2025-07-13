@@ -1,6 +1,8 @@
 {
   "util": {
     "invalidFile": "文件损坏！",
+    "invalidConfig": "配置文件损坏！",
+    "invalidConfigOptions": "发现非法的配置项，已将相关配置项修复！",
     "noData": "无数据",
     "operating": "操作中。。。",
     "operationFailed": "操作失败。",
@@ -18,11 +20,20 @@
     "btnAdd" : "创建pnp文件。",
     "btnOpen" : "打开pnp文件。",
     "btnSave" : "保存pnp文件。",
+    "btnLang" : "语言设置。",
     "btnConfig" : "参数设置。",
     "btnExport" : "导出pdf。",
     "btnGlobalBackground" : "全局默认背景图。",
     "lblSwitchView": "切换视图",
-    "btnReloadImage": "从图片文件重新加载图像（可能很慢...）",
+    "compressLevel": "压缩等级",
+    "compressMenu": {
+      "compressLevelDesc": "无|轻微|一般|较强|强力",
+      "fixPath": "修正路径",
+      "fixPathTooltip": "{{num}}图像无法确定源图。",
+      "manualReload": "手动重载图像",
+      "compressItemTooltip": "变更后将自动重载图像。",
+      "manualReloadTooltip": "从源图按压缩等级重载图像。"
+    },
     "bulkMenu": {
       "labelSelection": "选择项...",
       "menuRemove": "删除",
@@ -69,6 +80,7 @@
     "cardHeight": "卡牌高度",
     "marginX": "横间距",
     "marginY": "纵间距",
+    "foldInHalfMargin": "对贴间距",
     "bleed": "出血尺寸",
     "scale": "放缩",
     "columns_rows": "行/列",
@@ -95,13 +107,11 @@
     "brochureRepeatPerPage": "在每页中重复",
     "reloadImageFinish": "加载完成！",
     "saveCurrentConfig": "保存当前配置",
-    "clickMenuLoadConfig": "点击菜单项加载模板",
-    "compressLevel": "压缩等级",
-    "compressLevelOption": "{{lv}}级",
-    "compressLevelDes": "变更后需重新加载图像"
+    "clickMenuLoadConfig": "点击菜单项加载模板"
   },
   "footer": {
     "files": "文件数",
-    "images": "卡牌数"
+    "images": "卡牌数",
+    "selectedFiles": "选中文件数"
   }
 }
