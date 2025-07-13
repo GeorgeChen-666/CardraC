@@ -1,6 +1,6 @@
 {
   "name": "cardrac",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "private": true,
   "author": {
     "name": "GeorgeChen"
@@ -10,7 +10,6 @@
   "main": ".webpack/main",
   "scripts": {
     "start": "electron-forge start",
-    "start_newUI": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",

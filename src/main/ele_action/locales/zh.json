@@ -26,7 +26,14 @@
     "btnGlobalBackground" : "全局默认背景图。",
     "lblSwitchView": "切换视图",
     "compressLevel": "压缩等级",
-    "btnReloadImage": "从图片文件重新加载图像（可能很慢...）",
+    "compressMenu": {
+      "compressLevelDesc": "无|轻微|一般|较强|强力",
+      "fixPath": "修正路径",
+      "fixPathTooltip": "{{num}}图像无法确定源图。",
+      "manualReload": "手动重载图像",
+      "compressItemTooltip": "变更后将自动重载图像。",
+      "manualReloadTooltip": "从源图按压缩等级重载图像。"
+    },
     "bulkMenu": {
       "labelSelection": "选择项...",
       "menuRemove": "删除",
@@ -104,6 +111,7 @@
   },
   "footer": {
     "files": "文件数",
-    "images": "卡牌数"
+    "images": "卡牌数",
+    "selectedFiles": "选中文件数"
   }
 }

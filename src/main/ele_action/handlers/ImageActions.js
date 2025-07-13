@@ -43,18 +43,9 @@ const pathToImageData = async (path, cb) => {
 }
 
 export default (mainWindow) => {
-  ipcMain.on(eleActions.getImageContent, async (event, args) => {
-    const { path, returnChannel } = args;
-    const { Config } = getConfigStore();
-    const cardWidth = Config.cardWidth;
-
-    const ext = path.split('.').pop();
+  ipcMain.handle(eleActions.getImageContent, async (event, path) => {
     const imagePathKey = path.replaceAll('\\','');
-    await pathToImageData(path);
-    const imageData = ImageStorage[imagePathKey];
-    const buffer = Buffer.from(imageData.split(',')[1], 'base64');
-    const newData = await readCompressedImage(buffer, { format: ext, maxWidth : cardWidth * 5, quality : 60 })
-    mainWindow.webContents.send(returnChannel, Buffer.from(newData));
+    return ImageStorage[imagePathKey];
   });
   ipcMain.on(eleActions.getImagePath, async (event, args) => {
     const { properties = [], returnChannel } = args;
@@ -161,11 +152,11 @@ export default (mainWindow) => {
 
       reloadImage(card.face, newMtime => {
         CardList[index].face.mtime = newMtime;
-        delete CardList[index].id;
+        // delete CardList[index].id;
       });
       reloadImage(card.back, newMtime => {
         CardList[index].back.mtime = newMtime;
-        delete CardList[index].id;
+        // delete CardList[index].id;
       });
     });
     reloadImage(Config.globalBackground, newMtime => {
@@ -179,7 +170,7 @@ export default (mainWindow) => {
       });
     } else {
       mainWindow.webContents.send(progressChannel, 1);
-      mainWindow.webContents.send(returnChannel, {OverviewStorage: newOverviewStorage});
+      mainWindow.webContents.send(returnChannel, {OverviewStorage: newOverviewStorage, CardList, Config});
     }
   });
 }

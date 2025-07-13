@@ -1,7 +1,7 @@
 const rules = require('./webpack.rules');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
-const renderKey = process.env.npm_lifecycle_event === 'start_newUI'? 'renderer_0_2' : 'renderer';
+const renderKey = process.env.npm_lifecycle_event === 'renderer';
 module.exports = {
   // Put your normal webpack config below here
   target: 'electron-renderer',
