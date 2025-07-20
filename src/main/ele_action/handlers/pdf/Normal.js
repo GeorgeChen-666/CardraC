@@ -69,6 +69,7 @@ const drawPageElements = async (doc, pageData, state, cb) => {
   const foldInHalfMargin = fixFloat(Config.foldInHalfMargin * scale);
 
   const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
+  const foldLineType = Config.foldLineType;
 
   const landscape = Config.landscape;
   let flipWay = ['none', 'long-edge binding', 'short-edge binding'].indexOf(Config.flip);
@@ -91,22 +92,6 @@ const drawPageElements = async (doc, pageData, state, cb) => {
     }
   }
 
-  if(isFoldInHalf) {
-    const dashMarks = new Set();
-    dashMarks.add(`${0},${maxHeight / 2}-${maxWidth},${maxHeight / 2}`);
-    dashMarks.forEach(nm => {
-      const [loc1, loc2] = nm.split('-');
-      const [x2, y2] = loc2.split(',');
-      const [x1, y1] = loc1.split(',');
-      try {
-        doc.setLineDash([0.5]);
-        doc.line(parseFloat(x1), parseFloat(y1) + offsetY, parseFloat(x2), parseFloat(y2) + offsetY);
-        doc.setLineDash([]);
-      } catch (e) {
-      }
-    });
-  }
-
   const [imageW, imageH] = [cardW + bleedX * 2, cardH + bleedY * 2];
   for (let xx = 0; xx < hc; xx++) {
     for (let yy = 0; yy < vc; yy++) {
@@ -115,10 +100,20 @@ const drawPageElements = async (doc, pageData, state, cb) => {
       let cy = yy;
       if(isFoldInHalf) {
         if (type === 'back') {
-          cy = vc / 2 + cy;
-          cardRotation = 180;
+          if(foldLineType === '0') {
+            cy = vc / 2 + cy;
+            cardRotation = 180;
+          }
+          else {
+            cx = hc / 2 + cx;
+          }
         } else {
-          cy = vc / 2 - cy - 1;
+          if(foldLineType === '0') {
+            cy = vc / 2 - cy - 1;
+          }
+          else {
+            cx = hc / 2 - cx - 1;
+          }
         }
       } else {
         if (type === 'back') {
@@ -131,22 +126,22 @@ const drawPageElements = async (doc, pageData, state, cb) => {
         }
       }
 
-
-      const cardIndex = yy * hc + xx;
+      const cardIndex = (foldLineType === '1' && isFoldInHalf) ? xx * vc + yy : yy * hc + xx;
       let image = imageList?.[cardIndex];
-      // if(type === 'back' && !image?.mtime) {
-      //   image = Config.globalBackground?.mtime? Config.globalBackground : {path: '_emptyImg'};
-      // }
+
       const imageX = (cx - hc / 2) * imageW + (cx - (hc - 1) / 2) * (marginX - bleedX * 2);
       const imageY = (cy - vc / 2) * imageH + (cy - (vc - 1) / 2) * (marginY - bleedY * 2);
 
       let [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc);
+
       if(isFoldInHalf) {
         if (type === 'back') {
-          imageYc = imageYc + foldInHalfMargin / 2;
+          if(foldLineType === '0') imageYc = imageYc + foldInHalfMargin / 2;
+          if(foldLineType === '1') imageXc = imageXc + foldInHalfMargin / 2;
         }
         else {
-          imageYc = imageYc - foldInHalfMargin / 2;
+          if(foldLineType === '0') imageYc = imageYc - foldInHalfMargin / 2;
+          if(foldLineType === '1') imageXc = imageXc - foldInHalfMargin / 2;
         }
       }
       if (cardRotation === 180) {
@@ -159,15 +154,6 @@ const drawPageElements = async (doc, pageData, state, cb) => {
 
       if (image && Config.marginFilling) {
         try {
-          let [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc);
-          if(isFoldInHalf) {
-            if (type === 'back') {
-              imageYc = imageYc + foldInHalfMargin / 2;
-            }
-            else {
-              imageYc = imageYc - foldInHalfMargin / 2;
-            }
-          }
           doc.setDrawColor(0);
           const averageColor = imageAverageColorSet.get(image.path?.replaceAll('\\', ''));
           if(averageColor && !(marginX / 2 - bleedX === 0 && marginY / 2 - bleedY === 0)) {
@@ -182,51 +168,8 @@ const drawPageElements = async (doc, pageData, state, cb) => {
       doc.setLineWidth(lineWeight * 0.3527);
       doc.setDrawColor(cutlineColor);
 
-
-
-      if ((Config.fCutLine === '1' || Config.fCutLine === '3') && !(type === 'back' && isFoldInHalf)) {
-        let [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc); //avoid card rotation
-        if(isFoldInHalf) {
-          if (type === 'back') {
-            imageYc = imageYc + foldInHalfMargin / 2;
-          }
-          else {
-            imageYc = imageYc - foldInHalfMargin / 2;
-          }
-        }
-        let bleedXM = bleedX;
-        let bleedYM = bleedY;
-        if(avoidDislocation && type === 'back') {
-          bleedXM = fixFloat(Config.marginX * scale) / 2  + fixFloat(Config.bleedX * scale);
-          bleedYM = fixFloat(Config.marginY * scale) / 2 + fixFloat(Config.bleedY * scale);
-        }
-        const normalMarks = new Set();
-        //add normal mark loc
-        if (cx === 0) {
-          normalMarks.add(`0,${imageYc + bleedYM + offsetY}-${imageXc + bleedXM + offsetX},${imageYc + bleedYM + offsetY}`);
-          normalMarks.add(`0,${imageYc + imageH - bleedYM + offsetY}-${imageXc + bleedXM + offsetX},${imageYc + imageH - bleedYM + offsetY}`);
-        }
-        if (cx === hc - 1) {
-          normalMarks.add(`${imageXc + imageW - bleedXM + offsetX},${imageYc + bleedYM + offsetY}-${maxWidth},${imageYc + bleedYM + offsetY}`);
-          normalMarks.add(`${imageXc + imageW - bleedXM + offsetX},${imageYc + imageH - bleedYM + offsetY}-${maxWidth},${imageYc + imageH - bleedYM + offsetY}`);
-        }
-        if (cy === 0) {
-          normalMarks.add(`${imageXc + bleedXM + offsetX},0-${imageXc + bleedXM + offsetX},${imageYc + bleedYM + offsetY}`);
-          normalMarks.add(`${imageXc + imageW - bleedXM + offsetX},0-${imageXc + imageW - bleedXM + offsetX},${imageYc + bleedYM + offsetY}`);
-        }
-        if (cy === vc - 1) {
-          normalMarks.add(`${imageXc + bleedXM + offsetX},${imageYc + imageH - bleedYM + offsetY}-${imageXc + bleedXM + offsetX},${maxHeight}`);
-          normalMarks.add(`${imageXc + imageW - bleedXM + offsetX},${imageYc + imageH - bleedYM + offsetY}-${imageXc + imageW - bleedXM + offsetX},${maxHeight}`);
-        }
-        normalMarks.forEach(nm => {
-          const [loc1, loc2] = nm.split('-');
-          const [x1, y1] = loc1.split(',');
-          const [x2, y2] = loc2.split(',');
-          try {
-            doc.line(parseFloat(x1), parseFloat(y1), parseFloat(x2), parseFloat(y2));
-          } catch (e) {
-          }
-        });
+      if ((Config.fCutLine === '1' || Config.fCutLine === '3')) {
+        drawNormalMark(doc, cx, cy, type);
       }
 
       if (image) {
@@ -239,40 +182,179 @@ const drawPageElements = async (doc, pageData, state, cb) => {
         }
       }
 
-      if ((Config.fCutLine === '2' || Config.fCutLine === '3') && !(type === 'back' && isFoldInHalf)) {
-        let [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc); //avoid card rotation
-        if(isFoldInHalf) {
-          if (type === 'back') {
-            imageYc = imageYc + foldInHalfMargin / 2;
-          }
-          else {
-            imageYc = imageYc - foldInHalfMargin / 2;
-          }
-        }
-        let bleedXM = bleedX;
-        let bleedYM = bleedY;
-        if(avoidDislocation && type === 'back') {
-          bleedXM = fixFloat(Config.marginX * scale) / 2  + fixFloat(Config.bleedX * scale);
-          bleedYM = fixFloat(Config.marginY * scale) / 2 + fixFloat(Config.bleedY * scale);
-        }
-        //add cross mark loc
-        const crossMarks = new Set();
-        crossMarks.add(`${imageXc + bleedXM + offsetX},${imageYc + bleedYM + offsetY}`);
-        crossMarks.add(`${imageXc + imageW - bleedXM + offsetX},${imageYc + imageH - bleedYM + offsetY}`);
-        crossMarks.add(`${imageXc + bleedXM + offsetX},${imageYc + imageH - bleedYM + offsetY}`);
-        crossMarks.add(`${imageXc + imageW - bleedXM + offsetX},${imageYc + bleedYM + offsetY}`);
-        crossMarks.forEach(cm => {
-          const [x, y] = cm.split(',');
-          try {
-            doc.line(parseFloat(x) - fixFloat(2 * scale), parseFloat(y), parseFloat(x) + fixFloat(2 * scale), parseFloat(y));
-            doc.line(parseFloat(x), parseFloat(y) - fixFloat(2 * scale), parseFloat(x), parseFloat(y) + fixFloat(2 * scale));
-          } catch (e) {
-          }
-        });
+      if ((Config.fCutLine === '2' || Config.fCutLine === '3')) {
+        drawCrossMark(doc, cx, cy, type);
       }
     }
   }
+
+  if(isFoldInHalf) {
+    const dashMarks = new Set();
+    foldLineType === '0' && dashMarks.add(`${0},${maxHeight / 2}-${maxWidth},${maxHeight / 2}`);
+    foldLineType === '1' && dashMarks.add(`${maxWidth / 2},${0}-${maxWidth / 2},${maxHeight}`);
+    dashMarks.forEach(nm => {
+      const [loc1, loc2] = nm.split('-');
+      const [x2, y2] = loc2.split(',');
+      const [x1, y1] = loc1.split(',');
+      try {
+        doc.setLineDash([0.5]);
+        doc.line(parseFloat(x1), parseFloat(y1) + offsetY, parseFloat(x2), parseFloat(y2) + offsetY);
+        doc.setLineDash([]);
+      } catch (e) {
+      }
+    });
+  }
+
 };
+
+const drawNormalMark = ( doc, xx, yy, type ) => {
+  const { Config } = getConfigStore();
+  const hc = Config.columns;
+  const vc = Config.rows;
+  const scale = fixFloat(Config.scale / 100);
+  let cardW = fixFloat(Config.cardWidth * scale);
+  let cardH = fixFloat(Config.cardHeight * scale);
+  let marginX = fixFloat(Config.marginX * scale);
+  let marginY = fixFloat(Config.marginY * scale);
+  let bleedX = fixFloat(Config.bleedX * scale);
+  let bleedY = fixFloat(Config.bleedY * scale);
+  let offsetX = fixFloat(scale * Config.offsetX);
+  let offsetY = fixFloat(scale * Config.offsetY);
+  const maxWidth = fixFloat(doc.getPageWidth(0));
+  const maxHeight = fixFloat(doc.getPageHeight(0));
+  const foldInHalfMargin = fixFloat(Config.foldInHalfMargin * scale);
+
+  const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
+  const foldLineType = Config.foldLineType;
+
+  const [imageW, imageH] = [cardW + bleedX * 2, cardH + bleedY * 2];
+  const imageX = (xx - hc / 2) * imageW + (xx - (hc - 1) / 2) * (marginX - bleedX * 2);
+  const imageY = (yy - vc / 2) * imageH + (yy - (vc - 1) / 2) * (marginY - bleedY * 2);
+
+  let [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc); //avoid card rotation
+  let ignoreMark = false;
+  if(isFoldInHalf) {
+    if (type === 'back') {
+      if(foldLineType === '0') {
+        imageYc = imageYc + foldInHalfMargin / 2;
+        yy === 2 && (ignoreMark = true);
+      }
+      if(foldLineType === '1') {
+        imageXc = imageXc + foldInHalfMargin / 2;
+        xx === 2 && (ignoreMark = true);
+      }
+    }
+    else {
+      if(foldLineType === '0') {
+        imageYc = imageYc - foldInHalfMargin / 2;
+        yy === -1 && (ignoreMark = true);
+      }
+      if(foldLineType === '1') {
+        imageXc = imageXc - foldInHalfMargin / 2;
+        xx === -1 && (ignoreMark = true);
+      }
+
+    }
+  }
+  let bleedXM = bleedX;
+  let bleedYM = bleedY;
+
+  const normalMarks = new Set();
+  //add normal mark loc
+  if (xx === 0) {
+    normalMarks.add(`0,${imageYc + bleedYM + offsetY}-${imageXc + bleedXM + offsetX},${imageYc + bleedYM + offsetY}`);
+    normalMarks.add(`0,${imageYc + imageH - bleedYM + offsetY}-${imageXc + bleedXM + offsetX},${imageYc + imageH - bleedYM + offsetY}`);
+  }
+  if (xx === hc - 1) {
+    normalMarks.add(`${imageXc + imageW - bleedXM + offsetX},${imageYc + bleedYM + offsetY}-${maxWidth},${imageYc + bleedYM + offsetY}`);
+    normalMarks.add(`${imageXc + imageW - bleedXM + offsetX},${imageYc + imageH - bleedYM + offsetY}-${maxWidth},${imageYc + imageH - bleedYM + offsetY}`);
+  }
+  if (yy === 0) {
+    normalMarks.add(`${imageXc + bleedXM + offsetX},0-${imageXc + bleedXM + offsetX},${imageYc + bleedYM + offsetY}`);
+    normalMarks.add(`${imageXc + imageW - bleedXM + offsetX},0-${imageXc + imageW - bleedXM + offsetX},${imageYc + bleedYM + offsetY}`);
+  }
+  if (yy === vc - 1) {
+    normalMarks.add(`${imageXc + bleedXM + offsetX},${imageYc + imageH - bleedYM + offsetY}-${imageXc + bleedXM + offsetX},${maxHeight}`);
+    normalMarks.add(`${imageXc + imageW - bleedXM + offsetX},${imageYc + imageH - bleedYM + offsetY}-${imageXc + imageW - bleedXM + offsetX},${maxHeight}`);
+  }
+  !ignoreMark && normalMarks.forEach(nm => {
+    const [loc1, loc2] = nm.split('-');
+    const [x1, y1] = loc1.split(',');
+    const [x2, y2] = loc2.split(',');
+    try {
+      doc.line(parseFloat(x1), parseFloat(y1), parseFloat(x2), parseFloat(y2));
+    } catch (e) {
+    }
+  });
+}
+
+const drawCrossMark = ( doc, xx, yy, type ) => {
+  const { Config } = getConfigStore();
+  const hc = Config.columns;
+  const vc = Config.rows;
+  const scale = fixFloat(Config.scale / 100);
+  let cardW = fixFloat(Config.cardWidth * scale);
+  let cardH = fixFloat(Config.cardHeight * scale);
+  let marginX = fixFloat(Config.marginX * scale);
+  let marginY = fixFloat(Config.marginY * scale);
+  let bleedX = fixFloat(Config.bleedX * scale);
+  let bleedY = fixFloat(Config.bleedY * scale);
+  let offsetX = fixFloat(scale * Config.offsetX);
+  let offsetY = fixFloat(scale * Config.offsetY);
+
+  const foldInHalfMargin = fixFloat(Config.foldInHalfMargin * scale);
+
+  const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
+  const foldLineType = Config.foldLineType;
+
+  const [imageW, imageH] = [cardW + bleedX * 2, cardH + bleedY * 2];
+  const imageX = (xx - hc / 2) * imageW + (xx - (hc - 1) / 2) * (marginX - bleedX * 2);
+  const imageY = (yy - vc / 2) * imageH + (yy - (vc - 1) / 2) * (marginY - bleedY * 2);
+
+  let [imageXc, imageYc] = getLocateByCenterBase(imageX, imageY, doc); //avoid card rotation
+  let ignoreMark = false;
+  if(isFoldInHalf) {
+    if (type === 'back') {
+      if(foldLineType === '0') {
+        imageYc = imageYc + foldInHalfMargin / 2;
+        yy === 2 && (ignoreMark = true);
+      }
+      if(foldLineType === '1') {
+        imageXc = imageXc + foldInHalfMargin / 2;
+        xx === 2 && (ignoreMark = true);
+      }
+    }
+    else {
+      if(foldLineType === '0') {
+        imageYc = imageYc - foldInHalfMargin / 2;
+        yy === -1 && (ignoreMark = true);
+      }
+      if(foldLineType === '1') {
+        imageXc = imageXc - foldInHalfMargin / 2;
+        xx === -1 && (ignoreMark = true);
+      }
+
+    }
+  }
+  let bleedXM = bleedX;
+  let bleedYM = bleedY;
+
+  //add cross mark loc
+  const crossMarks = new Set();
+  crossMarks.add(`${imageXc + bleedXM + offsetX},${imageYc + bleedYM + offsetY}`);
+  crossMarks.add(`${imageXc + imageW - bleedXM + offsetX},${imageYc + imageH - bleedYM + offsetY}`);
+  crossMarks.add(`${imageXc + bleedXM + offsetX},${imageYc + imageH - bleedYM + offsetY}`);
+  crossMarks.add(`${imageXc + imageW - bleedXM + offsetX},${imageYc + bleedYM + offsetY}`);
+  !ignoreMark && crossMarks.forEach(cm => {
+    const [x, y] = cm.split(',');
+    try {
+      doc.line(parseFloat(x) - fixFloat(2 * scale), parseFloat(y), parseFloat(x) + fixFloat(2 * scale), parseFloat(y));
+      doc.line(parseFloat(x), parseFloat(y) - fixFloat(2 * scale), parseFloat(x), parseFloat(y) + fixFloat(2 * scale));
+    } catch (e) {
+    }
+  });
+}
+
 const drawPageNumber = async (doc, state, pageIndex, totalPages) => {
   const { Config } = getConfigStore();
   if(!Config.showPageNumber) {

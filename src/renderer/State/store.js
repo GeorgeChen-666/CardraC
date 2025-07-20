@@ -1,7 +1,14 @@
 import * as yup from 'yup';
 import { eleActions, flipWay, layoutSides } from '../../public/constants';
 import { create } from 'zustand';
-import { loadConfig, regUpdateProgress, callMain, immutableMerge, fillByObjectValue } from '../functions';
+import {
+  loadConfig,
+  regUpdateProgress,
+  callMain,
+  immutableMerge,
+  fillByObjectValue,
+  onOpenProjectFile,
+} from '../functions';
 import _ from 'lodash';
 import { i18nInstance, initI18n } from '../i18n';
 import { actionLogger } from './logger';
@@ -53,6 +60,7 @@ const stateSchema = yup.object({
     bCutLine: yup.string().oneOf(['1', '2', '3']).required(), //'1',
     lineWeight: yup.number().min(0).required(), //0.5,
     cutlineColor: yup.string().required(), //'#000000',
+    foldLineType: yup.string().oneOf(['0', '1']).required(),
     globalBackground: yup.object().notRequired(), //null,
     marginFilling: yup.boolean().notRequired(), //false,
     avoidDislocation: yup.boolean().notRequired(), //false,
@@ -100,6 +108,7 @@ export const initialState = Object.freeze({
     bCutLine: '1',
     lineWeight: 0.5,
     cutlineColor: '#000000',
+    foldLineType: '0',
     globalBackground: null,
     marginFilling: false,
     avoidDislocation: false,
@@ -409,7 +418,11 @@ useGlobalStore.selectors = createSelectors(useGlobalStore);
 // })
 
 const state = useGlobalStore.getState();
-
+onOpenProjectFile((data) => {
+  const { OverviewStorage, ...newState } = data;
+  window.OverviewStorage = OverviewStorage;
+  state.fillState(newState);
+});
 let config = await loadConfig();
 await initI18n(config.Global);
 

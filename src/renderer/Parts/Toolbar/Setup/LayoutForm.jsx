@@ -10,6 +10,8 @@ export const LayoutForm = () => {
   const { mergeConfig } = useGlobalStore.getState();
   const { Config } = useGlobalStore.selectors;
 
+  const sides = Config.sides();
+  const autoConfigFlip = Config.autoConfigFlip();
   return (<div className={'FormPanel'}>
     <FormControl label={t('configDialog.size')} width={'260px'} attrKey={'pageSize'} type={ControlType.Select}
                  items={[
@@ -24,7 +26,7 @@ export const LayoutForm = () => {
                    const pageSize = e.target.value;
                    if (pageSize) {
                      const [width, height] = e.target.value.replace(/A\d:/, '').split(',');
-                     mergeConfig({ pageSize, pageWidth: parseInt(width), pageHeight: parseInt(height) })
+                     mergeConfig({ pageSize, pageWidth: parseInt(width), pageHeight: parseInt(height) });
                    }
                  }}
     >
@@ -33,7 +35,7 @@ export const LayoutForm = () => {
     <FormControl label={t('configDialog.pageWidthHeight')} width={'145px'} attrKey={'pageWidth'} min={0}
                  type={ControlType.NumberInput} onChange={(e, v) => mergeConfig({ ['pageWidth']: v, pageSize: '' })}>
       <FormControl width={'145px'} attrKey={'pageHeight'} type={ControlType.NumberInput} min={0}
-                   onChange={(e, v) => mergeConfig({ ['pageHeight']: v, pageSize: ''})}
+                   onChange={(e, v) => mergeConfig({ ['pageHeight']: v, pageSize: '' })}
       >
         mm
       </FormControl>
@@ -51,8 +53,8 @@ export const LayoutForm = () => {
     ]}>
     </FormControl>
 
-    {![layoutSides.oneSide, layoutSides.foldInHalf].includes(Config.sides()) &&
-      (<FormControl disabled={Config.autoConfigFlip()} label={t('configDialog.flip')} width={'230px'}
+    {![layoutSides.oneSide, layoutSides.foldInHalf].includes(sides) &&
+      (<FormControl disabled={autoConfigFlip} label={t('configDialog.flip')} width={'230px'}
                     onChange={e => {
                       const flip = e.target.value;
                       mergeConfig({ flip, autoConfigFlip: (flip === '') });
@@ -62,20 +64,18 @@ export const LayoutForm = () => {
         { label: t('configDialog.longEdgeBinding'), value: flipWay.longEdgeBinding },
         { label: t('configDialog.shortEdgeBinding'), value: flipWay.shortEdgeBinding },
       ]}>
-        {Config.autoConfigFlip() && (<Link href='#' onClick={() => {
+        {autoConfigFlip && (<Link href='#' onClick={() => {
           mergeConfig({ autoConfigFlip: false });
         }}>{t('configDialog.edit')}</Link>)}
       </FormControl>)
     }
-    {/*<FormControl label={t('configDialog.compressLevel')} width={'145px'} attrKey={'compressLevel'}*/}
-    {/*             type={ControlType.Select} items={[*/}
-    {/*  { label: t('configDialog.compressLevelOption', { lv: 1 }), value: 1 },*/}
-    {/*  { label: t('configDialog.compressLevelOption', { lv: 2 }), value: 2 },*/}
-    {/*  { label: t('configDialog.compressLevelOption', { lv: 3 }), value: 3 },*/}
-    {/*  { label: t('configDialog.compressLevelOption', { lv: 4 }), value: 4 },*/}
-    {/*]}>*/}
-    {/*  {t('configDialog.compressLevelDes')}*/}
-    {/*</FormControl>*/}
+    {layoutSides.foldInHalf === sides &&
+      (<FormControl label={t('configDialog.foldLine')} width={'145px'} attrKey={'foldLineType'}
+                    type={ControlType.RadioGroup}
+                    items={[
+                      { label: t('configDialog.foldLineH'), value: '0' },
+                      { label: t('configDialog.foldLineV'), value: '1' },
+                    ]} />)}
     <FormControl label={t('configDialog.pageNumber')} attrKey={'pageNumber'} type={ControlType.Checkbox}></FormControl>
   </div>);
 };

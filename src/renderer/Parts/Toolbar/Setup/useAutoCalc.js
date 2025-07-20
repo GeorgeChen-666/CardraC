@@ -21,6 +21,7 @@ export default () => {
   const sides = Config.sides();
   const isBrochure = Config.sides() === layoutSides.brochure;
   const isFoldInHalf = Config.sides() === layoutSides.foldInHalf;
+  const foldLineType = Config.foldLineType();
 
   useEffect(() => {
 
@@ -30,9 +31,14 @@ export default () => {
     if (autoColumnsRows) {
       const pWidth = landscape ? pageHeight : pageWidth;
       const pHeight = (landscape ? pageWidth : pageHeight) - foldInHalfMargin;
-      const autoColumns = parseInt((pWidth * 0.95) / (cardWidth * (isBrochure ? 2 : 1) + marginX));
+      let autoColumns = parseInt((pWidth * 0.95) / (cardWidth * (isBrochure ? 2 : 1) + marginX));
+      if(foldLineType === '1') {
+        autoColumns = autoColumns - ((autoColumns % 2 === 1 && isFoldInHalf) ? 1 : 0);
+      }
       let autoRows = parseInt((pHeight * 0.95) / (cardHeight + marginY));
-      autoRows = autoRows - ((autoRows % 2 === 1 && isFoldInHalf) ? 1 : 0);
+      if(foldLineType === '0') {
+        autoRows = autoRows - ((autoRows % 2 === 1 && isFoldInHalf) ? 1 : 0);
+      }
       const newConfig = { columns: autoColumns, rows: autoRows };
       mergeConfig(newConfig);
     }
@@ -49,6 +55,7 @@ export default () => {
     landscape,
     foldInHalfMargin,
     sides,
+    foldLineType
   ]);
 
   useEffect(() => {

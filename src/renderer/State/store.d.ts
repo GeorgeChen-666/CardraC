@@ -39,6 +39,7 @@ export interface ConfigState {
   marginX: number;
   marginY: number;
   foldInHalfMargin: number;
+  foldLineType: '0'|'1';
   bleedX: number;
   bleedY: number;
   columns: number;
