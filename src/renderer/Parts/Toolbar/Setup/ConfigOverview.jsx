@@ -20,6 +20,7 @@ export const ConfigOverview = () => {
 
   const isBrochure = sides === layoutSides.brochure;
   const isFoldInHalf = sides === layoutSides.foldInHalf;
+  const foldLineType = Config.foldLineType();
   const [boxCardSize, setBoxCardSize] = useState(`0,0`);
   const [boxScale, setBoxScale] = useState(1);
   const scaledFoldInHalfMargin = foldInHalfMargin * boxScale;
@@ -58,8 +59,11 @@ export const ConfigOverview = () => {
               {
                 [...new Array(columns)].map((e,ii) => {
                   const cardStyle = { width: `${boxCardWidth - 1}px`, height: `${boxCardHeight - 1}px` }
-                  if(i === rows / 2 - 1 && isFoldInHalf) {
+                  if(i === rows / 2 - 1 && isFoldInHalf && foldLineType === '0') {
                     cardStyle.marginBottom = `${Math.max(scaledFoldInHalfMargin - 1, 1)}px`
+                  }
+                  if(ii === columns / 2 - 1 && isFoldInHalf && foldLineType === '1') {
+                    cardStyle.marginRight = `${Math.max(scaledFoldInHalfMargin - 1, 1)}px`
                   }
                   return (<td key={'td:' + i + '_' + ii} style={cardStyle} />)
                 })

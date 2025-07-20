@@ -91,7 +91,20 @@ export const readCompressedImage = async (path, options = {}) => {
   try {
     let image = sharp(path);
     const metadata = await image.metadata();
-    image = image.resize({ width: Math.min(metadata.width, maxWidth) });
+
+    let rotateDegrees = 0;
+    if (metadata.orientation) {
+      if ([5, 6, 7, 8].includes(metadata.orientation)) {
+        rotateDegrees = 90;
+      } else if ([3, 4].includes(metadata.orientation)) {
+        rotateDegrees = 180;
+      } else if ([7, 8].includes(metadata.orientation)) {
+        rotateDegrees = 270;
+      }
+    }
+
+    image = image.rotate(rotateDegrees)
+      .resize({ width: Math.min(metadata.width, maxWidth) });
     image = (image[format])({ lossless: true, force: true, quality });
     const ext = 'webp';
     const base64String = (await image.toBuffer()).toString('base64');

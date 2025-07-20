@@ -34,7 +34,6 @@ export const ImageViewer = forwardRef((props, ref) => {
     update: async (path = '') => {
       if(isShowOverView && path) {
         setPath(path);
-        setImageData(null)
         setIsOpen(true);
       } else {
         setIsOpen(false);

@@ -66,7 +66,7 @@ function IconToolbar() {
             const filePath = await openImage('setGlobalBack');
             mergeConfig({ globalBackground: filePath });
           }}
-          onMouseOver={() => imageViewerRef.current?.update?.(globalBackground)}
+          onMouseOver={() => imageViewerRef.current?.update?.(globalBackground?.path)}
           onMouseLeave={() => imageViewerRef.current?.close?.()}
         />
       )}
