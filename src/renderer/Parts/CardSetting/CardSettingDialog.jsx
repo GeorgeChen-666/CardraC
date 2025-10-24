@@ -24,42 +24,36 @@ export const CardSettingDialog = forwardRef(({}, ref) => {
   }));
   return (<Dialog open={open}>
     <DialogTitle>
-      独立设置
+      {t('cardEditor.spicalConfig')}
     </DialogTitle>
     <DialogContent>
       <div className={'CardSettingInputRow'}>
-        <FormLabel>正面</FormLabel>
+        <FormLabel>{t('cardEditor.face')}</FormLabel>
         <NumberInput value={123} min={0} max={999}
                      step={1}
-                     width={160} label={'横向出血'} disabled={false}
+                     width={160} label={t('configDialog.bleed')} disabled={false}
                      onChange={() => {}}
         />
         <NumberInput value={123} min={0} max={999}
                      step={1}
-                     width={160} label={'纵向出血'} disabled={false}
+                     width={160} disabled={false}
                      onChange={() => {}}
         />
         mm
-        {/*<Link href='#' onClick={() => {*/}
-        {/*  // mergeConfig({ autoConfigFlip: false });*/}
-        {/*}}>OK</Link>*/}
       </div>
       <div className={'CardSettingInputRow'}>
-        <FormLabel>背面</FormLabel>
+        <FormLabel>{t('cardEditor.back')}</FormLabel>
         <NumberInput value={123} min={0} max={999}
                      step={1}
-                     width={160} label={'横向出血'} disabled={false}
+                     width={160} label={t('configDialog.bleed')} disabled={false}
                      onChange={() => {}}
         />
         <NumberInput value={123} min={0} max={999}
                      step={1}
-                     width={160} label={'纵向出血'} disabled={false}
+                     width={160} disabled={false}
                      onChange={() => {}}
         />
         mm
-        {/*<Link href='#' onClick={() => {*/}
-        {/*  // mergeConfig({ autoConfigFlip: false });*/}
-        {/*}}>OK</Link>*/}
       </div>
     </DialogContent>
     <DialogActions>

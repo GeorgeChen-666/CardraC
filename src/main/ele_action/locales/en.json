@@ -47,6 +47,7 @@
     "btnAbout": "About"
   },
   "cardEditor": {
+    "spicalConfig": "Spical Config",
     "lblHere": "Here...",
     "btnRemove": "Remove image",
     "addEmpty" : "Add Empty",

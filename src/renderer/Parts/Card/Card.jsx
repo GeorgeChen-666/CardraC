@@ -84,7 +84,7 @@ export default memo(({ data,dialogCardSettingRef, index }) => {
       },
     },
     {
-      label: '单独设定', onClick: () => {
+      label: t('cardEditor.spicalConfig'), onClick: () => {
         dialogCardSettingRef.current.openDialog();
       },
     },
@@ -188,7 +188,7 @@ export default memo(({ data,dialogCardSettingRef, index }) => {
           </Card>
         )}
         <Card className={'CardOwnConfigDiv'} style={isBackEditing ? { left: '4px' }:{ right: '4px'}}>
-          <div>单独设定</div>
+          <div>{t('cardEditor.spicalConfig')}</div>
           <div>正面出血</div>
           <div>222</div>
           <div>背面出血</div>
