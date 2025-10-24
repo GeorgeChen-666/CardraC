@@ -1,5 +1,7 @@
 import electron, { app, BrowserWindow, shell } from 'electron';
 import { registerRendererActionHandlers } from './ele_action';
+import { getCutRectangleList } from './ele_action/handlers/pdf/Utils';
+
 
 if (typeof electron === 'string') {
   throw new TypeError('Not running in an Electron environment!');

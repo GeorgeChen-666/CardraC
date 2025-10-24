@@ -1,6 +1,7 @@
 import { app, dialog, ipcMain } from 'electron';
 import { exportPdf } from './pdf/ExportPdf';
 import { saveDataToFile } from '../functions';
+// import { getCutRectangleList } from './pdf/Utils';
 
 export default (mainWindow) => {
   ipcMain.on('export-pdf', async (event, args) => {

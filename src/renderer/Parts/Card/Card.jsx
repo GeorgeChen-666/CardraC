@@ -48,7 +48,7 @@ const useMenuState = (items) => {
   };
 };
 
-export default memo(({ data, index }) => {
+export default memo(({ data,dialogCardSettingRef, index }) => {
   const imageViewerRef = window.imageViewerRef;
   const { t } = useTranslation();
   const {
@@ -81,6 +81,11 @@ export default memo(({ data, index }) => {
     {
       label: t('cardEditor.clearBack'), onClick: () => {
         cardEditById({ id: data.id, back: null });
+      },
+    },
+    {
+      label: '单独设定', onClick: () => {
+        dialogCardSettingRef.current.openDialog();
       },
     },
   ]);
@@ -182,7 +187,13 @@ export default memo(({ data, index }) => {
             />
           </Card>
         )}
-
+        <Card className={'CardOwnConfigDiv'} style={isBackEditing ? { left: '4px' }:{ right: '4px'}}>
+          <div>单独设定</div>
+          <div>正面出血</div>
+          <div>222</div>
+          <div>背面出血</div>
+          <div>222</div>
+        </Card>
       </Stack>
     </div>
     <div className={'CardBar'}>

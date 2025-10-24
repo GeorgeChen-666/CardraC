@@ -1,0 +1,13 @@
+.CardSettingInputRow {
+    display: flex;
+    align-items: center;
+    width: 480px;
+    justify-content: center;
+    height: 70px;
+}
+
+.CardSettingInputRow label {
+    font-size: 16px;
+    color: #fff;
+    margin-right: 15px;
+}
