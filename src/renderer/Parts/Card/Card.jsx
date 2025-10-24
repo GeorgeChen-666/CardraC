@@ -189,9 +189,10 @@ export default memo(({ data,dialogCardSettingRef, index }) => {
         )}
         <Card className={'CardOwnConfigDiv'} style={isBackEditing ? { left: '4px' }:{ right: '4px'}}>
           <div>{t('cardEditor.spicalConfig')}</div>
-          <div>正面出血</div>
+          <div>{t('configDialog.bleed')}</div>
+          <div>{t('cardEditor.face')}</div>
           <div>222</div>
-          <div>背面出血</div>
+          <div>{t('cardEditor.back')}</div>
           <div>222</div>
         </Card>
       </Stack>
