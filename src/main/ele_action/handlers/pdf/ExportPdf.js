@@ -203,13 +203,26 @@ export const exportPdf = async (state, onProgress) => {
     }
 
     //image
-    const { imageList, type } = adjustBackPageImageOrder(pageData, Config);
+    const { imageList, type, config: cardConfigList } = adjustBackPageImageOrder(pageData, Config);
     const imageRectList = getCutRectangleList(doc, false, pageData.type === 'back');
     for(let i = 0; i < imageList.length; i++) {
       const image = imageList[i];
+      const cardConfig = cardConfigList[i];
       const rect = imageRectList[i];
       if (image) {
         let rotation = 0;
+        if(cardConfig) {
+          const cardBleedX = Math.min(cardConfig?.bleed?.[`${type}BleedX`], marginX / 2);
+          const cardBleedY = Math.min(cardConfig?.bleed?.[`${type}BleedY`], marginY / 2);
+          if(cardBleedX) {
+            rect.x = rect.x - cardBleedX;
+            rect.width = rect.width + cardBleedX * 2;
+          }
+          if(cardBleedY) {
+            rect.y = rect.y - cardBleedY;
+            rect.height = rect.height + cardBleedY * 2;
+          }
+        }
         if(isNeedRotation(Config, type === 'back')) {
           rotation = 180;
           rect.x = rect.x + rect.width;

@@ -22,6 +22,7 @@ const useMenuState = (items) => {
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
   const onOpen = (event) => {
+    event?.stopPropagation?.();
     setAnchorEl(event.currentTarget);
   };
   const onClose = () => {
@@ -49,10 +50,11 @@ const useMenuState = (items) => {
 };
 
 export default memo(({ data,dialogCardSettingRef, index }) => {
+  const bleedConfig = data?.config?.bleed;
   const imageViewerRef = window.imageViewerRef;
   const { t } = useTranslation();
   const {
-    cardEditById, cardRemoveByIds,mergeGlobal, cardSelect, cardShiftSelect, cardCtrlSelect, dragHoverMove, dragCardsMove
+    cardEditById, cardRemoveByIds, cardSelect, cardShiftSelect, cardCtrlSelect, dragHoverMove, dragCardsMove
   } = useGlobalStore.getState();
   const {
     Config, Global, CardList,
@@ -72,22 +74,24 @@ export default memo(({ data,dialogCardSettingRef, index }) => {
         cardEditById({ id: data.id, face: null });
       },
     },
-    {
-      label: t('cardEditor.back'), onClick: async () => {
-        const filePath = await openImage('setCardFace');
-        cardEditById({ id: data.id, back: filePath });
+    ...(sides === layoutSides.brochure ?[]: [
+      {
+        label: t('cardEditor.back'), onClick: async () => {
+          const filePath = await openImage('setCardFace');
+          cardEditById({ id: data.id, back: filePath });
+        },
       },
-    },
-    {
-      label: t('cardEditor.clearBack'), onClick: () => {
-        cardEditById({ id: data.id, back: null });
+      {
+        label: t('cardEditor.clearBack'), onClick: () => {
+          cardEditById({ id: data.id, back: null });
+        },
       },
-    },
-    {
-      label: t('cardEditor.spicalConfig'), onClick: () => {
-        dialogCardSettingRef.current.openDialog();
-      },
-    },
+      {
+        label: t('cardEditor.spicalConfig'), onClick: () => {
+          dialogCardSettingRef.current.openDialog();
+        },
+      }
+    ]),
   ]);
   const [, dropRef] = useDrop({
     accept: 'Card',
@@ -154,9 +158,15 @@ export default memo(({ data,dialogCardSettingRef, index }) => {
         <DragIndicatorIcon fontSize={'small'} />
       </span>
       <GeneralIconButton
-        // label={t('cardEditor.swap')}
         icon={<MoreHorizIcon fontSize={'small'} />}
         size={'small'}
+        onMouseDown={e => {
+          e.stopPropagation();
+          if (!selected) {
+            console.log('cardSelect(data.id);', e);
+            cardSelect(data.id);
+          }
+        }}
         onClick={onOpen}
       />
       {MenuElement}
@@ -187,14 +197,6 @@ export default memo(({ data,dialogCardSettingRef, index }) => {
             />
           </Card>
         )}
-        <Card className={'CardOwnConfigDiv'} style={isBackEditing ? { left: '4px' }:{ right: '4px'}}>
-          <div>{t('cardEditor.spicalConfig')}</div>
-          <div>{t('configDialog.bleed')}</div>
-          <div>{t('cardEditor.face')}</div>
-          <div>222</div>
-          <div>{t('cardEditor.back')}</div>
-          <div>222</div>
-        </Card>
       </Stack>
     </div>
     <div className={'CardBar'}>
@@ -204,7 +206,18 @@ export default memo(({ data,dialogCardSettingRef, index }) => {
           onChange={onSelectCard}
         />
       </div>
-
+      {
+        sides !== layoutSides.brochure && bleedConfig && (<Card className={'CardOwnConfigDiv'}>
+          <div title={t('configDialog.bleed')}>
+            <div>{t('cardEditor.face')}:
+              <pre> {bleedConfig?.faceBleedX || 'NoV'}|{bleedConfig?.faceBleedY || 'NoV'}</pre>
+            </div>
+            <div>{t('cardEditor.back')}:
+              <pre> {bleedConfig?.backBleedX || 'NoV'}|{bleedConfig?.backBleedY || 'NoV'}</pre>
+            </div>
+          </div>
+        </Card>)
+      }
       {Config.sides !== layoutSides.brochure && (
         <NumberInput width='50px' step={1} value={data.repeat} min={1} max={999}
                      onClick={(e) => e.stopPropagation()}

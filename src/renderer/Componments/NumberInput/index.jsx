@@ -44,6 +44,12 @@ export const NumberInput = (props) => {
                         onChange(e, fixedNumber);
                         // mergeConfig({ [attrKey]: fixedNumber });
                       }
+                      if(max !== undefined && fixedNumber > max) {
+                        onChange(e, max);
+                      }
+                      if(min!==undefined && fixedNumber < min) {
+                        onChange(e, min);
+                      }
                     }}
                     onChange={(e => {
                       setLocalValue(e.target.value)

@@ -197,11 +197,13 @@ const getNormalPagedImageListByCardList = ({ CardList, globalBackground }) => {
     const result = repeatCardList.slice(i, i + size);
     pagedImageList.push({
       imageList: result.map(c => c.face),
+      config: result.map(c => c?.config),
       type: 'face',
     });
     if ([layoutSides.doubleSides, layoutSides.foldInHalf].includes(sides)) {
       pagedImageList.push({
         imageList: result.map(c => c.back?.mtime ? c.back : globalBackground),
+        config: result.map(c => c?.config),
         type: 'back',
       });
     }

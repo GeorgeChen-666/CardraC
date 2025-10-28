@@ -386,6 +386,16 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       return state;
     });
   },
+  selectedCardsConfig: (config) => {
+    set(state => {
+      const selection = state.CardList.filter(c => c.selected);
+      selection.forEach(c => {
+        c.config = config;
+      });
+      state.CardList = state.CardList.map(c => selection.includes(c) ? { ...c } : c);
+      return state;
+    });
+  }
 })));
 
 function createSelectors(storeHook) {
