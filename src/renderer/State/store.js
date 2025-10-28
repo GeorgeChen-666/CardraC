@@ -390,7 +390,11 @@ export const useGlobalStore = create(middlewares((set, get) => ({
     set(state => {
       const selection = state.CardList.filter(c => c.selected);
       selection.forEach(c => {
-        c.config = config;
+        if(Object.values(config?.bleed || {}).filter(e => !!e).length > 0) {
+          c.config = config;
+        } else {
+          delete c.config;
+        }
       });
       state.CardList = state.CardList.map(c => selection.includes(c) ? { ...c } : c);
       return state;
