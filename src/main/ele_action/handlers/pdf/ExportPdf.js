@@ -35,8 +35,9 @@ const adjustBackPageImageOrder = (pageData, Config) => {
     return pageData;
   }
 
-  const { imageList } = pageData;
+  const { imageList, config } = pageData;
   const newImageList = new Array(imageList.length);
+  const newConfigList = new Array(config.length);
 
   // 通用翻转函数
   const applyFlip = (effectiveRows, effectiveColumns, flipType) => {
@@ -64,6 +65,7 @@ const adjustBackPageImageOrder = (pageData, Config) => {
         const newIndex = newX * (isFoldInHalf ? effectiveRows : rows) + newY;
         if (newIndex < newImageList.length) {
           newImageList[newIndex] = imageList[originalIndex];
+          newConfigList[newIndex] = config[originalIndex];
         }
       }
     }
@@ -112,11 +114,13 @@ const adjustBackPageImageOrder = (pageData, Config) => {
   } else {
     for (let i = 0; i < imageList.length; i++) {
       newImageList[i] = imageList[i];
+      newConfigList[i] = config[i];
     }
   }
 
   return {
     ...pageData,
+    config: newConfigList,
     imageList: newImageList
   };
 };
@@ -143,10 +147,12 @@ export const exportPdf = async (state, onProgress) => {
   const orientation = Config.landscape ? 'landscape' : 'portrait';
   const doc = new jsPDF({ format, orientation, compress: true });
 
-  const {scale, sides, lineWeight, cutlineColor, foldLineType, offsetX, offsetY, marginX, marginY, bleedX, bleedY, showPageNumber, columns, rows, printOffsetX, printOffsetY} = Config;
+  const {avoidDislocation, scale, sides, lineWeight, cutlineColor, foldLineType, offsetX, offsetY, marginX, marginY, bleedX, bleedY, showPageNumber, columns, rows, printOffsetX, printOffsetY} = Config;
   const maxWidth = fixFloat(doc.getPageWidth(0));
   const maxHeight = fixFloat(doc.getPageHeight(0));
   const isFoldInHalf = sides === layoutSides.foldInHalf;
+  const scaledMarginX = fixFloat(marginX * scale / 100);
+  const scaledMarginY = fixFloat(marginY * scale / 100);
 
   if(Config.marginFilling) {
     await loadImageAverageColor();
@@ -208,12 +214,16 @@ export const exportPdf = async (state, onProgress) => {
     for(let i = 0; i < imageList.length; i++) {
       const image = imageList[i];
       const cardConfig = cardConfigList[i];
-      const rect = imageRectList[i];
+      const rect = {...imageRectList[i]};
       if (image) {
         let rotation = 0;
-        if(cardConfig) {
-          const cardBleedX = Math.min(cardConfig?.bleed?.[`${type}BleedX`], marginX / 2);
-          const cardBleedY = Math.min(cardConfig?.bleed?.[`${type}BleedY`], marginY / 2);
+        if(sides !== layoutSides.brochure && (cardConfig || type === 'back' && avoidDislocation)) {
+          let cardBleedX = Math.min(fixFloat(cardConfig?.bleed?.[`${type}BleedX`] * scale / 100), scaledMarginX / 2);
+          let cardBleedY = Math.min(fixFloat(cardConfig?.bleed?.[`${type}BleedY`] * scale / 100), scaledMarginY / 2);
+          if(type === 'back' && avoidDislocation) {
+            cardBleedX = scaledMarginX / 2;
+            cardBleedY = scaledMarginY / 2;
+          }
           if(cardBleedX) {
             rect.x = rect.x - cardBleedX;
             rect.width = rect.width + cardBleedX * 2;
@@ -237,6 +247,7 @@ export const exportPdf = async (state, onProgress) => {
               doc.setFillColor(averageColor.r, averageColor.g, averageColor.b);
               const xOffset = fixFloat(marginX / 2 - bleedX);
               const yOffset = fixFloat(marginY / 2 - bleedY);
+              const rect = {...imageRectList[i]};
               doc.rect(rect.x - xOffset, rect.y - yOffset, rect.width + xOffset * 2, rect.height + yOffset * 2, 'F');
             }
           } catch (e) {
