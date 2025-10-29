@@ -29,6 +29,8 @@ export interface ConfigState {
   scale: number;
   offsetX: number;
   offsetY: number;
+  printOffsetX: number;
+  printOffsetY: number;
   landscape: boolean;
   sides: LayoutSides;
   autoConfigFlip: boolean;

@@ -47,6 +47,7 @@
     "btnAbout": "About"
   },
   "cardEditor": {
+    "spicalConfig": "Spical Config",
     "lblHere": "Here...",
     "btnRemove": "Remove image",
     "addEmpty" : "Add Empty",
@@ -75,7 +76,8 @@
     "flip": "Flip",
     "pageNumber": "Page Number",
     "card": "Card",
-    "mark": "Mark",
+    "other": "Other",
+    "printOffset": "Back Side Print Offset",
     "cardWidth": "Card W",
     "cardHeight": "H",
     "marginX": "Margin X",

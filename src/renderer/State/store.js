@@ -35,6 +35,8 @@ const stateSchema = yup.object({
     scale: yup.number().min(1).required(), //100,
     offsetX: yup.number().required(), //0,
     offsetY: yup.number().required(), //0,
+    printOffsetX: yup.number().required(), //0,
+    printOffsetY: yup.number().required(), //0,
     landscape: yup.boolean().required(), //true,
     sides: yup.string().oneOf([
       layoutSides.oneSide,
@@ -89,6 +91,8 @@ export const initialState = Object.freeze({
     scale: 100,
     offsetX: 0,
     offsetY: 0,
+    printOffsetX: 0,
+    printOffsetY: 0,
     landscape: true,
     sides: layoutSides.doubleSides,
     autoConfigFlip: true,
@@ -382,6 +386,20 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       return state;
     });
   },
+  selectedCardsConfig: (config) => {
+    set(state => {
+      const selection = state.CardList.filter(c => c.selected);
+      selection.forEach(c => {
+        if(Object.values(config?.bleed || {}).filter(e => !!e).length > 0) {
+          c.config = config;
+        } else {
+          delete c.config;
+        }
+      });
+      state.CardList = state.CardList.map(c => selection.includes(c) ? { ...c } : c);
+      return state;
+    });
+  }
 })));
 
 function createSelectors(storeHook) {

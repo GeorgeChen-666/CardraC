@@ -30,7 +30,7 @@ export const SetupDialog = forwardRef(({},ref) => {
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };
-  const cancelRef = React.useRef()
+
   useImperativeHandle(ref, () => ({
     openDialog: () => setOpen(true),
   }));
@@ -61,7 +61,7 @@ export const SetupDialog = forwardRef(({},ref) => {
           <Tabs orientation="vertical" value={value} onChange={handleChange}>
             <Tab label={t('configDialog.layout')} />
             <Tab label={t('configDialog.card')} />
-            <Tab label={t('configDialog.mark')} />
+            <Tab label={t('configDialog.other')} />
           </Tabs>
         </Box>
         <CustomTabPanel value={value} index={0}>
@@ -76,7 +76,7 @@ export const SetupDialog = forwardRef(({},ref) => {
       </Box>
     </DialogContent>
     <DialogActions>
-      <Button ref={cancelRef} onClick={() => setOpen(false)}>
+      <Button onClick={() => setOpen(false)}>
         OK
       </Button>
     </DialogActions>

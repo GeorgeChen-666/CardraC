@@ -25,5 +25,10 @@ export const MarkFrom = () => {
                    type={ControlType.NumberInput}>pt
       </FormControl>
     </FormControl>
+    <FormControl label={t('configDialog.printOffset')} width={'145px'} attrKey={'printOffsetX'} type={ControlType.NumberInput}>
+      <FormControl width={'145px'} attrKey={'printOffsetY'} type={ControlType.NumberInput}>
+        mm
+      </FormControl>
+    </FormControl>
   </div>)
 }
