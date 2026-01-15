@@ -3,7 +3,7 @@ import { getPendingList } from '../ImageActions';
 import { getBorderAverageColors, getConfigStore } from '../../functions';
 import { getCutRectangleList, getPagedImageListByCardList } from './Utils';
 import { layoutSides } from '../../../../public/constants';
-import { fixFloat, ImageStorage } from '../pdf/Utils';
+import { fixFloat, ImageStorage } from './Utils';
 
 const { jsPDF } = require('jspdf');
 
@@ -32,10 +32,14 @@ const adjustBackPageImageOrder = (pageData, Config) => {
   const isFoldInHalf = sides === layoutSides.foldInHalf;
 
   if (pageData.type !== 'back') {
-    return pageData;
+    return {
+      ...pageData,
+      config: pageData.config || [],
+      imageList: pageData.imageList || []
+    };
   }
 
-  const { imageList, config } = pageData;
+  const { imageList, config = [] } = pageData;
   const newImageList = new Array(imageList.length);
   const newConfigList = new Array(config.length);
 
@@ -71,6 +75,60 @@ const adjustBackPageImageOrder = (pageData, Config) => {
     }
   };
 
+  // 小册子专用翻转函数
+  const applyBrochureFlip = (flipType) => {
+    const colsPerGroup = 2; // 每列2个元素
+    const totalCols = imageList.length / colsPerGroup;
+
+    if (flipType === 'columnFlipAndSwap') {
+      // 前后列交换 + 每列内翻转
+      const halfCols = totalCols / 2;
+
+      for (let colIdx = 0; colIdx < totalCols; colIdx++) {
+        let newColIdx;
+        if (colIdx < halfCols) {
+          newColIdx = colIdx + halfCols;
+        } else {
+          newColIdx = colIdx - halfCols;
+        }
+
+        const oldColStart = colIdx * colsPerGroup;
+        const newColStart = newColIdx * colsPerGroup;
+
+        for (let i = 0; i < colsPerGroup; i++) {
+          const oldIdx = oldColStart + i;
+          const newIdx = newColStart + (colsPerGroup - 1 - i);
+
+          if (oldIdx < imageList.length) {
+            newImageList[newIdx] = imageList[oldIdx];
+            newConfigList[newIdx] = config[oldIdx];
+          }
+        }
+      }
+    } else if (flipType === 'columnPairSwap') {
+      // 每两列内部交换
+      for (let colIdx = 0; colIdx < totalCols; colIdx++) {
+        const pairIdx = Math.floor(colIdx / 2);
+        const posInPair = colIdx % 2;
+        const newPosInPair = 1 - posInPair;
+        const newColIdx = pairIdx * 2 + newPosInPair;
+
+        const oldColStart = colIdx * colsPerGroup;
+        const newColStart = newColIdx * colsPerGroup;
+
+        for (let i = 0; i < colsPerGroup; i++) {
+          const oldIdx = oldColStart + i;
+          const newIdx = newColStart + i;
+
+          if (oldIdx < imageList.length) {
+            newImageList[newIdx] = imageList[oldIdx];
+            newConfigList[newIdx] = config[oldIdx];
+          }
+        }
+      }
+    }
+  };
+
   if (isFoldInHalf) {
     // 折叠模式：根据折叠方向调整行列数
     let effectiveRows = rows;
@@ -83,21 +141,31 @@ const adjustBackPageImageOrder = (pageData, Config) => {
     }
 
     if (!landscape && foldLineType === '0') {
-      // 竖向打印 + 横向折叠：每列内上下翻转
       applyFlip(effectiveRows, effectiveColumns, 'verticalInColumn');
     } else if (!landscape && foldLineType === '1') {
-      // 竖向打印 + 纵向折叠：左右翻转
       applyFlip(effectiveRows, effectiveColumns, 'horizontalInRow');
     } else if (landscape && foldLineType === '0') {
-      // 横向打印 + 横向折叠：上下翻转
       applyFlip(effectiveRows, effectiveColumns, 'verticalInColumn');
     } else if (landscape && foldLineType === '1') {
-      // 横向打印 + 纵向折叠：左右翻转
       applyFlip(effectiveRows, effectiveColumns, 'horizontalInRow');
     }
+  } else if (sides === layoutSides.brochure) {
+    if (flipWay !== 0) {
+      if (!landscape && flipWay === 1 || landscape && flipWay === 2) {
+        applyBrochureFlip('columnFlipAndSwap');
+      } else if (!landscape && flipWay === 2 || landscape && flipWay === 1) {
+        applyBrochureFlip('columnPairSwap');
+      }
+    } else {
+      // 无翻转
+      for (let i = 0; i < imageList.length; i++) {
+        newImageList[i] = imageList[i];
+        newConfigList[i] = config[i];
+      }
+    }
   } else if (flipWay !== 0) {
-    const effectiveColumns = sides === layoutSides.brochure ? columns * 2 : columns;
     // 普通双面打印的翻转逻辑
+    const effectiveColumns = columns;
     if (!landscape) {
       if (flipWay === 1) {
         applyFlip(rows, effectiveColumns, 'horizontalOverall');
@@ -124,6 +192,7 @@ const adjustBackPageImageOrder = (pageData, Config) => {
     imageList: newImageList
   };
 };
+
 
 const isNeedRotation = (Config, isBack) => {
   if (!isBack) {
@@ -158,12 +227,12 @@ export const exportPdf = async (state, onProgress) => {
     await loadImageAverageColor();
   }
 
-  const pagedImageList = getPagedImageListByCardList(state);
+  const pagedImageList = getPagedImageListByCardList(state, Config);
   let currentPage = 0;
   const totalPageCount = pagedImageList.filter(p => p.type === 'face').length;
   for (const index in pagedImageList) {
     const pageData = pagedImageList[index];
-    const cutline = pageData.type === 'back'? Config.bCutLine: Config.fCutLine;
+    const cutline = pageData.type === 'back'? (sides === layoutSides.brochure ? null : Config.bCutLine): Config.fCutLine;
     if(!(isFoldInHalf && pageData.type === 'back')) {
       index > 0 && doc.addPage();
     }
@@ -183,7 +252,7 @@ export const exportPdf = async (state, onProgress) => {
       //cutline normal
       doc.setLineWidth(lineWeight * 0.3527);
       doc.setDrawColor(cutlineColor);
-      const markRectList = getCutRectangleList(doc, true);
+      const markRectList = getCutRectangleList(Config, doc, true);
       const xList = [...new Set(markRectList.map(r => r.x))];
       const yList = [...new Set(markRectList.map(r => r.y))];
       const minX = Math.min(...xList);
@@ -192,12 +261,16 @@ export const exportPdf = async (state, onProgress) => {
       const maxY = Math.max(...yList);
       const width = markRectList[0].width;
       const height = markRectList[0].height;
-      xList.forEach(v => {
-        doc.line(v, 0, v, minY);
-        doc.line(v + width, 0, v + width, minY);
-
-        doc.line(v, maxHeight, v, maxY + height);
-        doc.line(v + width, maxHeight, v + width, maxY + height);
+      xList.forEach((v, vIndex) => {
+        const t = vIndex % 2;
+        if(t === 0 || sides !== layoutSides.brochure) {
+          doc.line(v, 0, v, minY);
+          doc.line(v, maxHeight, v, maxY + height);
+        }
+        if(t === 1 || sides !== layoutSides.brochure) {
+          doc.line(v + width, 0, v + width, minY);
+          doc.line(v + width, maxHeight, v + width, maxY + height);
+        }
       })
       yList.forEach(v => {
         doc.line(0, v, minX, v);
@@ -206,11 +279,35 @@ export const exportPdf = async (state, onProgress) => {
         doc.line(maxWidth, v, maxX + width, v);
         doc.line(maxWidth, v + height, maxX + width, v + height);
       })
+
+      if (sides === layoutSides.brochure && pageData.type !== 'back') {
+        xList.forEach((v, vIndex) => {
+          for (let j = 1; j < rows; j++) {
+            const t = vIndex % 2;
+            const y1 = yList[j - 1] + height;
+            const y2 = yList[j];
+            if(t === 0) {
+              doc.line(v, y1, v, y2);
+            }
+            if(t === 1) {
+              doc.line(v + width, y1, v + width, y2);
+            }
+          }
+        })
+        yList.forEach(v => {
+          for (let i = 1; i < columns; i++) {
+            const x1 = xList[i * 2 - 1] + width;
+            const x2 = xList[i * 2];
+            doc.line(x1, v, x2, v);
+            doc.line(x1, v + height, x2, v + height);
+          }
+        })
+      }
     }
 
     //image
     const { imageList, type, config: cardConfigList } = adjustBackPageImageOrder(pageData, Config);
-    const imageRectList = getCutRectangleList(doc, false, pageData.type === 'back');
+    const imageRectList = getCutRectangleList(Config, doc, false, pageData.type === 'back');
     for(let i = 0; i < imageList.length; i++) {
       const image = imageList[i];
       const cardConfig = cardConfigList[i];
@@ -269,7 +366,7 @@ export const exportPdf = async (state, onProgress) => {
       //cutline cross
       doc.setLineWidth(lineWeight * 0.3527);
       doc.setDrawColor(cutlineColor);
-      const markRectList = getCutRectangleList(doc, true);
+      const markRectList = getCutRectangleList(Config, doc, true);
       const crossLength = fixFloat(2 * scale / 100)
       markRectList.forEach(r => {
         doc.line(r.x - crossLength, r.y, r.x + crossLength, r.y);
@@ -306,47 +403,39 @@ export const exportPdf = async (state, onProgress) => {
     }
 
     // 小册子模式：绘制页面拆分线
-    if (sides === layoutSides.brochure) {
+    if (sides === layoutSides.brochure && pageData.type !== 'back') {
       doc.setLineWidth(lineWeight * 0.3527);
       doc.setDrawColor(cutlineColor);
 
       const pageWidth = maxWidth / columns;
       const pageHeight = maxHeight / rows;
-
       // 绘制垂直分割线
       for (let i = 1; i < columns; i++) {
         const x = i * pageWidth + offsetX;
         doc.line(x, 0, x, maxHeight);
       }
-
       // 绘制水平分割线
       for (let j = 1; j < rows; j++) {
         const y = j * pageHeight + offsetY;
         doc.line(0, y, maxWidth, y);
       }
-
       // 在每个小区域中间绘制竖直虚线作为折叠线
       doc.setLineDash([1, 1]); // 设置虚线样式
-      for (let i = 0; i < columns; i++) {
-        for (let j = 0; j < rows; j++) {
-          // 计算每个小区域的范围
-          const regionLeft = i * pageWidth;
-          const regionRight = (i + 1) * pageWidth;
-          const regionTop = j * pageHeight;
-          const regionBottom = (j + 1) * pageHeight;
-
-          // 在小区域中间绘制竖直折叠线
-          const foldLineX = (regionLeft + regionRight) / 2 + offsetX;
-          const startY = regionTop + offsetY;
-          const endY = regionBottom + offsetY;
-
-          // 确保线条顶到小区域边缘
-          const clampedStartY = Math.max(startY, regionTop);
-          const clampedEndY = Math.min(endY, regionBottom);
-
-          doc.line(foldLineX, clampedStartY, foldLineX, clampedEndY);
+      const markRectList = getCutRectangleList(Config, doc, true);
+      const xList = [...new Set(markRectList.map(r => r.x))];
+      const yList = [...new Set(markRectList.map(r => r.y))];
+      const width = markRectList[0].width;
+      const height = markRectList[0].height;
+      xList.forEach((v, vIndex) => {
+        for (let j = 0; j <= rows; j++) {
+          const t = vIndex % 2;
+          const y1 = j === 0 ? 0 : yList[j - 1] + height;
+          const y2 = j === rows? maxHeight : yList[j];
+          if(t === 0) {
+            doc.line(v + width, y1, v + width, y2);
+          }
         }
-      }
+      })
       doc.setLineDash([]); // 恢复实线
     }
     doc.restoreGraphicsState();

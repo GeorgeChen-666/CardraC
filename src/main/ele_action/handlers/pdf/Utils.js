@@ -1,4 +1,3 @@
-import { getConfigStore } from '../../functions';
 import { layoutSides } from '../../../../public/constants';
 
 export const defaultImageStorage = {
@@ -10,8 +9,7 @@ export const OverviewStorage = { ...defaultImageStorage };
 
 export const fixFloat = num => parseFloat(num.toFixed(2));
 
-export const getCutRectangleList = (doc, ignoreBleed = true, isBack = false) => {
-  const { Config } = getConfigStore();
+export const getCutRectangleList = (Config, doc, ignoreBleed = true, isBack = false) => {
   const {
     sides,
     scale,
@@ -175,17 +173,15 @@ function centerRects(rects, pageWidth, pageHeight, offsetX = 0, offsetY = 0) {
 }
 
 
-export const getPagedImageListByCardList = (state) => {
-  const { Config } = getConfigStore();
+export const getPagedImageListByCardList = (state, Config) => {
   if ([layoutSides.oneSide, layoutSides.doubleSides, layoutSides.foldInHalf].includes(Config.sides)) {
-    return getNormalPagedImageListByCardList(state);
+    return getNormalPagedImageListByCardList(state, Config);
   } else if (Config.sides === layoutSides.brochure) {
-    return getBrochurePagedImageListByCardList(state);
+    return getBrochurePagedImageListByCardList(state, Config);
   }
 };
 
-const getNormalPagedImageListByCardList = ({ CardList, globalBackground }) => {
-  const { Config } = getConfigStore();
+const getNormalPagedImageListByCardList = ({ CardList, globalBackground }, Config) => {
   const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
   let repeatCardList = CardList.reduce((arr, cv) => arr.concat(new Array(cv.repeat).fill(cv)), []);
 
@@ -212,9 +208,8 @@ const getNormalPagedImageListByCardList = ({ CardList, globalBackground }) => {
   return pagedImageList;
 };
 
-const getBrochurePagedImageListByCardList = (state) => {
+const getBrochurePagedImageListByCardList = (state, Config) => {
   const { CardList } = state;
-  const { Config } = getConfigStore();
   const { brochureRepeatPerPage } = Config;
   let repeatCardList = CardList;
 
@@ -239,10 +234,12 @@ const getBrochurePagedImageListByCardList = (state) => {
       const repeatResult = Array(size / 2).fill(result).flat(1);
       pagedImageList.push({
         imageList: repeatResult.map(c => c[0]?.face),
+        config: repeatResult.map(c => c?.config),
         type: 'face',
       });
       pagedImageList.push({
         imageList: repeatResult.map(c => c[1]?.face),
+        config: repeatResult.map(c => c?.config),
         type: 'back',
       });
     }
@@ -251,10 +248,12 @@ const getBrochurePagedImageListByCardList = (state) => {
       const result = tempPairList2.slice(i, i + size);
       pagedImageList.push({
         imageList: result.map(c => c[0]?.face),
+        config: result.map(c => c?.config),
         type: 'face',
       });
       pagedImageList.push({
         imageList: result.map(c => c[1]?.face),
+        config: result.map(c => c?.config),
         type: 'back',
       });
     }
