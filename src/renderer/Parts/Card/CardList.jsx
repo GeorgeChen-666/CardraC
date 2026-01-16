@@ -6,7 +6,9 @@ import Card from './Card';
 import CardDropTarget from './CardDropTarget';
 import AddCard from './AddCard'
 import { CardSettingDialog } from '../CardSetting/CardSettingDialog';
-
+export const CardList2 = () => {
+  return (<div>aaa</div>)
+}
 export const CardList = () => {
   const dialogCardSettingRef = useRef(null);
   // const { selectors, dragHoverCancel } = useGlobalStore.getState();

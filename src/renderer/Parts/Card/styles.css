@@ -60,13 +60,11 @@
 }
 
 .CardOwnConfigDiv {
-    position: absolute;
-    bottom: 6px;
     width: 120px;
     font-size: 0.6rem;
     color:#fff!important;
     display: flex;
-    left: 43px;
+    margin-left: -13px;
 }
 .CardOwnConfigDiv div, .CardOwnConfigDiv pre {
     margin: 0;

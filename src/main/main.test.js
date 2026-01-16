@@ -408,501 +408,434 @@ describe('getPagedImageListByCardList', () => {
 });
 
 describe('getCutRectangleList', () => {
-  // Mock doc 对象
   const createMockDoc = (width = 210, height = 297) => ({
     getPageWidth: () => width,
     getPageHeight: () => height,
   });
 
-  describe('普通模式', () => {
-    test('基本矩形生成 - 2x2 网格', () => {
-      const config = {
-        sides: layoutSides.oneSide,
-        scale: 100,
-        cardWidth: 63,
-        cardHeight: 88,
-        marginX: 5,
-        marginY: 5,
-        bleedX: 0,
-        bleedY: 0,
-        columns: 2,
-        rows: 2,
-        offsetX: 0,
-        offsetY: 0,
-      };
+  const baseConfig = {
+    sides: layoutSides.oneSide,
+    scale: 100,
+    cardWidth: 63,
+    cardHeight: 88,
+    marginX: 10,
+    marginY: 10,
+    bleedX: 0,
+    bleedY: 0,
+    columns: 2,
+    rows: 2,
+    offsetX: 0,
+    offsetY: 0,
+  };
 
+  describe('全局参数 - scale', () => {
+    test('scale = 50% 所有尺寸减半', () => {
+      const config = { ...baseConfig, scale: 50 };
       const doc = createMockDoc();
       const result = getCutRectangleList(config, doc, true, false);
 
-      // 应该生成 2x2 = 4 个矩形
-      expect(result.length).toBe(4);
-
-      // 验证每个矩形都有必要的属性
-      result.forEach(rect => {
-        expect(rect).toHaveProperty('x');
-        expect(rect).toHaveProperty('y');
-        expect(rect).toHaveProperty('width');
-        expect(rect).toHaveProperty('height');
-        expect(rect.width).toBe(63);
-        expect(rect.height).toBe(88);
-      });
+      expect(result[0].width).toBe(31.5);
+      expect(result[0].height).toBe(44);
     });
 
-    test('包含出血 - ignoreBleed = false', () => {
-      const config = {
-        sides: layoutSides.oneSide,
-        scale: 100,
-        cardWidth: 63,
-        cardHeight: 88,
-        marginX: 5,
-        marginY: 5,
-        bleedX: 2,
-        bleedY: 3,
-        columns: 1,
-        rows: 1,
-        offsetX: 0,
-        offsetY: 0,
-      };
-
-      const doc = createMockDoc();
-      const resultWithBleed = getCutRectangleList(config, doc, false, false);
-      const resultWithoutBleed = getCutRectangleList(config, doc, true, false);
-
-      // 包含出血时，宽度和高度应该增加
-      expect(resultWithBleed[0].width).toBe(63 + 2 * 2); // 67
-      expect(resultWithBleed[0].height).toBe(88 + 3 * 2); // 94
-
-      // 不包含出血时，保持原始尺寸
-      expect(resultWithoutBleed[0].width).toBe(63);
-      expect(resultWithoutBleed[0].height).toBe(88);
-    });
-
-    test('缩放功能 - scale = 50%', () => {
-      const config = {
-        sides: layoutSides.oneSide,
-        scale: 50,
-        cardWidth: 100,
-        cardHeight: 100,
-        marginX: 10,
-        marginY: 10,
-        bleedX: 0,
-        bleedY: 0,
-        columns: 1,
-        rows: 1,
-        offsetX: 0,
-        offsetY: 0,
-      };
-
+    test('scale = 200% 所有尺寸翻倍', () => {
+      const config = { ...baseConfig, scale: 200 };
       const doc = createMockDoc();
       const result = getCutRectangleList(config, doc, true, false);
 
-      // 50% 缩放后应该是 50x50
-      expect(result[0].width).toBe(50);
-      expect(result[0].height).toBe(50);
+      expect(result[0].width).toBe(126);
+      expect(result[0].height).toBe(176);
     });
 
-    test('偏移功能 - offsetX 和 offsetY', () => {
-      const config = {
-        sides: layoutSides.oneSide,
-        scale: 100,
-        cardWidth: 63,
-        cardHeight: 88,
-        marginX: 5,
-        marginY: 5,
-        bleedX: 0,
-        bleedY: 0,
-        columns: 1,
-        rows: 1,
-        offsetX: 10,
-        offsetY: 20,
-      };
-
+    test('scale 影响 bleed', () => {
+      const config = { ...baseConfig, scale: 50, bleedX: 2, bleedY: 2 };
       const doc = createMockDoc();
-      const resultWithOffset = getCutRectangleList(config, doc, true, false);
+      const result = getCutRectangleList(config, doc, false, false);
 
-      const configNoOffset = { ...config, offsetX: 0, offsetY: 0 };
-      const resultNoOffset = getCutRectangleList(configNoOffset, doc, true, false);
+      expect(result[0].width).toBe(31.5 + 1 * 2);
+    });
+  });
 
-      // 有偏移的位置应该不同
-      expect(resultWithOffset[0].x).toBe(resultNoOffset[0].x + 10);
-      expect(resultWithOffset[0].y).toBe(resultNoOffset[0].y + 20);
+  describe('全局参数 - cardWidth/cardHeight', () => {
+    test('增加 cardWidth', () => {
+      const config = { ...baseConfig, cardWidth: 100 };
+      const doc = createMockDoc();
+      const result = getCutRectangleList(config, doc, true, false);
+
+      expect(result[0].width).toBe(100);
     });
 
-    test('多行多列 - 验证位置分布', () => {
-      const config = {
-        sides: layoutSides.oneSide,
-        scale: 100,
-        cardWidth: 50,
-        cardHeight: 50,
-        marginX: 10,
-        marginY: 10,
-        bleedX: 0,
-        bleedY: 0,
-        columns: 3,
-        rows: 2,
-        offsetX: 0,
-        offsetY: 0,
-      };
+    test('增加 cardHeight', () => {
+      const config = { ...baseConfig, cardHeight: 120 };
+      const doc = createMockDoc();
+      const result = getCutRectangleList(config, doc, true, false);
 
+      expect(result[0].height).toBe(120);
+    });
+  });
+
+  describe('全局参数 - marginX/marginY', () => {
+    test('增加 marginX 影响间距', () => {
+      const config1 = { ...baseConfig, marginX: 5 };
+      const config2 = { ...baseConfig, marginX: 10 };
+      const doc = createMockDoc();
+
+      const result1 = getCutRectangleList(config1, doc, true, false);
+      const result2 = getCutRectangleList(config2, doc, true, false);
+
+      const spacing1 = result1[2].x - result1[0].x;
+      const spacing2 = result2[2].x - result2[0].x;
+
+      expect(spacing2).toBeGreaterThan(spacing1);
+    });
+
+    test('margin = 0 紧密排列', () => {
+      const config = { ...baseConfig, marginX: 0, marginY: 0 };
+      const doc = createMockDoc();
+      const result = getCutRectangleList(config, doc, true, false);
+
+      expect(result[2].x).toBe(result[0].x + result[0].width);
+    });
+  });
+
+  describe('全局参数 - bleedX/bleedY', () => {
+    test('bleedX 增加宽度', () => {
+      const config = { ...baseConfig, bleedX: 3 };
+      const doc = createMockDoc();
+      const result = getCutRectangleList(config, doc, false, false);
+
+      expect(result[0].width).toBe(63 + 3 * 2);
+    });
+
+    test('bleedY 增加高度', () => {
+      const config = { ...baseConfig, bleedY: 4 };
+      const doc = createMockDoc();
+      const result = getCutRectangleList(config, doc, false, false);
+
+      expect(result[0].height).toBe(88 + 4 * 2);
+    });
+
+    test('ignoreBleed = true 时不生效', () => {
+      const config = { ...baseConfig, bleedX: 5, bleedY: 5 };
+      const doc = createMockDoc();
+      const result = getCutRectangleList(config, doc, true, false);
+
+      expect(result[0].width).toBe(63);
+    });
+  });
+
+  describe('全局参数 - columns/rows', () => {
+    test('增加 columns', () => {
+      const config = { ...baseConfig, columns: 3 };
       const doc = createMockDoc();
       const result = getCutRectangleList(config, doc, true, false);
 
       expect(result.length).toBe(6);
-
-      // 验证矩形是按列优先排列的
-      // 第一列的两个矩形应该有相同的 x 坐标
-      expect(result[0].x).toBe(result[1].x);
-
-      // 第二个矩形的 y 应该大于第一个
-      expect(result[1].y).toBeGreaterThan(result[0].y);
-    });
-  });
-
-  describe('折叠模式 - foldInHalf', () => {
-    test('横向折叠 - foldLineType = 0', () => {
-      const config = {
-        sides: layoutSides.foldInHalf,
-        scale: 100,
-        cardWidth: 63,
-        cardHeight: 88,
-        marginX: 5,
-        marginY: 5,
-        bleedX: 0,
-        bleedY: 0,
-        foldInHalfMargin: 4,
-        foldLineType: '0',
-        columns: 2,
-        rows: 4,
-        offsetX: 0,
-        offsetY: 0,
-      };
-
-      const doc = createMockDoc();
-
-      // 正面
-      const resultFace = getCutRectangleList(config, doc, true, false);
-      // 背面
-      const resultBack = getCutRectangleList(config, doc, true, true);
-
-      expect(resultFace.length).toBe(8);
-      expect(resultBack.length).toBe(8);
-
-      // 验证折叠边距的影响
-      // 正面和背面的 y 坐标应该有差异（因为 foldInHalfMargin）
-      console.log('正面第一个矩形:', resultFace[0]);
-      console.log('背面第一个矩形:', resultBack[0]);
     });
 
-    test('纵向折叠 - foldLineType = 1', () => {
-      const config = {
-        sides: layoutSides.foldInHalf,
-        scale: 100,
-        cardWidth: 63,
-        cardHeight: 88,
-        marginX: 5,
-        marginY: 5,
-        bleedX: 0,
-        bleedY: 0,
-        foldInHalfMargin: 4,
-        foldLineType: '1',
-        columns: 4,
-        rows: 2,
-        offsetX: 0,
-        offsetY: 0,
-      };
-
-      const doc = createMockDoc();
-
-      const resultFace = getCutRectangleList(config, doc, true, false);
-      const resultBack = getCutRectangleList(config, doc, true, true);
-
-      expect(resultFace.length).toBe(8);
-      expect(resultBack.length).toBe(8);
-    });
-
-    test('折叠边距对位置的影响', () => {
-      const configWithMargin = {
-        sides: layoutSides.foldInHalf,
-        scale: 100,
-        cardWidth: 63,
-        cardHeight: 88,
-        marginX: 5,
-        marginY: 5,
-        bleedX: 0,
-        bleedY: 0,
-        foldInHalfMargin: 10,
-        foldLineType: '0',
-        columns: 2,
-        rows: 2,
-        offsetX: 0,
-        offsetY: 0,
-      };
-
-      const configNoMargin = {
-        ...configWithMargin,
-        foldInHalfMargin: 0,
-      };
-
-      const doc = createMockDoc();
-
-      const resultWithMargin = getCutRectangleList(configWithMargin, doc, true, false);
-      const resultNoMargin = getCutRectangleList(configNoMargin, doc, true, false);
-
-      // 有折叠边距时，位置应该不同
-      expect(resultWithMargin[0].y).not.toBe(resultNoMargin[0].y);
-    });
-  });
-
-  describe('小册子模式 - brochure', () => {
-    test('小册子模式 - 基本矩形生成', () => {
-      const config = {
-        sides: layoutSides.brochure,
-        scale: 100,
-        cardWidth: 63,
-        cardHeight: 88,
-        marginX: 5,
-        marginY: 5,
-        bleedX: 0,
-        bleedY: 0,
-        columns: 2,
-        rows: 2,
-        offsetX: 0,
-        offsetY: 0,
-      };
-
+    test('大网格 5x5', () => {
+      const config = { ...baseConfig, columns: 5, rows: 5 };
       const doc = createMockDoc();
       const result = getCutRectangleList(config, doc, true, false);
 
-      // 小册子模式：每个区域有2张卡片
-      // 2x2 网格 = 4个区域 * 2张卡片 = 8个矩形
-      expect(result.length).toBe(8);
+      expect(result.length).toBe(25);
+    });
+  });
 
-      // 验证每对卡片的位置关系
-      // 每对卡片应该是水平相邻的
-      console.log('小册子矩形:', result);
+  describe('全局参数 - offsetX/offsetY', () => {
+    test('offsetX 向右偏移', () => {
+      const config = { ...baseConfig, offsetX: 10 };
+      const doc = createMockDoc();
+      const result = getCutRectangleList(config, doc, true, false);
+      const resultNoOffset = getCutRectangleList({ ...baseConfig, offsetX: 0 }, doc, true, false);
+
+      expect(result[0].x).toBe(resultNoOffset[0].x + 10);
     });
 
-    test('小册子模式 - 包含出血', () => {
+    test('负数 offset', () => {
+      const config = { ...baseConfig, offsetX: -10, offsetY: -10 };
+      const doc = createMockDoc();
+      const result = getCutRectangleList(config, doc, true, false);
+      const resultNoOffset = getCutRectangleList({ ...baseConfig }, doc, true, false);
+
+      expect(result[0].x).toBe(resultNoOffset[0].x - 10);
+    });
+  });
+
+  describe('独立卡片 bleed 配置', () => {
+    test('单张卡片：有 bleed vs 无 bleed', () => {
+      const doc = createMockDoc();
+
+      const config1 = { ...baseConfig, bleedX: 2, bleedY: 3, columns: 1, rows: 1 };
+      const config2 = { ...baseConfig, bleedX: 0, bleedY: 0, columns: 1, rows: 1 };
+
+      const result1 = getCutRectangleList(config1, doc, false, false);
+      const result2 = getCutRectangleList(config2, doc, false, false);
+
+      expect(result1[0].width).toBe(63 + 2 * 2);
+      expect(result2[0].width).toBe(63);
+    });
+
+    test('不同卡片不同 bleed 值', () => {
+      const doc = createMockDoc();
+      const cards = [
+        { bleedX: 1, bleedY: 1 },
+        { bleedX: 2, bleedY: 2 },
+        { bleedX: 3, bleedY: 3 },
+      ];
+
+      const results = cards.map(card => {
+        const config = { ...baseConfig, ...card, columns: 1, rows: 1 };
+        return getCutRectangleList(config, doc, false, false)[0];
+      });
+
+      expect(results[0].width).toBe(63 + 1 * 2);
+      expect(results[1].width).toBe(63 + 2 * 2);
+      expect(results[2].width).toBe(63 + 3 * 2);
+    });
+
+    test('正面和背面不同 bleed', () => {
+      const doc = createMockDoc();
+
+      const faceConfig = { ...baseConfig, bleedX: 3, bleedY: 3, columns: 1, rows: 1 };
+      const backConfig = { ...baseConfig, bleedX: 1, bleedY: 1, columns: 1, rows: 1 };
+
+      const faceResult = getCutRectangleList(faceConfig, doc, false, false);
+      const backResult = getCutRectangleList(backConfig, doc, false, true);
+
+      expect(faceResult[0].width).toBe(63 + 3 * 2);
+      expect(backResult[0].width).toBe(63 + 1 * 2);
+    });
+
+    test('bleed 不超过 margin 一半 - 有效配置', () => {
       const config = {
-        sides: layoutSides.brochure,
-        scale: 100,
-        cardWidth: 63,
-        cardHeight: 88,
-        marginX: 5,
-        marginY: 5,
-        bleedX: 2,
-        bleedY: 3,
+        ...baseConfig,
+        marginX: 10,
+        marginY: 10,
+        bleedX: 5,
+        bleedY: 5,
         columns: 1,
         rows: 1,
-        offsetX: 0,
-        offsetY: 0,
       };
-
       const doc = createMockDoc();
       const result = getCutRectangleList(config, doc, false, false);
 
-      // 小册子模式下，每个区域有2张卡片
-      expect(result.length).toBe(2);
+      expect(config.bleedX).toBeLessThanOrEqual(config.marginX / 2);
+      expect(result[0].width).toBe(63 + 5 * 2);
+    });
 
-      // 验证出血的应用
-      result.forEach(rect => {
-        expect(rect.width).toBe(63 + 2); // 只有一边有出血
-        expect(rect.height).toBe(88 + 3 * 2); // 上下都有出血
+    test('bleed 超过 margin 一半 - 卡片重叠', () => {
+      const config = {
+        ...baseConfig,
+        marginX: 10,
+        bleedX: 6,
+        columns: 2,
+        rows: 1,
+      };
+      const doc = createMockDoc();
+      const result = getCutRectangleList(config, doc, false, false);
+
+      const card1Right = result[0].x + result[0].width;
+      const card2Left = result[1].x;
+      expect(card1Right).toBeGreaterThan(card2Left);
+    });
+
+    test('模拟 4 张卡片不同 bleed', () => {
+      const doc = createMockDoc();
+      const cards = [
+        { id: 1, faceBleed: { bleedX: 1, bleedY: 1 }, backBleed: { bleedX: 0, bleedY: 0 } },
+        { id: 2, faceBleed: { bleedX: 2, bleedY: 2 }, backBleed: { bleedX: 1, bleedY: 1 } },
+        { id: 3, faceBleed: { bleedX: 0, bleedY: 0 }, backBleed: { bleedX: 2, bleedY: 2 } },
+        { id: 4, faceBleed: { bleedX: 3, bleedY: 3 }, backBleed: { bleedX: 3, bleedY: 3 } },
+      ];
+
+      const faceResults = cards.map(card => {
+        const config = { ...baseConfig, ...card.faceBleed, columns: 1, rows: 1 };
+        return getCutRectangleList(config, doc, false, false)[0];
       });
+
+      expect(faceResults[0].width).toBe(63 + 1 * 2);
+      expect(faceResults[1].width).toBe(63 + 2 * 2);
+      expect(faceResults[2].width).toBe(63 + 0 * 2);
+      expect(faceResults[3].width).toBe(63 + 3 * 2);
+    });
+  });
+
+  describe('全局参数 + 独立 bleed 组合', () => {
+    test('scale + 独立 bleed', () => {
+      const doc = createMockDoc();
+      const config = { ...baseConfig, scale: 50, bleedX: 4, bleedY: 4, columns: 1, rows: 1 };
+      const result = getCutRectangleList(config, doc, false, false);
+
+      const scaledBleed = 4 * 0.5;
+      expect(result[0].width).toBe(31.5 + scaledBleed * 2);
     });
 
-    test('小册子模式 - 多区域', () => {
+    test('不同 scale 下的独立 bleed', () => {
+      const doc = createMockDoc();
+      const configs = [
+        { scale: 50, bleedX: 2, bleedY: 2 },
+        { scale: 100, bleedX: 2, bleedY: 2 },
+        { scale: 200, bleedX: 2, bleedY: 2 },
+      ];
+
+      const results = configs.map(c => {
+        const config = { ...baseConfig, ...c, columns: 1, rows: 1 };
+        return getCutRectangleList(config, doc, false, false)[0];
+      });
+
+      expect(results[0].width).toBe(31.5 + 1 * 2);
+      expect(results[1].width).toBe(63 + 2 * 2);
+      expect(results[2].width).toBe(126 + 4 * 2);
+    });
+
+    test('margin + 独立 bleed 验证', () => {
+      const doc = createMockDoc();
       const config = {
+        ...baseConfig,
+        marginX: 10,
+        marginY: 10,
+        bleedX: 3,
+        bleedY: 4,
+        columns: 1,
+        rows: 1,
+      };
+      const result = getCutRectangleList(config, doc, false, false);
+
+      expect(config.bleedX).toBeLessThanOrEqual(config.marginX / 2);
+      expect(config.bleedY).toBeLessThanOrEqual(config.marginY / 2);
+      expect(result[0].width).toBe(63 + 3 * 2);
+    });
+
+    test('offset + 独立 bleed', () => {
+      const doc = createMockDoc();
+      const config = {
+        ...baseConfig,
+        bleedX: 2,
+        bleedY: 2,
+        offsetX: 10,
+        offsetY: 10,
+        columns: 1,
+        rows: 1,
+      };
+      const result = getCutRectangleList(config, doc, false, false);
+      const resultNoOffset = getCutRectangleList(
+        { ...baseConfig, bleedX: 2, bleedY: 2, columns: 1, rows: 1 },
+        doc,
+        false,
+        false
+      );
+
+      expect(result[0].x).toBe(resultNoOffset[0].x + 10);
+      expect(result[0].width).toBe(63 + 2 * 2);
+    });
+  });
+
+  describe('小册子模式 + 独立 bleed', () => {
+    test('小册子模式不同 bleed', () => {
+      const doc = createMockDoc();
+      const config1 = {
+        ...baseConfig,
         sides: layoutSides.brochure,
-        scale: 100,
-        cardWidth: 50,
-        cardHeight: 70,
-        marginX: 5,
-        marginY: 5,
-        bleedX: 0,
-        bleedY: 0,
+        bleedX: 1,
+        bleedY: 1,
+        columns: 1,
+        rows: 1,
+      };
+      const config2 = {
+        ...baseConfig,
+        sides: layoutSides.brochure,
+        bleedX: 3,
+        bleedY: 3,
+        columns: 1,
+        rows: 1,
+      };
+
+      const result1 = getCutRectangleList(config1, doc, false, false);
+      const result2 = getCutRectangleList(config2, doc, false, false);
+
+      expect(result1[0].width).toBe(63 + 1);
+      expect(result2[0].width).toBe(63 + 3);
+    });
+  });
+
+  describe('折叠模式 + 独立 bleed', () => {
+    test('折叠模式正背面不同 bleed', () => {
+      const doc = createMockDoc();
+      const faceConfig = {
+        ...baseConfig,
+        sides: layoutSides.foldInHalf,
+        foldLineType: '0',
+        foldInHalfMargin: 4,
+        bleedX: 2,
+        bleedY: 2,
+        columns: 2,
+        rows: 4,
+      };
+      const backConfig = { ...faceConfig, bleedX: 1, bleedY: 1 };
+
+      const faceResult = getCutRectangleList(faceConfig, doc, false, false);
+      const backResult = getCutRectangleList(backConfig, doc, false, true);
+
+      expect(faceResult[0].width).toBe(63 + 2 * 2);
+      expect(backResult[0].width).toBe(63 + 1 * 2);
+    });
+  });
+
+  describe('极端参数组合', () => {
+    test('极小 scale + 独立 bleed', () => {
+      const doc = createMockDoc();
+      const config = { ...baseConfig, scale: 10, bleedX: 1, bleedY: 1, columns: 1, rows: 1 };
+      const result = getCutRectangleList(config, doc, false, false);
+
+      expect(result[0].width).toBeCloseTo(6.3 + 0.1 * 2, 1);
+    });
+
+    test('极大 margin + 小 bleed', () => {
+      const doc = createMockDoc();
+      const config = {
+        ...baseConfig,
+        marginX: 50,
+        marginY: 50,
+        bleedX: 5,
+        bleedY: 5,
         columns: 2,
         rows: 1,
-        offsetX: 0,
-        offsetY: 0,
       };
+      const result = getCutRectangleList(config, doc, false, false);
 
+      expect(config.bleedX).toBeLessThanOrEqual(config.marginX / 2);
+      const spacing = result[1].x - result[0].x;
+      expect(spacing).toBeGreaterThan(100);
+    });
+
+    test('所有参数最大化', () => {
       const doc = createMockDoc();
-      const result = getCutRectangleList(config, doc, true, false);
-
-      // 2列1行 = 2个区域 * 2张卡片 = 4个矩形
-      expect(result.length).toBe(4);
-    });
-  });
-
-  describe('居中功能', () => {
-    test('矩形应该在页面上居中', () => {
       const config = {
-        sides: layoutSides.oneSide,
-        scale: 100,
-        cardWidth: 50,
-        cardHeight: 50,
-        marginX: 0,
-        marginY: 0,
-        bleedX: 0,
-        bleedY: 0,
-        columns: 1,
-        rows: 1,
-        offsetX: 0,
-        offsetY: 0,
+        ...baseConfig,
+        scale: 150,
+        cardWidth: 80,
+        cardHeight: 110,
+        marginX: 12,
+        marginY: 12,
+        bleedX: 5,
+        bleedY: 5,
+        columns: 3,
+        rows: 3,
+        offsetX: 8,
+        offsetY: 8,
       };
+      const result = getCutRectangleList(config, doc, false, false);
 
-      const doc = createMockDoc(210, 297);
-      const result = getCutRectangleList(config, doc, true, false);
-
-      // 单个 50x50 的矩形应该在 210x297 的页面上居中
-      const expectedX = (210 - 50) / 2;
-      const expectedY = (297 - 50) / 2;
-
-      expect(result[0].x).toBeCloseTo(expectedX, 1);
-      expect(result[0].y).toBeCloseTo(expectedY, 1);
-    });
-
-    test('多个矩形整体居中', () => {
-      const config = {
-        sides: layoutSides.oneSide,
-        scale: 100,
-        cardWidth: 50,
-        cardHeight: 50,
-        marginX: 10,
-        marginY: 10,
-        bleedX: 0,
-        bleedY: 0,
-        columns: 2,
-        rows: 1,
-        offsetX: 0,
-        offsetY: 0,
-      };
-
-      const doc = createMockDoc(210, 297);
-      const result = getCutRectangleList(config, doc, true, false);
-
-      // 验证整体是居中的
-      const minX = Math.min(...result.map(r => r.x));
-      const maxX = Math.max(...result.map(r => r.x + r.width));
-      const totalWidth = maxX - minX;
-
-      const centerX = (minX + maxX) / 2;
-      const pageCenterX = 210 / 2;
-
-      expect(centerX).toBeCloseTo(pageCenterX, 1);
-    });
-  });
-
-  describe('边界情况', () => {
-    test('单个矩形', () => {
-      const config = {
-        sides: layoutSides.oneSide,
-        scale: 100,
-        cardWidth: 63,
-        cardHeight: 88,
-        marginX: 5,
-        marginY: 5,
-        bleedX: 0,
-        bleedY: 0,
-        columns: 1,
-        rows: 1,
-        offsetX: 0,
-        offsetY: 0,
-      };
-
-      const doc = createMockDoc();
-      const result = getCutRectangleList(config, doc, true, false);
-
-      expect(result.length).toBe(1);
-      expect(result[0].width).toBe(63);
-      expect(result[0].height).toBe(88);
-    });
-
-    test('大网格 - 10x10', () => {
-      const config = {
-        sides: layoutSides.oneSide,
-        scale: 100,
-        cardWidth: 20,
-        cardHeight: 20,
-        marginX: 1,
-        marginY: 1,
-        bleedX: 0,
-        bleedY: 0,
-        columns: 10,
-        rows: 10,
-        offsetX: 0,
-        offsetY: 0,
-      };
-
-      const doc = createMockDoc();
-      const result = getCutRectangleList(config, doc, true, false);
-
-      expect(result.length).toBe(100);
-    });
-
-    test('极小缩放 - scale = 10%', () => {
-      const config = {
-        sides: layoutSides.oneSide,
-        scale: 10,
-        cardWidth: 100,
-        cardHeight: 100,
-        marginX: 10,
-        marginY: 10,
-        bleedX: 0,
-        bleedY: 0,
-        columns: 1,
-        rows: 1,
-        offsetX: 0,
-        offsetY: 0,
-      };
-
-      const doc = createMockDoc();
-      const result = getCutRectangleList(config, doc, true, false);
-
-      expect(result[0].width).toBe(10);
-      expect(result[0].height).toBe(10);
-    });
-  });
-
-  describe('数值精度', () => {
-    test('fixFloat 确保数值精度', () => {
-      const config = {
-        sides: layoutSides.oneSide,
-        scale: 33.33,
-        cardWidth: 100,
-        cardHeight: 100,
-        marginX: 5.555,
-        marginY: 5.555,
-        bleedX: 0,
-        bleedY: 0,
-        columns: 1,
-        rows: 1,
-        offsetX: 0,
-        offsetY: 0,
-      };
-
-      const doc = createMockDoc();
-      const result = getCutRectangleList(config, doc, true, false);
-
-      // 验证所有数值都是有限精度的
-      expect(Number.isFinite(result[0].x)).toBe(true);
-      expect(Number.isFinite(result[0].y)).toBe(true);
-      expect(Number.isFinite(result[0].width)).toBe(true);
-      expect(Number.isFinite(result[0].height)).toBe(true);
-
-      // 验证小数位数不超过2位
-      const decimals = (num) => {
-        const str = num.toString();
-        const dotIndex = str.indexOf('.');
-        return dotIndex === -1 ? 0 : str.length - dotIndex - 1;
-      };
-
-      expect(decimals(result[0].x)).toBeLessThanOrEqual(2);
-      expect(decimals(result[0].y)).toBeLessThanOrEqual(2);
+      expect(result.length).toBe(9);
+      const scaledWidth = 80 * 1.5;
+      const scaledBleed = 5 * 1.5;
+      expect(result[0].width).toBeCloseTo(scaledWidth + scaledBleed * 2, 1);
     });
   });
 });
+
+
 
 describe('adjustBackPageImageOrder', () => {
   // 小册子模式测试
