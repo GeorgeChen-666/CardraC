@@ -198,11 +198,7 @@ export const useGlobalStore = create(middlewares((set, get) => ({
     get().loading(async () => {
       const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList };
       const isSuccess = await callMain(eleActions.exportPdf, param);
-      if (isSuccess) {
-        notificationSuccess();
-      } else {
-        notificationFailed();
-      }
+      isSuccess && notificationSuccess();
     });
   },
   reloadLocalImage: () => {
