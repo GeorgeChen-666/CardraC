@@ -212,9 +212,13 @@ export default memo(({ data,dialogCardSettingRef, index }) => {
             <div>{t('cardEditor.face')}:
               <pre> {bleedConfig?.faceBleedX || 'NoV'}|{bleedConfig?.faceBleedY || 'NoV'}</pre>
             </div>
-            <div>{t('cardEditor.back')}:
-              <pre> {bleedConfig?.backBleedX || 'NoV'}|{bleedConfig?.backBleedY || 'NoV'}</pre>
-            </div>
+            {
+              sides !== layoutSides.oneSide && (
+                <div>{t('cardEditor.back')}:
+                  <pre> {bleedConfig?.backBleedX || 'NoV'}|{bleedConfig?.backBleedY || 'NoV'}</pre>
+                </div>
+              )
+            }
           </div>
         </Card>)
       }

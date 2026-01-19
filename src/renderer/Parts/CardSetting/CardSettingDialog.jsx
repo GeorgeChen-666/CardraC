@@ -17,6 +17,8 @@ export const CardSettingDialog = forwardRef(({}, ref) => {
   const selectedCards = useGlobalStore(state => state.CardList.filter(c => c.selected)) || [];
   const { Config } = useGlobalStore.selectors;
   const sides = Config.sides();
+  const marginX = Config.marginX();
+  const marginY = Config.marginY();
   useEffect(() => {
     if (selectedCards.length === 1 && open) {
       setBleed(selectedCards[0]?.config?.bleed || {});
@@ -45,19 +47,19 @@ export const CardSettingDialog = forwardRef(({}, ref) => {
     <DialogContent>
       <div className={'CardSettingInputRow'}>
         <span>{`${t('configDialog.marginX')} / ${t('configDialog.marginY')}`}</span>
-        <span>{Config.marginX()} / {Config.marginY()}</span>
+        <span>{marginX} / {marginY}</span>
       </div>
       <div className={'CardSettingInputRow'}>
         <FormLabel>{t('cardEditor.face')}</FormLabel>
-        <BleedNumberInput path={'faceBleedX'} max={Config.marginX() / 2} label={t('configDialog.bleed')} />
-        <BleedNumberInput path={'faceBleedY'} max={Config.marginY() / 2} />
+        <BleedNumberInput path={'faceBleedX'} max={marginX / 2} label={t('configDialog.bleed')} />
+        <BleedNumberInput path={'faceBleedY'} max={marginY / 2} />
         mm
       </div>
       {
         sides !== layoutSides.oneSide && <div className={'CardSettingInputRow'}>
           <FormLabel>{t('cardEditor.back')}</FormLabel>
-          <BleedNumberInput path={'backBleedX'} max={Config.marginX() / 2} label={t('configDialog.bleed')} />
-          <BleedNumberInput path={'backBleedY'} max={Config.marginY() / 2} />
+          <BleedNumberInput path={'backBleedX'} max={marginX / 2} label={t('configDialog.bleed')} />
+          <BleedNumberInput path={'backBleedY'} max={marginY / 2} />
           mm
         </div>
       }

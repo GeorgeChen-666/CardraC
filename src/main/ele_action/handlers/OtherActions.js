@@ -14,7 +14,7 @@ export default (mainWindow) => {
       ]
     });
     if (result.canceled) {
-      mainWindow.webContents.send('export-pdf-done', false);
+      mainWindow.webContents.send(returnChannel, false);
     }
     else {
       try {
