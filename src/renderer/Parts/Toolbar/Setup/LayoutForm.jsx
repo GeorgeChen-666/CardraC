@@ -60,7 +60,7 @@ export const LayoutForm = () => {
                       mergeConfig({ flip, autoConfigFlip: (flip === '') });
                     }}
                     attrKey={'flip'} type={ControlType.Select} items={[
-        { label: t('configDialog.auto'), value: '' },
+        // { label: t('configDialog.auto'), value: '' },
         { label: t('configDialog.longEdgeBinding'), value: flipWay.longEdgeBinding },
         { label: t('configDialog.shortEdgeBinding'), value: flipWay.shortEdgeBinding },
       ]}>

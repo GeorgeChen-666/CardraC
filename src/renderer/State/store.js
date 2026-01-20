@@ -95,7 +95,7 @@ export const initialState = Object.freeze({
     printOffsetY: 0,
     landscape: true,
     sides: layoutSides.doubleSides,
-    autoConfigFlip: true,
+    autoConfigFlip: false,
     flip: flipWay.longEdgeBinding,
     cardWidth: 63,
     cardHeight: 88,
