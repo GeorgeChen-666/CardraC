@@ -1,4 +1,4 @@
-import { layoutSides } from '../../../../public/constants';
+import { layoutSides } from '../../../../shared/constants';
 
 export const defaultImageStorage = {
   '_emptyImg': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +

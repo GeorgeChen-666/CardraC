@@ -13,7 +13,7 @@ import Paper from '@mui/material/Paper';
 import './style.css'
 
 import { useTranslation } from 'react-i18next';
-import { eleActions } from '../../../../public/constants';
+import { eleActions } from '../../../../shared/constants';
 import { callMain } from '../../../functions';
 import { useGlobalStore } from '../../../State/store';
 import IconButton from '@mui/material/IconButton';

@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import { getCutRectangleList, getPagedImageListByCardList, adjustBackPageImageOrder, isNeedRotation   } from './ele_action/handlers/pdf/Utils';
-import { layoutSides } from '../public/constants';
+import { layoutSides } from '../shared/constants';
 
 describe('getPagedImageListByCardList', () => {
   // 创建测试用的卡片数据

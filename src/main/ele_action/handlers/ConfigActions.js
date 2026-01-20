@@ -3,7 +3,7 @@ import _ from 'lodash';
 import fs from 'fs';
 import path from 'path';
 import Store from 'electron-store';
-import { eleActions } from '../../../public/constants';
+import { eleActions } from '../../../shared/constants';
 import { getConfigStore, updateConfigStore } from '../functions';
 
 const initLanguageJson = (lang) => {

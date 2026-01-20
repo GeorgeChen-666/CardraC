@@ -1,5 +1,5 @@
 import { dialog, ipcMain } from 'electron';
-import { eleActions } from '../../../public/constants';
+import { eleActions } from '../../../shared/constants';
 import { getConfigStore, saveDataToFile } from '../functions';
 import fs from 'fs';
 import { defaultImageStorage, ImageStorage, OverviewStorage } from './pdf/Utils';

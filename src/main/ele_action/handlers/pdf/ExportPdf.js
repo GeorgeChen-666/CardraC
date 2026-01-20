@@ -1,8 +1,8 @@
-import { waitCondition } from '../../../../public/functions';
+import { waitCondition } from '../../../../shared/functions';
 import { getPendingList } from '../ImageActions';
 import { getBorderAverageColors, getConfigStore } from '../../functions';
 import { adjustBackPageImageOrder, getCutRectangleList, getPagedImageListByCardList, isNeedRotation } from './Utils';
-import { layoutSides } from '../../../../public/constants';
+import { layoutSides } from '../../../../shared/constants';
 import { fixFloat, ImageStorage } from './Utils';
 
 const { jsPDF } = require('jspdf');

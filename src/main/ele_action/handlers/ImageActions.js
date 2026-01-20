@@ -2,7 +2,7 @@ import { dialog, ipcMain } from 'electron';
 import fs from 'fs';
 
 import { getConfigStore, readCompressedImage } from '../functions';
-import { eleActions } from '../../../public/constants';
+import { eleActions } from '../../../shared/constants';
 import { ImageStorage, OverviewStorage } from './pdf/Utils';
 
 const ImageStorageLoadingJobs = {

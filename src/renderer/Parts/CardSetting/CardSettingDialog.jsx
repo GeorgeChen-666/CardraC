@@ -7,7 +7,7 @@ import { NumberInput } from '../../Componments/NumberInput';
 import FormLabel from '@mui/material/FormLabel';
 import Button from '@mui/material/Button';
 import './style.css';
-import { layoutSides } from '../../../public/constants';
+import { layoutSides } from '../../../shared/constants';
 
 export const CardSettingDialog = forwardRef(({}, ref) => {
   const { t } = useTranslation();

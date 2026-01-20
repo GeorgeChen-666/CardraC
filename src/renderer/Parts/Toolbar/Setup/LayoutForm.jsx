@@ -3,7 +3,7 @@ import { FormControl, ControlType } from './FormControl';
 import { useTranslation } from 'react-i18next';
 import Link from '@mui/material/Link';
 import { useGlobalStore } from '../../../State/store';
-import { flipWay, layoutSides } from '../../../../public/constants';
+import { flipWay, layoutSides } from '../../../../shared/constants';
 
 export const LayoutForm = () => {
   const { t } = useTranslation();

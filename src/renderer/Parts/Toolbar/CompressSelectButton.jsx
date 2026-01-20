@@ -9,7 +9,7 @@ import Tooltip from '@mui/material/Tooltip';
 import Badge from '@mui/material/Badge';
 import { ReloadDialog } from './ReloadImg/ReloadDialog';
 import { callMain } from '../../functions';
-import { eleActions } from '../../../public/constants';
+import { eleActions } from '../../../shared/constants';
 import { useTranslation } from 'react-i18next';
 
 export const CompressSelectButton = ({ label, disabled }) => {

@@ -1,5 +1,5 @@
 import { useGlobalStore } from '../../../State/store';
-import { layoutSides } from '../../../../public/constants';
+import { layoutSides } from '../../../../shared/constants';
 import { useEffect } from 'react';
 
 export default () => {

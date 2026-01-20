@@ -1,5 +1,5 @@
 import * as yup from 'yup';
-import { eleActions, flipWay, layoutSides } from '../../public/constants';
+import { eleActions, flipWay, layoutSides } from '../../shared/constants';
 import { create } from 'zustand';
 import {
   loadConfig,

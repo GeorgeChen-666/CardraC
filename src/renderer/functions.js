@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron';
-import { eleActions } from '../public/constants';
+import { eleActions } from '../shared/constants';
 // import { Actions, store } from './store';
 import { i18nInstance } from './i18n';
 import { triggerNotification } from './Parts/Notification';

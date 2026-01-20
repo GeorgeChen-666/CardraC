@@ -4,6 +4,7 @@ import NoteAddIcon from '@mui/icons-material/NoteAdd';
 import FindInPageIcon from '@mui/icons-material/FindInPage';
 import SaveIcon from '@mui/icons-material/Save';
 import SettingsIcon from '@mui/icons-material/Settings';
+import ChatIcon from '@mui/icons-material/Chat';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import InfoIcon from '@mui/icons-material/Info';
@@ -13,9 +14,10 @@ import { useGlobalStore, initialState } from '../../State/store';
 import { LangSelectButton } from './LangSelectButton';
 import { AboutDialog } from './About/AboutDialog';
 import { SetupDialog } from './Setup/SetupDialog';
+import { ChatDialog } from './Chat/ChatDialog';
 import Switch from '@mui/material/Switch';
 import { getImageSrc, openImage } from '../../functions';
-import { layoutSides } from '../../../public/constants';
+import { layoutSides } from '../../../shared/constants';
 import { CompressSelectButton } from './CompressSelectButton';
 import { BulkOperationButton } from './BulkOperationButton';
 import { FormControlLabel } from '@mui/material';
@@ -25,6 +27,7 @@ function IconToolbar() {
 
   const dialogSetupRef = useRef(null);
   const dialogAboutRef = useRef(null);
+  const dialogChatRef = useRef(null);
   const imageViewerRef = useRef(null);
   window.imageViewerRef = imageViewerRef;
   const { t } = useTranslation();
@@ -89,6 +92,13 @@ function IconToolbar() {
         }}
       />
       <GeneralIconButton
+        label='Chat'
+        icon={<ChatIcon />}
+        onClick={() => {
+          dialogChatRef.current.openDialog();
+        }}
+      />
+      <GeneralIconButton
         label='GitHub'
         icon={<GitHubIcon />}
         onClick={() => window.open('https://github.com/GeorgeChen-666/CardraC')}
@@ -116,6 +126,7 @@ function IconToolbar() {
       <SetupDialog ref={dialogSetupRef} />
       <AboutDialog ref={dialogAboutRef} />
       <ImageViewer ref={imageViewerRef} />
+      <ChatDialog ref={dialogChatRef} />
     </Box>
   );
 }

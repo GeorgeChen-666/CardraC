@@ -4,7 +4,7 @@ import './styles.css';
 import { useDrag, useDrop } from 'react-dnd';
 import { useTranslation } from 'react-i18next';
 import { getImageSrc, openImage } from '../../functions';
-import { layoutSides } from '../../../public/constants';
+import { layoutSides } from '../../../shared/constants';
 import { useGlobalStore } from '../../State/store';
 import { GeneralIconButton } from '../../Componments/GeneralIconButton';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';

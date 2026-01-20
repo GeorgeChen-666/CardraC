@@ -6,3 +6,7 @@
 .MuiMenuItem-root .MuiTextField-root{
     margin-left: 5px;
 }
+
+.MuiDialogActions-root {
+    border-top: 1px solid #43454A;
+}
