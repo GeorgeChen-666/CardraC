@@ -3,7 +3,7 @@ import fs from 'fs';
 
 import { getConfigStore, readCompressedImage } from '../functions';
 import { eleActions } from '../../../shared/constants';
-import { ImageStorage, OverviewStorage } from './pdf/Utils';
+import { ImageStorage, OverviewStorage } from './file_render/Utils';
 
 const ImageStorageLoadingJobs = {
 

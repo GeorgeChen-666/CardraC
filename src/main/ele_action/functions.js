@@ -136,13 +136,19 @@ export const readFileToData = async (filePath, format = '') => {
 
 export const saveDataToFile = async (data, filePath) => {
   let buffer = null;
-  if (typeof data === 'string') {
+
+  if (Buffer.isBuffer(data)) {
     buffer = data;
   } else if (typeof data === 'object' && data instanceof Blob) {
     buffer = Buffer.from(await data.arrayBuffer());
+  } else if (typeof data === 'string') {
+    buffer = data;
   } else if (typeof data === 'object' && data.constructor === Object) {
     buffer = JSON.stringify(data);
+  } else {
+    throw new Error(`Unsupported data type: ${typeof data}`);
   }
+
   await fs.writeFileSync(filePath, buffer);
 };
 export const base64ToBuffer = (base64Data) => {

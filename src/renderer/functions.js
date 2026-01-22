@@ -93,7 +93,7 @@ export const openMultiImage = (key) => callMain(eleActions.openImage, {
 export const getImagePath = () => callMain(eleActions.getImagePath);
 export const checkImage = ({ pathList }) => callMain(eleActions.checkImage, { pathList });
 
-export const exportPdf = (args) => callMain('export-pdf', args);
+export const exportFile = (args) => callMain(eleActions.exportFile, args);
 
 //export const saveProject = ({ state }) => callMain(eleActions.saveProject, { state: refreshCardStorage(state) });
 export const saveProject = (args) => callMain(eleActions.saveProject, args);

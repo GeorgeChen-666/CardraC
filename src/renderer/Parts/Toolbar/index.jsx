@@ -6,18 +6,19 @@ import SaveIcon from '@mui/icons-material/Save';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ChatIcon from '@mui/icons-material/Chat';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import InfoIcon from '@mui/icons-material/Info';
 import {GeneralIconButton} from '../../Componments/GeneralIconButton'
 import { useTranslation } from 'react-i18next';
-import { useGlobalStore, initialState } from '../../State/store';
+import { useGlobalStore } from '../../State/store';
 import { LangSelectButton } from './LangSelectButton';
 import { AboutDialog } from './About/AboutDialog';
 import { SetupDialog } from './Setup/SetupDialog';
 import { ChatDialog } from './Chat/ChatDialog';
 import Switch from '@mui/material/Switch';
 import { getImageSrc, openImage } from '../../functions';
-import { layoutSides } from '../../../shared/constants';
+import { exportType, layoutSides, initialState } from '../../../shared/constants';
 import { CompressSelectButton } from './CompressSelectButton';
 import { BulkOperationButton } from './BulkOperationButton';
 import { FormControlLabel } from '@mui/material';
@@ -32,7 +33,7 @@ function IconToolbar() {
   window.imageViewerRef = imageViewerRef;
   const { t } = useTranslation();
   const {
-    saveProject, mergeState,openProject, mergeConfig, mergeGlobal, exportPdf
+    saveProject, mergeState,openProject, mergeConfig, mergeGlobal, exportFile
   } = useGlobalStore.getState();
   const {Config, Global, CardList } = useGlobalStore.selectors;
   const cardListLength = CardList().length;
@@ -80,7 +81,12 @@ function IconToolbar() {
       <GeneralIconButton
         label={t('toolbar.btnExport')}
         icon={<PictureAsPdfIcon />}
-        onClick={() => exportPdf()}
+        onClick={() => exportFile(exportType.pdf)}
+      />
+      <GeneralIconButton
+        label={t('toolbar.btnExport')}
+        icon={<PhotoLibraryIcon />}
+        onClick={() => exportFile(exportType.png)}
       />
       <span style={{color: '#666', padding:'4px'}}>|</span>
       <LangSelectButton label={t('toolbar.btnLang')} />

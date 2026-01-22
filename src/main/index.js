@@ -1,6 +1,6 @@
 import electron, { app, BrowserWindow, shell } from 'electron';
 import { registerRendererActionHandlers } from './ele_action';
-import { getCutRectangleList } from './ele_action/handlers/pdf/Utils';
+import { getCutRectangleList } from './ele_action/handlers/file_render/Utils';
 
 
 if (typeof electron === 'string') {

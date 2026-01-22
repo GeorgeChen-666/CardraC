@@ -2,7 +2,7 @@ import { dialog, ipcMain } from 'electron';
 import { eleActions } from '../../../shared/constants';
 import { getConfigStore, saveDataToFile } from '../functions';
 import fs from 'fs';
-import { defaultImageStorage, ImageStorage, OverviewStorage } from './pdf/Utils';
+import { defaultImageStorage, ImageStorage, OverviewStorage } from './file_render/Utils';
 
 
 const refreshCardStorage = (CardList, globalBackground) => {

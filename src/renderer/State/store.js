@@ -1,5 +1,5 @@
 import * as yup from 'yup';
-import { eleActions, flipWay, layoutSides } from '../../shared/constants';
+import { eleActions, flipWay, initialState, layoutSides } from '../../shared/constants';
 import { create } from 'zustand';
 import {
   loadConfig,
@@ -71,55 +71,6 @@ const stateSchema = yup.object({
   CardList: yup.array().of(yup.object()).notRequired(),
 });
 
-export const initialState = Object.freeze({
-  Global: {
-    availableLangs: [],
-    currentLang: 'zh',
-    isLoading: false,
-    loadingText: '',
-    isInProgress: false,
-    progress: 0,
-    lastSelection: null,
-    isBackEditing: false,
-    isShowOverView: true,
-    selections: [],
-  },
-  Config: {
-    pageSize: 'A4:210,297',
-    pageWidth: 210,
-    pageHeight: 297,
-    scale: 100,
-    offsetX: 0,
-    offsetY: 0,
-    printOffsetX: 0,
-    printOffsetY: 0,
-    landscape: true,
-    sides: layoutSides.doubleSides,
-    autoConfigFlip: false,
-    flip: flipWay.longEdgeBinding,
-    cardWidth: 63,
-    cardHeight: 88,
-    compressLevel: 2,
-    marginX: 3,
-    marginY: 3,
-    foldInHalfMargin: 0,
-    bleedX: 1,
-    bleedY: 1,
-    columns: 4,
-    rows: 2,
-    autoColumnsRows: true,
-    fCutLine: '1',
-    bCutLine: '1',
-    lineWeight: 0.5,
-    cutlineColor: '#000000',
-    foldLineType: '0',
-    globalBackground: null,
-    marginFilling: false,
-    avoidDislocation: false,
-    brochureRepeatPerPage: false,
-  },
-  CardList: [],
-});
 window.OverviewStorage = {};
 window.ImageStorage = {};
 
@@ -194,10 +145,10 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       rs && notificationSuccess();
     });
   },
-  exportPdf: () => {
+  exportFile: (targetFileType) => {
     get().loading(async () => {
-      const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList };
-      const isSuccess = await callMain(eleActions.exportPdf, param);
+      const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList, targetFileType };
+      const isSuccess = await callMain(eleActions.exportFile, param);
       isSuccess && notificationSuccess();
     });
   },

@@ -9,7 +9,7 @@ export const OverviewStorage = { ...defaultImageStorage };
 
 export const fixFloat = num => parseFloat(num.toFixed(2));
 
-export const getCutRectangleList = (Config, doc, ignoreBleed = true, isBack = false) => {
+export const getCutRectangleList = (Config, { maxWidth, maxHeight }, ignoreBleed = true, isBack = false) => {
   const {
     sides,
     scale,
@@ -129,8 +129,8 @@ export const getCutRectangleList = (Config, doc, ignoreBleed = true, isBack = fa
       }
     }
   } else if (sides === layoutSides.brochure) {
-    const brochurePageWidth = doc.getPageWidth(0) / columns;
-    const brochurePageHeight = doc.getPageHeight(0) / rows;
+    const brochurePageWidth = maxWidth / columns;
+    const brochurePageHeight = maxHeight / rows;
     const brochureBleedX = ignoreBleed ? 0 : scaledBleedX;
     const brochureBleedY = ignoreBleed ? 0 : scaledBleedY;
     for (let i = 0; i < columns; i++) {
@@ -150,7 +150,7 @@ export const getCutRectangleList = (Config, doc, ignoreBleed = true, isBack = fa
     }
   }
 
-  return centerRects(list, doc.getPageWidth(1), doc.getPageHeight(1), offsetX, offsetY);
+  return centerRects(list, maxWidth, maxHeight, offsetX, offsetY);
 };
 
 function centerRects(rects, pageWidth, pageHeight, offsetX = 0, offsetY = 0) {
