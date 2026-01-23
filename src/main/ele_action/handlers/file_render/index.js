@@ -27,7 +27,7 @@ const loadImageAverageColor = async () => {
 
 
 
-export const exportFile = async (doc, state) => {
+export const exportFile = async (doc, state, pagesToRender = null) => {
   await waitCondition(() => getPendingList().size() === 0);
   const { Config } = getConfigStore();
 
@@ -44,12 +44,28 @@ export const exportFile = async (doc, state) => {
 
   const pagedImageList = getPagedImageListByCardList(state, Config);
   let currentPage = 0;
+  let physicalPageIndex = 0;
+  let isFirstRenderedPage = true;
+
   const totalPageCount = pagedImageList.filter(p => p.type === 'face').length;
   for (const index in pagedImageList) {
     const pageData = pagedImageList[index];
+    // 只在 face 页时增加物理页码
+    if (pageData.type === 'face') {
+      physicalPageIndex++;
+    }
+    //只渲染指定页面
+    if (pagesToRender && pagesToRender.length > 0) {
+      if (!pagesToRender.includes(physicalPageIndex - 1)) {
+        continue;
+      }
+    }
     const cutline = pageData.type === 'back'? (sides === layoutSides.brochure ? null : Config.bCutLine): Config.fCutLine;
     if(!(isFoldInHalf && pageData.type === 'back')) {
-      index > 0 && doc.addPage();
+      if (!isFirstRenderedPage) {
+        doc.addPage();
+      }
+      isFirstRenderedPage = false;
     }
     doc.saveState();
     if(pageData.type === 'back' && [layoutSides.doubleSides, layoutSides.brochure].includes(sides)) {

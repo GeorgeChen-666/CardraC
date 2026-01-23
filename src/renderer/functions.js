@@ -2,8 +2,8 @@ import { ipcRenderer } from 'electron';
 import { eleActions } from '../shared/constants';
 // import { Actions, store } from './store';
 import { i18nInstance } from './i18n';
-import { triggerNotification } from './Parts/Notification';
-import { useGlobalStore } from './State/store';
+import { triggerNotification } from './parts/Notification';
+import { useGlobalStore } from './state/store';
 
 export const emptyImg = {
   path: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
@@ -56,9 +56,7 @@ export const onOpenProjectFile = (cb) => {
   });
 };
 
-export const getMainImage = (args) => ipcRenderer.invoke(eleActions.getImageContent, args)
-
-export const reloadLocalImage = (args) => callMain(eleActions.reloadLocalImage, args);
+export const getMainImage = (args) => ipcRenderer.invoke(eleActions.getImageContent, args);
 
 export const openImage = (key) => callMain(eleActions.openImage, {
   returnChannel: `${eleActions.openImage}-return-${key}`,
@@ -90,21 +88,8 @@ export const openMultiImage = (key) => callMain(eleActions.openImage, {
   return newImageDatas;
 });
 
-export const getImagePath = () => callMain(eleActions.getImagePath);
-export const checkImage = ({ pathList }) => callMain(eleActions.checkImage, { pathList });
-
-export const exportFile = (args) => callMain(eleActions.exportFile, args);
-
-//export const saveProject = ({ state }) => callMain(eleActions.saveProject, { state: refreshCardStorage(state) });
-export const saveProject = (args) => callMain(eleActions.saveProject, args);
-
-export const openProject = () => callMain(eleActions.openProject, {
-    properties: [],
-  });
 
 export const loadConfig = () => callMain(eleActions.loadConfig);
-
-export const saveConfig = ({ state }) => callMain(eleActions.saveConfig, { state });
 
 export const setTemplate = (args) => callMain('set-template', { ...args });
 export const editTemplate = (args) => callMain('edit-template', { ...args });

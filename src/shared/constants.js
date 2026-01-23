@@ -6,7 +6,9 @@ export const eleActions = Object.freeze({
   saveConfig: 'save-config',
   checkImage: 'check-image',
   getImagePath: 'get-image-path',
-  getImageContent: 'get-image-Content',
+  getImageContent: 'get-image-content',
+  getExportPageCount: 'get-export-page-count',
+  getExportPreview: 'get-export-preview',
   reloadLocalImage: 'reload-local-image',
   exportFile: 'export-file'
 });
@@ -42,6 +44,9 @@ export const initialState = Object.freeze({
     isBackEditing: false,
     isShowOverView: true,
     selections: [],
+    currentView: 'edit',
+    exportPageCount: 0,
+    exportPreviewIndex: 1
   },
   Config: {
     pageSize: 'A4:210,297',

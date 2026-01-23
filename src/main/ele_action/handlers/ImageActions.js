@@ -2,8 +2,10 @@ import { dialog, ipcMain } from 'electron';
 import fs from 'fs';
 
 import { getConfigStore, readCompressedImage } from '../functions';
-import { eleActions } from '../../../shared/constants';
-import { ImageStorage, OverviewStorage } from './file_render/Utils';
+import { eleActions, layoutSides } from '../../../shared/constants';
+import { getPagedImageListByCardList, ImageStorage, OverviewStorage } from './file_render/Utils';
+import { SharpAdapter } from './file_render/adapter/SharpAdapter';
+import { exportFile } from './file_render';
 
 const ImageStorageLoadingJobs = {
 
@@ -43,6 +45,24 @@ const pathToImageData = async (path, cb) => {
 }
 
 export default (mainWindow) => {
+  ipcMain.on(eleActions.getExportPageCount, async (event, args) => {
+    const { CardList, globalBackground, returnChannel } = args;
+    const { Config } = getConfigStore();
+    const state = { CardList, globalBackground };
+    const pagedImageList = getPagedImageListByCardList(state, Config);
+    const isFoldInHalf = Config.sides === layoutSides.foldInHalf
+    mainWindow.webContents.send(returnChannel, isFoldInHalf ? pagedImageList.length / 2 : pagedImageList.length);
+  });
+  ipcMain.handle(eleActions.getExportPreview, async (event, args) => {
+    const { pageIndex, CardList, globalBackground } = args;
+    const { Config } = getConfigStore();
+    const state = { CardList, globalBackground };
+    const doc = new SharpAdapter(Config);
+    const blob = await exportFile(doc, state, [ pageIndex -1 ]);
+    const ext = 'png';
+    const base64String = blob.toString('base64');
+    return `data:image/${ext};base64,${base64String}`;
+  });
   ipcMain.handle(eleActions.getImageContent, async (event, path) => {
     const imagePathKey = path.replaceAll('\\','');
     return ImageStorage[imagePathKey];
