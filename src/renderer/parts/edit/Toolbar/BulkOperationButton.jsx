@@ -37,7 +37,7 @@ export const BulkOperationButton = () => {
       endIcon={<KeyboardArrowDownIcon />}
       onClick={handleClick}
     >
-      {t('toolbar.bulkMenu.labelSelection')}
+      {t('toolbar.bulkMenu.labelSelection', { count: selectionLength })}
     </Button>
     <Menu
       anchorEl={anchorEl}

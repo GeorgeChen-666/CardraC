@@ -5,6 +5,7 @@ import { getPagedImageListByCardList } from './file_render/Utils';
 import { eleActions, exportType } from '../../../shared/constants';
 import { SharpAdapter } from './file_render/adapter/SharpAdapter';
 import { JsPDFAdapter } from './file_render/adapter/JsPdfAdapter';
+import JSZip from 'jszip';
 // import { getCutRectangleList } from './pdf/Utils';
 
 export default (mainWindow) => {
@@ -37,8 +38,24 @@ export default (mainWindow) => {
           }
         })();
         const blob = await exportFile(doc, state);
+        let returnContent = blob;
+        if(blob.length > 1) {
+          const zip = new JSZip();
+
+          blob.forEach((page, pageNumber) => {
+            const fileName = `page${pageNumber}.${targetFileType}`;
+            zip.file(fileName, page.buffer);
+          });
+
+          returnContent = await zip.generateAsync({
+            type: 'nodebuffer',
+            compression: 'DEFLATE',
+            compressionOptions: { level: 9 }
+          });
+        }
+
         const filePath = result.filePath;
-        await saveDataToFile(blob, filePath);
+        await saveDataToFile(returnContent, filePath);
         mainWindow.webContents.send(returnChannel, true);
       }
       catch (e) {

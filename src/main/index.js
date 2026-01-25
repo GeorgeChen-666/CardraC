@@ -1,7 +1,7 @@
-import electron, { app, BrowserWindow, shell } from 'electron';
+import electron, { app, BrowserWindow, shell, protocol } from 'electron';
 import { registerRendererActionHandlers } from './ele_action';
-import { getCutRectangleList } from './ele_action/handlers/file_render/Utils';
-
+import { OverviewStorage } from './ele_action/handlers/file_render/Utils';
+import { ImageStorage } from './ele_action/handlers/file_render/Utils';
 
 if (typeof electron === 'string') {
   throw new TypeError('Not running in an Electron environment!');

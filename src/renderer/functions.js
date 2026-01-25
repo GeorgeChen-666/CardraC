@@ -47,7 +47,7 @@ ipcRenderer.on('notification', (ev, args) => {
 ipcRenderer.on('console', (ev, ...args) => console.log(...args));
 
 export const onOpenProjectFile = (cb) => {
-  ipcRenderer.on('open-project-file', async (event, data) => {
+  ipcRenderer.once('open-project-file', async (event, data) => {
     // dispatch(Actions.GlobalEdit({isLoading: true, loadingText: ''}));
     console.log('open-project-file ',data);
     cb && await cb(data);
@@ -57,6 +57,8 @@ export const onOpenProjectFile = (cb) => {
 };
 
 export const getMainImage = (args) => ipcRenderer.invoke(eleActions.getImageContent, args);
+
+export const clearPreviewCache = (args) => ipcRenderer.invoke(eleActions.clearPreviewCache, args);
 
 export const openImage = (key) => callMain(eleActions.openImage, {
   returnChannel: `${eleActions.openImage}-return-${key}`,
@@ -137,7 +139,7 @@ export const callMain = (key, params = {}, transform = d => d) => new Promise((r
       ipcRenderer.off(progressKey, onMainProgress);
     }
   };
-  ipcRenderer.on(progressKey, onMainProgress);
+  ipcRenderer.once(progressKey, onMainProgress);
 
   const onDone = (event, data) => {
     ipcRenderer.off(progressKey, onMainProgress);
@@ -157,7 +159,7 @@ export const callMain = (key, params = {}, transform = d => d) => new Promise((r
       resolveData(newData);
     }
   };
-  ipcRenderer.on(returnKey, onDone);
+  ipcRenderer.once(returnKey, onDone);
 });
 
 function isPlainObject(obj) {

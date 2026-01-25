@@ -35,7 +35,7 @@
       "manualReloadTooltip": "从源图按压缩等级重载图像。"
     },
     "bulkMenu": {
-      "labelSelection": "选择项...",
+      "labelSelection": "选择的{{count}}项...",
       "menuRemove": "删除",
       "menuFillBackground": "填充背景",
       "menuFillMultiBackground": "多图填充背景",
@@ -117,7 +117,6 @@
   },
   "footer": {
     "files": "文件数",
-    "images": "卡牌数",
-    "selectedFiles": "选中文件数"
+    "images": "卡牌数"
   }
 }

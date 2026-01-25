@@ -1,7 +1,8 @@
 export const actionLogger = (config, logger = defaultLogger) => {
-  let actionDepth = 0;
+  let actionDepth = 0; // 记录当前 action 嵌套层级
 
   return (set, get, api) => {
+    // 包装 set，拦截 action
     const wrappedSet = (fn, replace, actionName, params) => {
       const prevState = get();
       actionDepth += 1;
@@ -13,14 +14,25 @@ export const actionLogger = (config, logger = defaultLogger) => {
       actionDepth -= 1;
     };
 
-    // 只修改这里
+    // 自动 wrap 所有 action function
     function wrapActions(obj) {
       const out = {};
       for (const key in obj) {
         if (typeof obj[key] === 'function') {
           out[key] = (...args) => {
-            const result = obj[key].apply({ ...obj, set: wrappedSet, get }, args);
-            return result;  // ← 返回 action 的结果
+            const prevState = get();
+            actionDepth += 1;
+
+            // 直接调用原始 action，捕获返回值
+            const result = obj[key](...args);
+
+            const nextState = get();
+            if (actionDepth === 1) {
+              logger({ action: key, params: args, prev: prevState, next: nextState });
+            }
+            actionDepth -= 1;
+
+            return result; // 返回 action 的结果
           };
         } else {
           out[key] = obj[key];

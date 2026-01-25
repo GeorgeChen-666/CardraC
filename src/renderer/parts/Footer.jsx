@@ -16,21 +16,19 @@ export const Footer = () => {
   const { Global } = useGlobalStore.selectors;
   const currentView = Global.currentView();
 
-  const [selected, setSelected] = useState(currentView || 'edit');
   const options = [
     { label: '编辑视图', value: 'edit' },
     { label: '预览视图', value: 'preview' }
   ];
   return (
-    <Stack padding={'0 3px'} alignItems={'center'} justifyContent={'space-between'} direction='row' spacing={2}>
-      <span>{t('footer.files')} {fileLength} / {t('footer.images')} {cardLength} / {t('footer.selectedFiles')} {selectionLength}</span>
+    <Stack padding={'0 3px'} marginBottom={'3px'} alignItems={'center'} justifyContent={'space-between'} direction='row' spacing={2}>
+      <span>{t('footer.files')} {fileLength} / {t('footer.images')} {cardLength}</span>
       <span></span>
       <span>
         <ChipToggleGroup
           options={options}
-          value={selected}
+          value={currentView || 'edit'}
           onChange={(view) => {
-            setSelected(view);
             mergeGlobal({currentView: view})
           }}
         />

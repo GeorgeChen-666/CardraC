@@ -26,7 +26,7 @@ export const Main = () => {
         <CardList />
       </>)}
       {currentView === 'preview' && (<>
-        <PreviewToolbar />
+        <PreviewToolbar previewRef={printPreviewRef} />
         <PrintPreview ref={printPreviewRef} />
       </>)}
       <Footer />

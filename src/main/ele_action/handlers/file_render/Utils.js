@@ -275,8 +275,8 @@ export const adjustBackPageImageOrder = (pageData, Config) => {
   }
 
   const { imageList, config = [] } = pageData;
-  const newImageList = new Array(imageList.length);
-  const newConfigList = new Array(config.length);
+  const newImageList = [...imageList];
+  const newConfigList = [...config];
 
   // 通用翻转函数
   const applyFlip = (effectiveRows, effectiveColumns, flipType) => {
@@ -312,53 +312,48 @@ export const adjustBackPageImageOrder = (pageData, Config) => {
 
   // 小册子专用翻转函数
   const applyBrochureFlip = (flipType) => {
-    const colsPerGroup = 2; // 每列2个元素
-    const totalCols = imageList.length / colsPerGroup;
+    const pairSize = 2; // 每列2个元素
+    const totalPairs = imageList.length / pairSize; // 总对数
+    const pairsPerRow = columns; // 每行的列数（对数）
+    const totalRows = rows;
 
-    if (flipType === 'columnFlipAndSwap') {
-      // 前后列交换 + 每列内翻转
-      const halfCols = totalCols / 2;
+    // 清空数组
+    for (let i = 0; i < imageList.length; i++) {
+      newImageList[i] = undefined;
+      newConfigList[i] = undefined;
+    }
 
-      for (let colIdx = 0; colIdx < totalCols; colIdx++) {
-        let newColIdx;
-        if (colIdx < halfCols) {
-          newColIdx = colIdx + halfCols;
-        } else {
-          newColIdx = colIdx - halfCols;
-        }
+    if (flipType === 'reversePairsAndColumns') {
+      // 长边装订：行序不变，列序颠倒，每列内的对也颠倒
+      for (let row = 0; row < totalRows; row++) {
+        for (let col = 0; col < pairsPerRow; col++) {
+          const oldCol = col;
+          const newCol = pairsPerRow - 1 - col; // 列序颠倒
 
-        const oldColStart = colIdx * colsPerGroup;
-        const newColStart = newColIdx * colsPerGroup;
+          const oldPairStart = (row * pairsPerRow + oldCol) * pairSize;
+          const newPairStart = (row * pairsPerRow + newCol) * pairSize;
 
-        for (let i = 0; i < colsPerGroup; i++) {
-          const oldIdx = oldColStart + i;
-          const newIdx = newColStart + (colsPerGroup - 1 - i);
-
-          if (oldIdx < imageList.length) {
-            newImageList[newIdx] = imageList[oldIdx];
-            newConfigList[newIdx] = config[oldIdx];
-          }
+          // 对内也颠倒
+          newImageList[newPairStart] = imageList[oldPairStart + 1];
+          newImageList[newPairStart + 1] = imageList[oldPairStart];
+          newConfigList[newPairStart] = config[oldPairStart + 1];
+          newConfigList[newPairStart + 1] = config[oldPairStart];
         }
       }
-    } else if (flipType === 'columnPairSwap') {
-      // 每两列内部交换
-      for (let colIdx = 0; colIdx < totalCols; colIdx++) {
-        const pairIdx = Math.floor(colIdx / 2);
-        const posInPair = colIdx % 2;
-        const newPosInPair = 1 - posInPair;
-        const newColIdx = pairIdx * 2 + newPosInPair;
+    } else if (flipType === 'reverseRows') {
+      // 短边装订：行序颠倒，列序不变，对内不变
+      for (let row = 0; row < totalRows; row++) {
+        const newRow = totalRows - 1 - row; // 行序颠倒
 
-        const oldColStart = colIdx * colsPerGroup;
-        const newColStart = newColIdx * colsPerGroup;
+        for (let col = 0; col < pairsPerRow; col++) {
+          const oldPairStart = (row * pairsPerRow + col) * pairSize;
+          const newPairStart = (newRow * pairsPerRow + col) * pairSize;
 
-        for (let i = 0; i < colsPerGroup; i++) {
-          const oldIdx = oldColStart + i;
-          const newIdx = newColStart + i;
-
-          if (oldIdx < imageList.length) {
-            newImageList[newIdx] = imageList[oldIdx];
-            newConfigList[newIdx] = config[oldIdx];
-          }
+          // 对内不变
+          newImageList[newPairStart] = imageList[oldPairStart];
+          newImageList[newPairStart + 1] = imageList[oldPairStart + 1];
+          newConfigList[newPairStart] = config[oldPairStart];
+          newConfigList[newPairStart + 1] = config[oldPairStart + 1];
         }
       }
     }
@@ -387,9 +382,9 @@ export const adjustBackPageImageOrder = (pageData, Config) => {
   } else if (sides === layoutSides.brochure) {
     if (flipWay !== 0) {
       if (!landscape && flipWay === 1 || landscape && flipWay === 2) {
-        applyBrochureFlip('columnFlipAndSwap');
+        applyBrochureFlip('reversePairsAndColumns');
       } else if (!landscape && flipWay === 2 || landscape && flipWay === 1) {
-        applyBrochureFlip('columnPairSwap');
+        applyBrochureFlip('reverseRows');
       }
     } else {
       // 无翻转

@@ -1,9 +1,8 @@
 import { IAdapter } from './IAdapter';
-import JSZip from 'jszip';
 import sharp from 'sharp';
 
 export class SharpAdapter extends IAdapter {
-  constructor(config) {
+  constructor(config, quality = 'high') {
     super();
     this.config = config;
     this.pages = [];
@@ -11,9 +10,34 @@ export class SharpAdapter extends IAdapter {
     this.currentPage = null;
     this.renderingTasks = [];
 
-    // 压缩级别对应的放大倍率
-    const scaleFactors = [15, 12, 9, 6];
-    this.scaleFactor = scaleFactors[config.compressLevel] || 9;
+    // ✅ 清晰度配置：高、中、低
+    const qualitySettings = {
+      high: {
+        scaleFactor: 9,
+        kernel: 'lanczos3',
+        compressionLevel: 6,
+        effort: 5
+      },
+      medium: {
+        scaleFactor: 6,
+        kernel: 'lanczos2',
+        compressionLevel: 4,
+        effort: 3
+      },
+      low: {
+        scaleFactor: 3,
+        kernel: 'cubic',
+        compressionLevel: 3,
+        effort: 2
+      }
+    };
+
+    // 获取当前清晰度设置
+    const settings = qualitySettings[quality] || qualitySettings.high;
+    this.scaleFactor = settings.scaleFactor;
+    this.kernel = settings.kernel;
+    this.compressionLevel = settings.compressionLevel;
+    this.effort = settings.effort;
 
     const [width, height] = this.parsePageSize(config.pageSize);
 
@@ -138,20 +162,32 @@ export class SharpAdapter extends IAdapter {
 
       image = image.resize(scaledWidth, scaledHeight, {
         fit: 'fill',
-        kernel: 'lanczos3',
+        kernel: this.kernel,
         withoutEnlargement: false
       });
 
+      let adjustedX = x;
+      let adjustedY = y;
+
+      if (rotation === 180) {
+        adjustedX = x - width;
+        adjustedY = y + height;
+      }
       if (rotation !== 0) {
         image = image.rotate(rotation, {
           background: { r: 0, g: 0, b: 0, alpha: 0 }
         });
       }
 
+      image = image.png({
+        compressionLevel: this.compressionLevel,  // 0-9，越低越快
+        effort: this.effort  // 1-10，越低越快
+      });
+
       return {
         input: await image.toBuffer(),
-        top: Math.ceil(this.scale(y)),
-        left: Math.ceil(this.scale(x))
+        top: Math.ceil(this.scale(adjustedY)),
+        left: Math.ceil(this.scale(adjustedX))
       };
     } catch (error) {
       console.error('Failed to create image layer:', error);
@@ -235,7 +271,7 @@ export class SharpAdapter extends IAdapter {
       // 缩放文本坐标和字号
       const sx = this.scale(x);
       const sy = this.scale(y);
-      const sSize = this.scale(size);
+      const sSize = this.scale(size) * 0.3;
 
       const svg = `
         <svg width="${this.renderWidth}" height="${this.renderHeight}">
@@ -331,42 +367,26 @@ export class SharpAdapter extends IAdapter {
   }
 
   async finalize() {
-    this.startPageRendering(this.currentPage);
+    // ✅ 提前开始所有页面的渲染
+    this.pages.forEach(page => {
+      if (!page.isRendering && !page.renderPromise) {
+        this.startPageRendering(page);
+      }
+    });
 
-    console.log(`Waiting for ${this.renderingTasks.length} rendering tasks to complete...`);
     await Promise.all(this.renderingTasks);
-    console.log('All pages rendered successfully');
 
-    // 过滤出有效页面
     const validPages = this.pages.filter(page => page.buffer);
 
     if (validPages.length === 0) {
       throw new Error('No pages to export');
     }
 
-    // 单页：直接返回图片 buffer
     if (validPages.length === 1) {
-      console.log('Single page detected, returning image buffer directly');
       return validPages[0].buffer;
+    } else {
+      return validPages.map(page => page.buffer);
     }
-
-    // 多页：打包成 ZIP
-    console.log(`Multiple pages (${validPages.length}), creating ZIP archive`);
-    const zip = new JSZip();
-
-    validPages.forEach((page) => {
-      const pageNumber = page.index + 1;
-      const fileName = `page${pageNumber}.png`;
-      zip.file(fileName, page.buffer);
-    });
-
-    const zipBuffer = await zip.generateAsync({
-      type: 'nodebuffer',
-      compression: 'DEFLATE',
-      compressionOptions: { level: 9 }
-    });
-
-    return zipBuffer;
   }
 
 }

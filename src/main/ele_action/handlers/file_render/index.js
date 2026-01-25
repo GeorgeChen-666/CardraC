@@ -31,7 +31,7 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
   await waitCondition(() => getPendingList().size() === 0);
   const { Config } = getConfigStore();
 
-  const {avoidDislocation, scale, sides, lineWeight, cutlineColor, foldLineType, offsetX, offsetY, marginX, marginY, bleedX, bleedY, showPageNumber, columns, rows, printOffsetX, printOffsetY} = Config;
+  const {avoidDislocation, scale, sides, lineWeight, cutlineColor, foldLineType, offsetX, offsetY, marginX, marginY, bleedX, bleedY, pageNumber, columns, rows, printOffsetX, printOffsetY} = Config;
   const maxWidth = fixFloat(doc.getPageSize().width);
   const maxHeight = fixFloat(doc.getPageSize().height);
   const isFoldInHalf = sides === layoutSides.foldInHalf;
@@ -43,39 +43,31 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
   }
 
   const pagedImageList = getPagedImageListByCardList(state, Config);
-  let currentPage = 0;
-  let physicalPageIndex = 0;
-  let isFirstRenderedPage = true;
 
   const totalPageCount = pagedImageList.filter(p => p.type === 'face').length;
-  for (const index in pagedImageList) {
-    const pageData = pagedImageList[index];
-    // 只在 face 页时增加物理页码
-    if (pageData.type === 'face') {
-      physicalPageIndex++;
-    }
-    //只渲染指定页面
+  for (const pageData of pagedImageList) {
+    const index = pagedImageList.indexOf(pageData)
+
     if (pagesToRender && pagesToRender.length > 0) {
-      if (!pagesToRender.includes(physicalPageIndex - 1)) {
+      if (!pagesToRender.includes(index)) {
         continue;
       }
     }
+
     const cutline = pageData.type === 'back'? (sides === layoutSides.brochure ? null : Config.bCutLine): Config.fCutLine;
-    if(!(isFoldInHalf && pageData.type === 'back')) {
-      if (!isFirstRenderedPage) {
-        doc.addPage();
-      }
-      isFirstRenderedPage = false;
-    }
+
     doc.saveState();
     if(pageData.type === 'back' && [layoutSides.doubleSides, layoutSides.brochure].includes(sides)) {
       doc.setTransform({a:1, b:0, c:0, d:1, e:printOffsetX, f:printOffsetY * -1});
     }
     // page number
-    if(pageData.type === 'face' && showPageNumber) {
-      currentPage++;
+    if(pageData.type === 'face' && pageNumber) {
+      const currentPage = pagedImageList
+        .slice(0, index + 1)
+        .filter(p => p.type === 'face')
+        .length;
       doc.drawText({
-        text:`${currentPage}/${totalPageCount}`, x:3, y:5, size: 8
+        text:`${currentPage}/${totalPageCount}`, x:5, y:7, size: 8
       })
     }
 
@@ -146,19 +138,20 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
       if (image) {
         let rotation = 0;
         if(sides !== layoutSides.brochure && (cardConfig || type === 'back' && avoidDislocation)) {
-          let cardBleedX = Math.min(fixFloat(cardConfig?.bleed?.[`${type}BleedX`] * scale / 100), scaledMarginX / 2);
-          let cardBleedY = Math.min(fixFloat(cardConfig?.bleed?.[`${type}BleedY`] * scale / 100), scaledMarginY / 2);
+          let cardBleedX_org = Math.min(fixFloat(cardConfig?.bleed?.[`${type}BleedX`] * scale / 100) || Number.MAX_SAFE_INTEGER, scaledMarginX / 2);
+          let cardBleedY_org = Math.min(fixFloat(cardConfig?.bleed?.[`${type}BleedY`] * scale / 100) || Number.MAX_SAFE_INTEGER, scaledMarginY / 2);
+          let cardBleedX = cardBleedX_org, cardBleedY= cardBleedY_org;
           if(type === 'back' && avoidDislocation) {
             cardBleedX = scaledMarginX / 2;
             cardBleedY = scaledMarginY / 2;
           }
           if(cardBleedX) {
             rect.x = rect.x - cardBleedX;
-            rect.width = rect.width + cardBleedX * 2;
+            rect.width = rect.width + cardBleedX * 2 - cardBleedX_org;
           }
           if(cardBleedY) {
             rect.y = rect.y - cardBleedY;
-            rect.height = rect.height + cardBleedY * 2;
+            rect.height = rect.height + cardBleedY * 2 - cardBleedY_org;
           }
         }
         if(isNeedRotation(Config, type === 'back')) {
@@ -300,6 +293,30 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
       });
     }
     doc.restoreState();
+
+    if(isFoldInHalf && pageData.type === 'face') {
+      continue
+    }
+    // 判断是否最后一页
+    let isLastPage = false;
+    if (pagesToRender && pagesToRender.length > 0) {
+      // 有过滤条件：检查后续是否还有要渲染的页
+      let hasMorePages = false;
+      for (let i = index + 1; i < pagedImageList.length; i++) {
+        if (pagesToRender.includes(i)) {
+          hasMorePages = true;
+          break;
+        }
+      }
+      isLastPage = !hasMorePages;
+    } else {
+      // 无过滤条件：检查是否是最后一个索引
+      isLastPage = (index === pagedImageList.length - 1);
+    }
+    // 不是最后一页才 addPage
+    if (!isLastPage) {
+      doc.addPage();
+    }
   }
 
 

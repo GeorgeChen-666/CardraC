@@ -2,12 +2,14 @@ import * as React from 'react';
 import './styles.css';
 import { useGlobalStore } from '../../state/store';
 import { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 'react';
+import { clearPreviewCache } from '../../functions';
 
 export const PrintPreview = forwardRef((props, ref) => {
   const { getExportPreview } = useGlobalStore.getState();
   const { Global } = useGlobalStore.selectors;
   const exportPageCount = Global.exportPageCount() || 0;
   const exportPreviewIndex = Global.exportPreviewIndex() || 1;
+  const [ready, setReady] = useState(false);
   const [imageData, setImageData] = useState(null);
 
   const [scale, setScale] = useState(1);
@@ -39,7 +41,7 @@ export const PrintPreview = forwardRef((props, ref) => {
     // 计算缩放比例（取较小值以确保完整显示）
     const scaleX = container.width / imgWidth;
     const scaleY = container.height / imgHeight;
-    const newScale = Math.min(scaleX, scaleY, 1); // 不超过原始大小
+    const newScale = Math.min(scaleX, scaleY);
 
     // 计算居中位置
     const scaledWidth = imgWidth * newScale;
@@ -86,6 +88,19 @@ export const PrintPreview = forwardRef((props, ref) => {
 
     setScale(newScale);
   };
+
+  // 手动添加 wheel 事件监听器
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    // 添加非 passive 的监听器
+    container.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, [scale, position]); // 依赖 scale 和 position
 
   // 鼠标拖拽
   const handleMouseDown = (e) => {
@@ -151,19 +166,28 @@ export const PrintPreview = forwardRef((props, ref) => {
 
   // 加载图片
   useEffect(() => {
-    (async () => {
-      if (exportPageCount > 0) {
-        const data = await getExportPreview(exportPreviewIndex);
-        setImageData(data);
-      }
-    })();
-  }, [exportPreviewIndex, exportPageCount]);
+    if(ready) {
+      (async () => {
+        if (exportPageCount > 0) {
+          const data = await getExportPreview(exportPreviewIndex);
+          setImageData(data);
+        }
+      })();
+    }
+  }, [exportPreviewIndex, exportPageCount, ready]);
+
+  useEffect(() => {
+    setReady(true);
+    return async () => {
+      await clearPreviewCache();
+      setReady(false);
+    }
+  }, []);
 
   return (
     <div
       className="PrintPreviewContainer"
       ref={containerRef}
-      onWheel={handleWheel}
       onMouseDown={handleMouseDown}
       style={{
         cursor: isDragging ? 'grabbing' : 'grab',
@@ -204,7 +228,7 @@ export const PrintPreview = forwardRef((props, ref) => {
           height: '100%',
           color: '#999'
         }}>
-
+          Loading...
         </div>
       )}
     </div>

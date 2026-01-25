@@ -9,6 +9,7 @@ export const eleActions = Object.freeze({
   getImageContent: 'get-image-content',
   getExportPageCount: 'get-export-page-count',
   getExportPreview: 'get-export-preview',
+  clearPreviewCache: 'clear-preview-cache',
   reloadLocalImage: 'reload-local-image',
   exportFile: 'export-file'
 });

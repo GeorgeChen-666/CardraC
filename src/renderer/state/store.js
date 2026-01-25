@@ -7,7 +7,7 @@ import {
   callMain,
   immutableMerge,
   fillByObjectValue,
-  onOpenProjectFile, getExportPreview,
+  onOpenProjectFile,
 } from '../functions';
 import _ from 'lodash';
 import { i18nInstance, initI18n } from '../i18n';
@@ -190,15 +190,15 @@ export const useGlobalStore = create(middlewares((set, get) => ({
     });
   },
   cardAdd: (images) => {
-    set(state => {
-      state.CardList = state.CardList.concat(images.map(p => ({
+    set(state => ({
+      ...state,
+      CardList: state.CardList.concat(images.map(p => ({
         id: crypto.randomUUID(),
         face: p,
         back: null,
         repeat: 1,
-      })));
-      return state;
-    });
+      })))
+    }));
   },
   cardEditById: (newState) =>
     set(state => {
@@ -216,60 +216,98 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       return state;
     }),
   cardRemoveByIds: (ids) =>
-    set(state => {
-      state.CardList = state.CardList.filter(c => !ids.includes(c.id));
-      return state;
-    }),
+    set(state => ({
+      ...state,
+      CardList: state.CardList.filter(c => !ids.includes(c.id))
+    })),
   cardSelect: (selectedId) => {
     set(state => {
       const selection = state.CardList.filter(c => c.selected);
+
       if (_.some(selection, { id: selectedId }) && selection.length === 1) {
-        selection.forEach(c => c.selected = false);
-        state.Global.lastSelection = null;
+        // 取消选中：只修改之前选中的对象
+        return {
+          ...state,
+          CardList: state.CardList.map(c =>
+            c.selected ? { ...c, selected: false } : c  // 只有 selected=true 的才创建新对象
+          ),
+          Global: { ...state.Global, lastSelection: null }
+        };
       } else {
-        selection.forEach(c => c.selected = false);
-        const selectedCard = state.CardList.find(c => c.id === selectedId);
-        selectedCard && (selectedCard.selected = true);
-        state.Global.lastSelection = selectedId;
+        // 选中：只修改选中状态变化的对象
+        return {
+          ...state,
+          CardList: state.CardList.map(c => {
+            if (c.id === selectedId && !c.selected) {
+              // 新选中的：创建新对象
+              return { ...c, selected: true };
+            } else if (c.selected && c.id !== selectedId) {
+              // 需要取消选中的：创建新对象
+              return { ...c, selected: false };
+            }
+            // 状态不变的：保持原引用
+            return c;
+          }),
+          Global: { ...state.Global, lastSelection: selectedId }
+        };
       }
-      state.CardList = [...state.CardList];
-      return state;
     });
   },
+
+  cardCtrlSelect: (selectedId) => {
+    set(state => ({
+      ...state,
+      CardList: state.CardList.map(c =>
+        c.id === selectedId
+          ? { ...c, selected: !c.selected }  // 只修改这一个
+          : c  // 其他保持原引用
+      )
+    }));
+  },
+
   cardShiftSelect: (selectedId) => {
     set(state => {
       const lastSelection = state.Global.lastSelection;
       const lastSelectionIndex = state.CardList.findIndex(c => c.id === lastSelection);
       const currentSelectionIndex = state.CardList.findIndex(c => c.id === selectedId);
+
       if (lastSelectionIndex + currentSelectionIndex > -1) {
-        state.CardList.forEach((c, i) => {
-          const ia = [lastSelectionIndex, currentSelectionIndex];
-          c.selected = i >= Math.min(...ia) && i <= Math.max(...ia);
-        });
+        const minIndex = Math.min(lastSelectionIndex, currentSelectionIndex);
+        const maxIndex = Math.max(lastSelectionIndex, currentSelectionIndex);
+
+        return {
+          ...state,
+          CardList: state.CardList.map((c, i) => {
+            const shouldBeSelected = i >= minIndex && i <= maxIndex;
+            // 只有状态变化的才创建新对象
+            return c.selected !== shouldBeSelected
+              ? { ...c, selected: shouldBeSelected }
+              : c;
+          })
+        };
       } else {
-        state.CardList.forEach(c => c.selected = false);
+        return {
+          ...state,
+          CardList: state.CardList.map(c =>
+            c.selected ? { ...c, selected: false } : c
+          )
+        };
       }
-      state.CardList = [...state.CardList];
-      return state;
     });
   },
-  cardCtrlSelect: (selectedId) => {
-    set(state => {
-      const selectedCard = state.CardList.find(c => c.id === selectedId);
-      selectedCard.selected = !selectedCard.selected;
-      return state;
-    });
-  },
+
   dragHoverMove: (to) => {
     set(state => {
       const id = 'dragTarget';
-      const from = state.CardList.findIndex(c => c.id === id);
+      const newCardList = [...state.CardList];
+      const from = newCardList.findIndex(c => c.id === id);
+
       if (from !== -1) {
-        state.CardList.splice(from, 1);
+        newCardList.splice(from, 1);
       }
-      state.CardList.splice(to, 0, { id });
-      state.CardList = [...state.CardList];
-      return state;
+      newCardList.splice(to, 0, { id });
+
+      return { ...state, CardList: newCardList };
     });
   },
   dragHoverCancel: () => {
@@ -302,18 +340,14 @@ export const useGlobalStore = create(middlewares((set, get) => ({
         state.CardList.splice(targetIndex, 1);
       }
       state.CardList = [...state.CardList];
-      return state;
+      return {...state};
     });
   },
   selectedCardsRemove: () => {
-    set(state => {
-      const selection = state.CardList.filter(c => c.selected);
-      selection.toSorted((a, b) => {
-        return state.CardList.findIndex(c => c.id === b.id) - state.CardList.findIndex(c => c.id === a.id);
-      }).forEach(c => state.CardList.splice(state.CardList.findIndex(cc => cc.id === c.id), 1));
-      state.CardList = [...state.CardList];
-      return state;
-    });
+    set(state => ({
+      ...state,
+      CardList: state.CardList.filter(c => !c.selected)
+    }));
   },
   selectedCardsDuplicate: () => {
     set(state => {
@@ -327,7 +361,7 @@ export const useGlobalStore = create(middlewares((set, get) => ({
         state.CardList.splice(to, 0, s);
       });
       state.CardList = [...state.CardList];
-      return state;
+      return {...state};
     });
   },
   selectedCardsEdit: (newState) => {
@@ -337,7 +371,7 @@ export const useGlobalStore = create(middlewares((set, get) => ({
         fillByObjectValue(c, newState);
       });
       state.CardList = state.CardList.map(c => selection.includes(c) ? { ...c } : c);
-      return state;
+      return {...state};
     });
   },
   selectedCardsFillBackWithEach: (backImageList) => {
@@ -347,7 +381,7 @@ export const useGlobalStore = create(middlewares((set, get) => ({
         c.back = backImageList?.[index];
       });
       state.CardList = state.CardList.map(c => selection.includes(c) ? { ...c } : c);
-      return state;
+      return {...state};
     });
   },
   selectedCardsSwap: () => {
@@ -355,7 +389,7 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       const selection = state.CardList.filter(c => c.selected);
       selection.forEach(c => ([c.face, c.back] = [c.back, c.face]));
       state.CardList = state.CardList.map(c => selection.includes(c) ? { ...c } : c);
-      return state;
+      return {...state};
     });
   },
   selectedCardsConfig: (config) => {
@@ -369,7 +403,7 @@ export const useGlobalStore = create(middlewares((set, get) => ({
         }
       });
       state.CardList = state.CardList.map(c => selection.includes(c) ? { ...c } : c);
-      return state;
+      return {...state};
     });
   }
 })));

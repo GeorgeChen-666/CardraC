@@ -1,11 +1,16 @@
-import { dialog, ipcMain } from 'electron';
+import { dialog, ipcMain, protocol } from 'electron';
+import log from 'electron-log';
 import fs from 'fs';
 
 import { getConfigStore, readCompressedImage } from '../functions';
 import { eleActions, layoutSides } from '../../../shared/constants';
 import { getPagedImageListByCardList, ImageStorage, OverviewStorage } from './file_render/Utils';
-import { SharpAdapter } from './file_render/adapter/SharpAdapter';
+import { SVGAdapter } from './file_render/adapter/SVGAdapter';
 import { exportFile } from './file_render';
+
+// 配置日志
+log.transports.file.level = 'debug';
+log.transports.console.level = 'debug';
 
 const ImageStorageLoadingJobs = {
 
@@ -44,24 +49,81 @@ const pathToImageData = async (path, cb) => {
   return returnObj;
 }
 
+
+// 在文件顶部添加缓存
+const previewCache = new Map(); // 存储已完成的预览
+const previewTasks = new Map(); // 存储进行中的任务
+
+
+// 预渲染函数
+async function prerenderPage(pageIndex, state, Config) {
+  const cacheKey = `${pageIndex}`;
+
+  if (previewCache.has(cacheKey)) {
+    return previewCache.get(cacheKey);
+  }
+
+  if (previewTasks.has(cacheKey)) {
+    return previewTasks.get(cacheKey);
+  }
+
+  const task = (async () => {
+    try {
+      // ✅ 使用 SVG Adapter
+      const doc = new SVGAdapter(Config);
+      const svgString = await exportFile(doc, state, [pageIndex]);
+
+      // ✅ 返回 SVG data URL
+      const result = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
+
+      previewCache.set(cacheKey, result);
+      return result;
+    } catch (error) {
+      console.error(`Failed to prerender page ${pageIndex}:`, error);
+      throw error;
+    } finally {
+      previewTasks.delete(cacheKey);
+    }
+  })();
+
+  previewTasks.set(cacheKey, task);
+  return task;
+}
+
+
+
+
+
 export default (mainWindow) => {
+
   ipcMain.on(eleActions.getExportPageCount, async (event, args) => {
     const { CardList, globalBackground, returnChannel } = args;
     const { Config } = getConfigStore();
     const state = { CardList, globalBackground };
     const pagedImageList = getPagedImageListByCardList(state, Config);
-    const isFoldInHalf = Config.sides === layoutSides.foldInHalf
+    const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
     mainWindow.webContents.send(returnChannel, isFoldInHalf ? pagedImageList.length / 2 : pagedImageList.length);
   });
+  // 获取预览
   ipcMain.handle(eleActions.getExportPreview, async (event, args) => {
     const { pageIndex, CardList, globalBackground } = args;
     const { Config } = getConfigStore();
     const state = { CardList, globalBackground };
-    const doc = new SharpAdapter(Config);
-    const blob = await exportFile(doc, state, [ pageIndex -1 ]);
-    const ext = 'png';
-    const base64String = blob.toString('base64');
-    return `data:image/${ext};base64,${base64String}`;
+    // 实际索引（pageIndex 从 1 开始）
+    const actualIndex = pageIndex - 1;
+
+    // 获取当前页（可能从缓存或等待任务完成）
+    const result = await prerenderPage(actualIndex, state, Config);
+
+    return result;
+  });
+
+// 清除缓存
+  ipcMain.handle(eleActions.clearPreviewCache, async () => {
+    previewCache.clear();
+    previewTasks.clear();
+    console.log('Preview cache cleared');
+    return { success: true };
   });
   ipcMain.handle(eleActions.getImageContent, async (event, path) => {
     const imagePathKey = path.replaceAll('\\','');

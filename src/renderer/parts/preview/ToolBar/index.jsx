@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { useGlobalStore } from '../../../state/store';
 
 
-export const PreviewToolbar = () => {
+export const PreviewToolbar = ({ previewRef }) => {
   const { t } = useTranslation();
   const { getExportPageCount, CardList, mergeGlobal } = useGlobalStore.getState();
   const { Global } = useGlobalStore.selectors;
@@ -21,6 +21,9 @@ export const PreviewToolbar = () => {
   useEffect(() => {
     CardList.length > 1 && getExportPageCount()
   }, [CardList]);
+  useEffect(() => {
+    mergeGlobal({ exportPreviewIndex: 1 });
+  },[])
   const handlePrevPage = () => {
     if (exportPreviewIndex > 0) {
       mergeGlobal({ exportPreviewIndex: exportPreviewIndex - 1 });
@@ -54,23 +57,46 @@ export const PreviewToolbar = () => {
       <GeneralIconButton
         label={t('toolbar.btnAdd')}
         icon={<RemoveIcon />}
+        onClick={() => {
+          {
+            previewRef.current?.zoomOut?.()
+          }
+        }}
       />
+
       <GeneralIconButton
         label={t('toolbar.btnAdd')}
         icon={<AddIcon />}
+        onClick={() => {
+          {
+            previewRef.current?.zoomIn?.()
+          }
+        }}
       />
       <GeneralIconButton
         label={t('toolbar.btnAdd')}
         icon={<FitScreenIcon />}
+        onClick={() => {
+          {
+            previewRef.current?.fitToContainer?.()
+          }
+        }}
       />
-      <GeneralIconButton
-        label={t('toolbar.btnAdd')}
-        icon={<PrintIcon />}
-      />
-      <GeneralIconButton
-        label={t('toolbar.btnAdd')}
-        icon={<CloseIcon />}
-      />
+      {/*<GeneralIconButton*/}
+      {/*  label={t('toolbar.btnAdd')}*/}
+      {/*  icon={<PrintIcon />}*/}
+      {/*/>*/}
+      <div style={{ float: 'right' }}>
+        <GeneralIconButton
+          label={t('toolbar.btnAdd')}
+          icon={<CloseIcon />}
+          onClick={() => {
+            mergeGlobal({ currentView: 'edit' })
+          }}
+        />
+      </div>
+
     </Box>
-  </>)
+  </>
+)
 }
