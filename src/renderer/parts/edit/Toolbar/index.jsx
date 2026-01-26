@@ -5,8 +5,6 @@ import FindInPageIcon from '@mui/icons-material/FindInPage';
 import SaveIcon from '@mui/icons-material/Save';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ChatIcon from '@mui/icons-material/Chat';
-import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import InfoIcon from '@mui/icons-material/Info';
 import {GeneralIconButton} from '../../../componments/GeneralIconButton'
@@ -23,6 +21,27 @@ import { CompressSelectButton } from './CompressSelectButton';
 import { BulkOperationButton } from './BulkOperationButton';
 import { FormControlLabel } from '@mui/material';
 import { ImageViewer } from '../ImageViewer';
+
+const ExportIcon = ({ label = 'PDF' }) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+    {/* ✅ 保留文档外框和背景 */}
+    <path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+    <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6z"/>
+    <text
+      x="14"
+      y="12"
+      textAnchor="middle"
+      fontSize="6"
+      fontWeight="900"
+      fontFamily="Arial, sans-serif"
+      fill="#2E2E2E"
+      stroke="#2E2E2E"
+      strokeWidth="0.2"
+    >
+      {label.toUpperCase()}
+    </text>
+  </svg>
+);
 
 export function EditToolbar() {
 
@@ -80,12 +99,12 @@ export function EditToolbar() {
       />
       <GeneralIconButton
         label={t('toolbar.btnExport')}
-        icon={<PictureAsPdfIcon />}
+        icon={<ExportIcon />}
         onClick={() => exportFile(exportType.pdf)}
       />
       <GeneralIconButton
         label={t('toolbar.btnExport')}
-        icon={<PhotoLibraryIcon />}
+        icon={<ExportIcon label={'png'} />}
         onClick={() => exportFile(exportType.png)}
       />
       <span style={{color: '#666', padding:'4px'}}>|</span>

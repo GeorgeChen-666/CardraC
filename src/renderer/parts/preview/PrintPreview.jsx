@@ -22,9 +22,10 @@ export const PrintPreview = forwardRef((props, ref) => {
   const imageRef = useRef(null);
   const svgRef = useRef(null);
 
-  const ZOOM_STEP = 0.1;
-  const MIN_SCALE = 0.1;
-  const MAX_SCALE = 5;
+  const isSvg = imageData && imageData.includes('svg');
+  const ZOOM_STEP = isSvg ? 2 : 0.1;
+  const MIN_SCALE = isSvg ? 0.5 : 0.1;
+  const MAX_SCALE = isSvg ? 40 : 5;
 
   // 计算适配容器的缩放比例和位置
   const fitToContainer = () => {
@@ -135,7 +136,6 @@ export const PrintPreview = forwardRef((props, ref) => {
     }
   };
   //SVG 加载后触发适配
-  const isSvg = imageData && imageData.includes('svg');
   useEffect(() => {
     if (isSvg && imageSize.width && imageSize.height) {
       setTimeout(() => fitToContainer(), 0);

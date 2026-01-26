@@ -56,32 +56,25 @@ const createWindow = () => {
 app.whenReady().then(() => {
 
   // ✅ 注册 cardrac:// 协议（使用 registerBufferProtocol）
-  protocol.registerBufferProtocol('cardrac', (request, callback) => {
+  protocol.handle('cardrac', async (request) => {
     try {
       const url = request.url;
-      console.log('Protocol handler called:', url);
-
       const urlObj = new URL(url);
       const pathname = urlObj.pathname; // /image/C%3A...
       const quality = urlObj.searchParams.get('quality') || 'high';
 
-      // ✅ 解码 URL 编码的路径
       let imagePath = decodeURIComponent(pathname.replace('/image/', ''));
       if (imagePath.startsWith('/')) {
         imagePath = imagePath.substring(1);
       }
-      console.log('Decoded image path:', imagePath);
 
-      // ✅ 根据清晰度选择存储
       const storage = quality === 'low' ? OverviewStorage : ImageStorage;
       const imageData = storage[imagePath];
 
       if (imageData) {
-        // ✅ 将 base64 转换为 Buffer
         const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
         const buffer = Buffer.from(base64Data, 'base64');
 
-        // ✅ 根据扩展名确定 MIME 类型
         const ext = imagePath.split('.').pop().toLowerCase();
         const mimeTypes = {
           'jpg': 'image/jpeg',
@@ -92,18 +85,31 @@ app.whenReady().then(() => {
         };
         const mimeType = mimeTypes[ext] || 'image/png';
 
-        console.log('Returning image, size:', buffer.length, 'type:', mimeType);
-        callback({ data: buffer, mimeType });
+        // ✅ 返回 Response 对象
+        return new Response(buffer, {
+          headers: { 'Content-Type': mimeType }
+        });
       } else {
         console.error('Image not found in storage:', imagePath);
         console.log('Available keys:', Object.keys(storage).slice(0, 5));
-        callback({ error: -6 }); // FILE_NOT_FOUND
+
+        // ✅ 返回 404 错误
+        return new Response('Image not found', {
+          status: 404,
+          headers: { 'Content-Type': 'text/plain' }
+        });
       }
     } catch (error) {
       console.error('Protocol handler error:', error);
-      callback({ error: -2 }); // FAILED
+
+      // ✅ 返回 500 错误
+      return new Response('Internal server error', {
+        status: 500,
+        headers: { 'Content-Type': 'text/plain' }
+      });
     }
   });
+
 
   createWindow();
 

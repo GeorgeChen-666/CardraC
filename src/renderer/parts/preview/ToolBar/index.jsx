@@ -10,6 +10,7 @@ import PrintIcon from '@mui/icons-material/Print';
 import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
 import { useGlobalStore } from '../../../state/store';
+import { PageNavigator } from './PageNavigator';
 
 
 export const PreviewToolbar = ({ previewRef }) => {
@@ -35,68 +36,64 @@ export const PreviewToolbar = ({ previewRef }) => {
       mergeGlobal({ exportPreviewIndex: exportPreviewIndex + 1 });
     }
   };
+  const handlePageChange = (page) => {
+    mergeGlobal({ exportPreviewIndex: page });
+  };
   return (<>
-    <Box
-      sx={{
-        p: 0.5,
-      }}
-    >
-      <GeneralIconButton
-        label={t('toolbar.btnAdd')}
-        icon={<ArrowBackIosIcon />}
-        onClick={handlePrevPage}
-      />
-      <span>{exportPreviewIndex} of {exportPageCount}</span>
-      <GeneralIconButton
-        label={t('toolbar.btnAdd')}
-        icon={<ArrowForwardIosIcon />}
-        onClick={handleNextPage}
-      />
-
-
-      <GeneralIconButton
-        label={t('toolbar.btnAdd')}
-        icon={<RemoveIcon />}
-        onClick={() => {
-          {
-            previewRef.current?.zoomOut?.()
-          }
+      <Box
+        sx={{
+          p: 0.5,
         }}
-      />
-
-      <GeneralIconButton
-        label={t('toolbar.btnAdd')}
-        icon={<AddIcon />}
-        onClick={() => {
-          {
-            previewRef.current?.zoomIn?.()
-          }
-        }}
-      />
-      <GeneralIconButton
-        label={t('toolbar.btnAdd')}
-        icon={<FitScreenIcon />}
-        onClick={() => {
-          {
-            previewRef.current?.fitToContainer?.()
-          }
-        }}
-      />
-      {/*<GeneralIconButton*/}
-      {/*  label={t('toolbar.btnAdd')}*/}
-      {/*  icon={<PrintIcon />}*/}
-      {/*/>*/}
-      <div style={{ float: 'right' }}>
+      >
+        <PageNavigator
+          currentPage={exportPreviewIndex}
+          totalPages={exportPageCount}
+          onPageChange={handlePageChange}
+        />
+        <span style={{ color: '#666', padding: '4px' }}>|</span>
         <GeneralIconButton
           label={t('toolbar.btnAdd')}
-          icon={<CloseIcon />}
+          icon={<RemoveIcon />}
           onClick={() => {
-            mergeGlobal({ currentView: 'edit' })
+            {
+              previewRef.current?.zoomOut?.()
+            }
           }}
         />
-      </div>
 
-    </Box>
-  </>
-)
+        <GeneralIconButton
+          label={t('toolbar.btnAdd')}
+          icon={<AddIcon />}
+          onClick={() => {
+            {
+              previewRef.current?.zoomIn?.()
+            }
+          }}
+        />
+        <GeneralIconButton
+          label={t('toolbar.btnAdd')}
+          icon={<FitScreenIcon />}
+          onClick={() => {
+            {
+              previewRef.current?.fitToContainer?.()
+            }
+          }}
+        />
+        {/*<GeneralIconButton*/}
+        {/*  label={t('toolbar.btnAdd')}*/}
+        {/*  icon={<PrintIcon />}*/}
+        {/*/>*/}
+        <div style={{ float: 'right' }}>
+          <GeneralIconButton
+            label={t('toolbar.btnAdd')}
+            icon={<CloseIcon />}
+            onClick={() => {
+              mergeGlobal({ currentView: 'edit' })
+            }}
+          />
+        </div>
+
+      </Box>
+    </>
+  )
 }

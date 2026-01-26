@@ -5,6 +5,7 @@ import { adjustBackPageImageOrder, getCutRectangleList, getPagedImageListByCardL
 import { layoutSides } from '../../../../shared/constants';
 import { fixFloat, ImageStorage } from './Utils';
 
+export const colorCache = new Map();
 const imageAverageColorSet = new Map();
 
 const loadImageAverageColor = async () => {
@@ -13,8 +14,13 @@ const loadImageAverageColor = async () => {
     return (async () => {
       if(!imageAverageColorSet.has(key)) {
         try {
-          const averageColor = await getBorderAverageColors(ImageStorage[key]);
-          imageAverageColorSet.set(key, averageColor);
+          if (colorCache.has(key)) {
+            imageAverageColorSet.set(key, colorCache.get(key));
+          } else {
+            const averageColor = await getBorderAverageColors(ImageStorage[key]);
+            imageAverageColorSet.set(key, averageColor);
+            colorCache.set(key, averageColor);
+          }
         }
         catch (e) {
           console.log(e)

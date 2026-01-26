@@ -6,7 +6,7 @@ import { getConfigStore, readCompressedImage } from '../functions';
 import { eleActions, layoutSides } from '../../../shared/constants';
 import { getPagedImageListByCardList, ImageStorage, OverviewStorage } from './file_render/Utils';
 import { SVGAdapter } from './file_render/adapter/SVGAdapter';
-import { exportFile } from './file_render';
+import { colorCache, exportFile } from './file_render';
 
 // 配置日志
 log.transports.file.level = 'debug';
@@ -45,6 +45,7 @@ const pathToImageData = async (path, cb) => {
   }
   returnObj.overviewData = await readCompressedImage(path, { maxWidth: 100 });
   OverviewStorage[imagePathKey] = returnObj.overviewData;
+  colorCache.delete(imagePathKey);
   cb && cb();
   return returnObj;
 }
@@ -60,24 +61,38 @@ async function prerenderPage(pageIndex, state, Config) {
   const cacheKey = `${pageIndex}`;
 
   if (previewCache.has(cacheKey)) {
+    console.log(`📦 Page ${pageIndex + 1}: Loaded from cache`);
     return previewCache.get(cacheKey);
   }
 
   if (previewTasks.has(cacheKey)) {
+    console.log(`⏳ Page ${pageIndex + 1}: Waiting for existing render task`);
     return previewTasks.get(cacheKey);
   }
 
   const task = (async () => {
+    // ✅ 开始计时
+    const startTime = performance.now();
+    console.log(`🎨 Page ${pageIndex + 1}: Starting render...`);
+
     try {
       const doc = new SVGAdapter(Config, 'low', true);
       const svgString = await exportFile(doc, state, [pageIndex]);
 
       const result = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
 
+      // ✅ 结束计时
+      const endTime = performance.now();
+      const duration = (endTime - startTime).toFixed(2);
+      console.log(`✅ Page ${pageIndex + 1}: Rendered in ${duration}ms`);
+
       previewCache.set(cacheKey, result);
       return result;
     } catch (error) {
-      console.error(`Failed to prerender page ${pageIndex}:`, error);
+      // ✅ 错误也记录时间
+      const endTime = performance.now();
+      const duration = (endTime - startTime).toFixed(2);
+      console.error(`❌ Page ${pageIndex + 1}: Failed after ${duration}ms`, error);
       throw error;
     } finally {
       previewTasks.delete(cacheKey);
@@ -87,8 +102,6 @@ async function prerenderPage(pageIndex, state, Config) {
   previewTasks.set(cacheKey, task);
   return task;
 }
-
-
 
 
 
@@ -108,18 +121,25 @@ export default (mainWindow) => {
     const { Config } = getConfigStore();
     const state = { CardList, globalBackground };
 
-    // 实际索引（pageIndex 从 1 开始）
     const actualIndex = pageIndex - 1;
 
-    // ✅ 获取总页数
+    // ✅ 记录总请求时间
+    const requestStartTime = performance.now();
+    console.log(`\n📄 Request: Page ${pageIndex}`);
+
     const pagedImageList = getPagedImageListByCardList(state, Config);
     const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
     const totalPages = isFoldInHalf ? pagedImageList.length / 2 : pagedImageList.length;
 
-    // ✅ 获取当前页（可能从缓存或等待任务完成）
+    // 获取当前页
     const result = await prerenderPage(actualIndex, state, Config);
 
-    // ✅ 异步预渲染接下来的 3 页（不阻塞返回）
+    const requestEndTime = performance.now();
+    const totalDuration = (requestEndTime - requestStartTime).toFixed(2);
+    console.log(`✨ Request completed in ${totalDuration}ms\n`);
+
+    // 异步预渲染接下来的 3 页
+    console.log(`🔮 Pre-rendering next 3 pages...`);
     for (let i = 1; i <= 3; i++) {
       const nextIndex = actualIndex + i;
       if (nextIndex < totalPages) {
@@ -131,6 +151,7 @@ export default (mainWindow) => {
 
     return result;
   });
+
 
 // 清除缓存
   ipcMain.handle(eleActions.clearPreviewCache, async () => {
@@ -207,7 +228,7 @@ export default (mainWindow) => {
     Object.keys(ImageStorage).forEach(k => {
       delete ImageStorage[k];
     })
-
+    colorCache.clear();
     let isTerminated = false;
     cancelChannel && ipcMain.once(cancelChannel, () => {
       isTerminated = true;

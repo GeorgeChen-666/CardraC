@@ -111,7 +111,7 @@ export class SVGAdapter extends IAdapter {
   drawText({ text, x, y, size = 12 }) {
     this.currentPage.elements.push({
       type: 'text',
-      text, x, y, size
+      text, x, y, size: Math.floor(size / 2.5)
     });
   }
 
