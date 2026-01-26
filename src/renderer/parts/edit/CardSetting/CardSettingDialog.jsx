@@ -13,19 +13,23 @@ export const CardSettingDialog = forwardRef(({}, ref) => {
   const { t } = useTranslation();
   const [bleed, setBleed] = React.useState({});
   const [open, setOpen] = React.useState(false);
-  const { selectedCardsConfig } = useGlobalStore.getState();
-  const selectedCards = useGlobalStore(state => state.CardList.filter(c => c.selected)) || [];
+  const [idList, setIdList] = React.useState([]);
+  const { editCardsConfig } = useGlobalStore.getState();
+  const editedCards = useGlobalStore(state => state.CardList.filter(c => idList.includes(c.id))) || [];
   const { Config } = useGlobalStore.selectors;
   const sides = Config.sides();
   const marginX = Config.marginX();
   const marginY = Config.marginY();
   useEffect(() => {
-    if (selectedCards.length === 1 && open) {
-      setBleed(selectedCards[0]?.config?.bleed || {});
+    if (editedCards.length === 1 && open) {
+      setBleed(editedCards[0]?.config?.bleed || {});
     }
-  }, [open, selectedCards.length]);
+  }, [open, editedCards.length]);
   useImperativeHandle(ref, () => ({
-    openDialog: () => setOpen(true),
+    openDialog: (ids) => {
+      setIdList(ids);
+      setOpen(true);
+    },
   }));
   const BleedNumberInput = ({path, max=999, label=''}) => {
     return (<NumberInput
@@ -67,7 +71,7 @@ export const CardSettingDialog = forwardRef(({}, ref) => {
     <DialogActions>
       <Button onClick={() => {
         setOpen(false);
-        selectedCardsConfig({ bleed });
+        editCardsConfig(idList, { bleed });
       }}>
         OK
       </Button>

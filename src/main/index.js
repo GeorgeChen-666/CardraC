@@ -54,6 +54,57 @@ const createWindow = () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+
+  // ✅ 注册 cardrac:// 协议（使用 registerBufferProtocol）
+  protocol.registerBufferProtocol('cardrac', (request, callback) => {
+    try {
+      const url = request.url;
+      console.log('Protocol handler called:', url);
+
+      const urlObj = new URL(url);
+      const pathname = urlObj.pathname; // /image/C%3A...
+      const quality = urlObj.searchParams.get('quality') || 'high';
+
+      // ✅ 解码 URL 编码的路径
+      let imagePath = decodeURIComponent(pathname.replace('/image/', ''));
+      if (imagePath.startsWith('/')) {
+        imagePath = imagePath.substring(1);
+      }
+      console.log('Decoded image path:', imagePath);
+
+      // ✅ 根据清晰度选择存储
+      const storage = quality === 'low' ? OverviewStorage : ImageStorage;
+      const imageData = storage[imagePath];
+
+      if (imageData) {
+        // ✅ 将 base64 转换为 Buffer
+        const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+
+        // ✅ 根据扩展名确定 MIME 类型
+        const ext = imagePath.split('.').pop().toLowerCase();
+        const mimeTypes = {
+          'jpg': 'image/jpeg',
+          'jpeg': 'image/jpeg',
+          'png': 'image/png',
+          'gif': 'image/gif',
+          'webp': 'image/webp'
+        };
+        const mimeType = mimeTypes[ext] || 'image/png';
+
+        console.log('Returning image, size:', buffer.length, 'type:', mimeType);
+        callback({ data: buffer, mimeType });
+      } else {
+        console.error('Image not found in storage:', imagePath);
+        console.log('Available keys:', Object.keys(storage).slice(0, 5));
+        callback({ error: -6 }); // FILE_NOT_FOUND
+      }
+    } catch (error) {
+      console.error('Protocol handler error:', error);
+      callback({ error: -2 }); // FAILED
+    }
+  });
+
   createWindow();
 
   // On OS X it's common to re-create a window in the app when the

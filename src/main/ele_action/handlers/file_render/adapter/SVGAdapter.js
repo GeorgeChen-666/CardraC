@@ -3,11 +3,12 @@ import { IAdapter } from './IAdapter';
 import { OverviewStorage, ImageStorage } from '../Utils';
 
 export class SVGAdapter extends IAdapter {
-  constructor(config) {
+  constructor(config, quality = 'high', useAppLinks = false) {
     super();
     this.config = config;
+    this.useAppLinks = useAppLinks;
+    this.imageQuality = quality;
 
-    // ✅ 支持多页
     this.pages = [];
     this.currentPageIndex = -1;
     this.currentPage = null;
@@ -74,15 +75,35 @@ export class SVGAdapter extends IAdapter {
   }
 
   drawImage({ data, x, y, width, height, rotation = 0 }) {
-    console.log('SVG drawImage:', { x, y, width, height, rotation });
     const imagePathKey = data.path.replaceAll('\\', '');
-    const imageBuffer = OverviewStorage[imagePathKey] || ImageStorage[imagePathKey];
+
+    let imageSource;
+    if (this.useAppLinks) {
+      // app 链接模式：默认低清晰度
+      const quality = this.imageQuality === 'high' ? 'high' : 'low';
+      imageSource = `cardrac://image/${imagePathKey}?quality=${quality}`;
+    } else {
+      // base64 模式：根据 imageQuality 选择存储
+      const storage = this.imageQuality === 'low' ? OverviewStorage : ImageStorage;
+      imageSource = storage[imagePathKey] || '';
+    }
+
+    let adjustedX = x;
+    let adjustedY = y;
+
+    if (rotation === 180) {
+      adjustedX = x - width;
+      adjustedY = y + height;
+    }
+
     this.currentPage.elements.push({
       type: 'image',
-      href: imageBuffer || '',
-      x: x,  // ✅ 直接使用传入的坐标
-      y: y,
-      width, height, rotation,
+      href: imageSource,
+      x: adjustedX,
+      y: adjustedY,
+      width,
+      height,
+      rotation,
       path: data.path
     });
   }
@@ -104,7 +125,6 @@ export class SVGAdapter extends IAdapter {
   }
 
   fillRect({ x, y, width, height, color }) {
-    console.log('SVG fillRect:', { x, y, width, height, color });
     this.currentPage.elements.push({
       type: 'rect',
       x, y, width, height, color
@@ -113,7 +133,6 @@ export class SVGAdapter extends IAdapter {
 
   // ✅ 生成单个页面的 SVG
   generatePageSVG(page) {
-    // ✅ 分离背景矩形和其他元素
     const rects = page.elements.filter(el => el.type === 'rect');
     const others = page.elements.filter(el => el.type !== 'rect');
 

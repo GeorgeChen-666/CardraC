@@ -42,6 +42,15 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
     await loadImageAverageColor();
   }
 
+  if (isFoldInHalf && pagesToRender && pagesToRender.length > 0) {
+    const expandedPages = new Set();
+    pagesToRender.forEach(index => {
+      expandedPages.add(index * 2);           // 添加原始 index（正面）
+      expandedPages.add(index * 2 + 1);       // 添加配对的背面
+    });
+    pagesToRender = Array.from(expandedPages).sort((a, b) => a - b);
+  }
+
   const pagedImageList = getPagedImageListByCardList(state, Config);
 
   const totalPageCount = pagedImageList.filter(p => p.type === 'face').length;
@@ -131,27 +140,25 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
     //image
     const { imageList, type, config: cardConfigList } = adjustBackPageImageOrder(pageData, Config);
     const imageRectList = getCutRectangleList(Config, {maxWidth, maxHeight}, false, pageData.type === 'back');
+    const cutRectList = getCutRectangleList(Config, {maxWidth, maxHeight}, true, pageData.type === 'back');
     for(let i = 0; i < imageList.length; i++) {
       const image = imageList[i];
       const cardConfig = cardConfigList[i];
       const rect = {...imageRectList[i]};
+      const rectCut = {...cutRectList[i]};
       if (image) {
         let rotation = 0;
         if(sides !== layoutSides.brochure && (cardConfig || type === 'back' && avoidDislocation)) {
-          let cardBleedX_org = Math.min(fixFloat(cardConfig?.bleed?.[`${type}BleedX`] * scale / 100) || Number.MAX_SAFE_INTEGER, scaledMarginX / 2);
-          let cardBleedY_org = Math.min(fixFloat(cardConfig?.bleed?.[`${type}BleedY`] * scale / 100) || Number.MAX_SAFE_INTEGER, scaledMarginY / 2);
-          let cardBleedX = cardBleedX_org, cardBleedY= cardBleedY_org;
-          if(type === 'back' && avoidDislocation) {
-            cardBleedX = scaledMarginX / 2;
-            cardBleedY = scaledMarginY / 2;
-          }
+          let cardBleedX = Math.min(fixFloat(cardConfig?.bleed?.[`${type}BleedX`] * scale / 100), scaledMarginX / 2);
+          let cardBleedY = Math.min(fixFloat(cardConfig?.bleed?.[`${type}BleedY`] * scale / 100), scaledMarginY / 2);
+
           if(cardBleedX) {
-            rect.x = rect.x - cardBleedX;
-            rect.width = rect.width + cardBleedX * 2 - cardBleedX_org;
+            rect.x = rectCut.x - cardBleedX;
+            rect.width = rectCut.width + cardBleedX * 2;
           }
           if(cardBleedY) {
-            rect.y = rect.y - cardBleedY;
-            rect.height = rect.height + cardBleedY * 2 - cardBleedY_org;
+            rect.y = rectCut.y - cardBleedY;
+            rect.height = rectCut.height + cardBleedY * 2;
           }
         }
         if(isNeedRotation(Config, type === 'back')) {
@@ -164,15 +171,19 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
           try {
             doc.setLineStyle({width:0, color: 0});
             const averageColor = imageAverageColorSet.get(image.path?.replaceAll('\\', ''));
-            if(averageColor && !(marginX / 2 - bleedX === 0 && marginY / 2 - bleedY === 0)) {
-              const xOffset = fixFloat(marginX / 2 - bleedX);
-              const yOffset = fixFloat(marginY / 2 - bleedY);
-              const rect = {...imageRectList[i]};
+            const xOffset = fixFloat(scaledMarginX / 2);
+            const yOffset = fixFloat(scaledMarginY / 2);
+            const rectFill = {
+              x: rectCut.x - xOffset,
+              y: rectCut.y - yOffset,
+              width: rectCut.width + xOffset * 2,
+              height: rectCut.height + yOffset * 2,
+            }
+            const checkX = rectFill.x < rect.x || rectFill.x + rectFill.width > rect.x + rect.width;
+            const checkY = rectFill.y < rect.y || rectFill.y + rectFill.height > rect.y + rect.height;
+            if(averageColor && (checkX || checkY)) {
               doc.fillRect({
-                x: rect.x - xOffset,
-                y: rect.y - yOffset,
-                width: rect.width + xOffset * 2,
-                height: rect.height + yOffset * 2,
+                ...rectFill,
                 color: averageColor
               })
             }
@@ -204,7 +215,10 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
       const markRectList = getCutRectangleList(Config, {maxWidth, maxHeight}, true);
       const crossLength = fixFloat(2 * scale / 100);
 
-      markRectList.forEach(r => {
+      const { imageList } = adjustBackPageImageOrder(pageData, Config);
+
+      markRectList.forEach((r, index) => {
+        if (!imageList[index]) return;
         // 左上角
         doc.drawLine({x1: r.x - crossLength, y1: r.y, x2: r.x + crossLength, y2: r.y});
         doc.drawLine({x1: r.x, y1: r.y - crossLength, x2: r.x, y2: r.y + crossLength});

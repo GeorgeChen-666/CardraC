@@ -69,11 +69,9 @@ async function prerenderPage(pageIndex, state, Config) {
 
   const task = (async () => {
     try {
-      // ✅ 使用 SVG Adapter
-      const doc = new SVGAdapter(Config);
+      const doc = new SVGAdapter(Config, 'low', true);
       const svgString = await exportFile(doc, state, [pageIndex]);
 
-      // ✅ 返回 SVG data URL
       const result = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
 
       previewCache.set(cacheKey, result);
@@ -109,11 +107,27 @@ export default (mainWindow) => {
     const { pageIndex, CardList, globalBackground } = args;
     const { Config } = getConfigStore();
     const state = { CardList, globalBackground };
+
     // 实际索引（pageIndex 从 1 开始）
     const actualIndex = pageIndex - 1;
 
-    // 获取当前页（可能从缓存或等待任务完成）
+    // ✅ 获取总页数
+    const pagedImageList = getPagedImageListByCardList(state, Config);
+    const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
+    const totalPages = isFoldInHalf ? pagedImageList.length / 2 : pagedImageList.length;
+
+    // ✅ 获取当前页（可能从缓存或等待任务完成）
     const result = await prerenderPage(actualIndex, state, Config);
+
+    // ✅ 异步预渲染接下来的 3 页（不阻塞返回）
+    for (let i = 1; i <= 3; i++) {
+      const nextIndex = actualIndex + i;
+      if (nextIndex < totalPages) {
+        prerenderPage(nextIndex, state, Config).catch(err => {
+          console.error(`Failed to prerender page ${nextIndex + 1}:`, err);
+        });
+      }
+    }
 
     return result;
   });

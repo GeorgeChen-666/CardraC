@@ -25,6 +25,7 @@ export const getCutRectangleList = (Config, { maxWidth, maxHeight }, ignoreBleed
     foldLineType,
     offsetX,
     offsetY,
+    avoidDislocation,
   } = Config;
 
   // 计算缩放后的尺寸
@@ -39,12 +40,18 @@ export const getCutRectangleList = (Config, { maxWidth, maxHeight }, ignoreBleed
   const halfMarginY = scaledMarginY / 2;
   const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
 
-  const createRect = (i, j, isSupplementary = false) => {
-    let locX = i * (scaledWidth + scaledMarginX) + halfMarginX - (ignoreBleed ? 0 : scaledBleedX);
-    let locY = j * (scaledHeight + scaledMarginY) + halfMarginY - (ignoreBleed ? 0 : scaledBleedY);
-    const width = scaledWidth + (ignoreBleed ? 0 : (scaledBleedX * 2));
-    const height = scaledHeight + (ignoreBleed ? 0 : (scaledBleedY * 2));
+  let effectiveBleedX = scaledBleedX;
+  let effectiveBleedY = scaledBleedY;
+  if (isBack && avoidDislocation && sides !== layoutSides.brochure) {
+    effectiveBleedX = halfMarginX;
+    effectiveBleedY = halfMarginY;
+  }
 
+  const createRect = (i, j, isSupplementary = false) => {
+    let locX = i * (scaledWidth + scaledMarginX) + halfMarginX - (ignoreBleed ? 0 : effectiveBleedX);
+    let locY = j * (scaledHeight + scaledMarginY) + halfMarginY - (ignoreBleed ? 0 : effectiveBleedY);
+    const width = scaledWidth + (ignoreBleed ? 0 : (effectiveBleedX * 2));
+    const height = scaledHeight + (ignoreBleed ? 0 : (effectiveBleedY * 2));
     // 修复 scaledFoldMargin 逻辑
     if (isFoldInHalf) {
       if (foldLineType === '0') {
@@ -84,45 +91,45 @@ export const getCutRectangleList = (Config, { maxWidth, maxHeight }, ignoreBleed
     if (isBack) {
       // 背面：主要元素使用另一半坐标
       if (foldLineType === '0') {
-        for (let i = 0; i < effectiveColumns; i++) {
-          for (let j = Math.floor(rows / 2); j < rows; j++) {
+        for (let j = Math.floor(rows / 2); j < rows; j++) {
+          for (let i = 0; i < effectiveColumns; i++) {
             list.push(createRect(i, j, false)); // 主要元素
           }
         }
-        for (let i = 0; i < effectiveColumns; i++) {
-          for (let j = 0; j < effectiveRows; j++) {
+        for (let j = 0; j < effectiveRows; j++) {
+          for (let i = 0; i < effectiveColumns; i++) {
             list.push(createRect(i, j, true)); // 追加元素
           }
         }
       } else {
-        for (let i = Math.floor(columns / 2); i < columns; i++) {
-          for (let j = 0; j < effectiveRows; j++) {
+        for (let j = 0; j < effectiveRows; j++) {
+          for (let i = Math.floor(columns / 2); i < columns; i++) {
             list.push(createRect(i, j, false)); // 主要元素
           }
         }
-        for (let i = 0; i < effectiveColumns; i++) {
-          for (let j = 0; j < effectiveRows; j++) {
+        for (let j = 0; j < effectiveRows; j++) {
+          for (let i = 0; i < effectiveColumns; i++) {
             list.push(createRect(i, j, true)); // 追加元素
           }
         }
       }
     } else {
       // 正面：主要元素使用前一半坐标
-      for (let i = 0; i < effectiveColumns; i++) {
-        for (let j = 0; j < effectiveRows; j++) {
+      for (let j = 0; j < effectiveRows; j++) {
+        for (let i = 0; i < effectiveColumns; i++) {
           list.push(createRect(i, j, false)); // 主要元素
         }
       }
 
       if (foldLineType === '0') {
-        for (let i = 0; i < effectiveColumns; i++) {
-          for (let j = Math.floor(rows / 2); j < rows; j++) {
+        for (let j = Math.floor(rows / 2); j < rows; j++) {
+          for (let i = 0; i < effectiveColumns; i++) {
             list.push(createRect(i, j, true)); // 追加元素
           }
         }
       } else {
-        for (let i = Math.floor(columns / 2); i < columns; i++) {
-          for (let j = 0; j < effectiveRows; j++) {
+        for (let j = 0; j < effectiveRows; j++) {
+          for (let i = Math.floor(columns / 2); i < columns; i++) {
             list.push(createRect(i, j, true)); // 追加元素
           }
         }
@@ -133,18 +140,23 @@ export const getCutRectangleList = (Config, { maxWidth, maxHeight }, ignoreBleed
     const brochurePageHeight = maxHeight / rows;
     const brochureBleedX = ignoreBleed ? 0 : scaledBleedX;
     const brochureBleedY = ignoreBleed ? 0 : scaledBleedY;
-    for (let i = 0; i < columns; i++) {
-      for (let j = 0; j < rows; j++) {
+    for (let j = 0; j < rows; j++) {
+      for (let i = 0; i < columns; i++) {
         list.push(...centerRects([
-          { x: 0, y: 0, width: scaledWidth + brochureBleedX, height: scaledHeight  + brochureBleedY * 2},
-          { x: scaledWidth + brochureBleedX, y: 0, width: scaledWidth + brochureBleedX, height: scaledHeight  + brochureBleedY * 2},
+          { x: 0, y: 0, width: scaledWidth + brochureBleedX, height: scaledHeight + brochureBleedY * 2 },
+          {
+            x: scaledWidth + brochureBleedX,
+            y: 0,
+            width: scaledWidth + brochureBleedX,
+            height: scaledHeight + brochureBleedY * 2,
+          },
         ], brochurePageWidth, brochurePageHeight, i * brochurePageWidth, j * brochurePageHeight));
       }
     }
   } else {
     // 普通模式
-    for (let i = 0; i < columns; i++) {
-      for (let j = 0; j < rows; j++) {
+    for (let j = 0; j < rows; j++) {
+      for (let i = 0; i < columns; i++) {
         list.push(createRect(i, j));
       }
     }
@@ -152,6 +164,7 @@ export const getCutRectangleList = (Config, { maxWidth, maxHeight }, ignoreBleed
 
   return centerRects(list, maxWidth, maxHeight, offsetX, offsetY);
 };
+
 
 function centerRects(rects, pageWidth, pageHeight, offsetX = 0, offsetY = 0) {
   let minX = Math.min(...rects.map(r => r.x));
@@ -270,19 +283,31 @@ export const adjustBackPageImageOrder = (pageData, Config) => {
     return {
       ...pageData,
       config: pageData.config || [],
-      imageList: pageData.imageList || []
+      imageList: pageData.imageList || [],
     };
   }
 
   const { imageList, config = [] } = pageData;
-  const newImageList = [...imageList];
-  const newConfigList = [...config];
+  //计算实际需要的格子数量
+  const totalSlots = isFoldInHalf
+    ? (foldLineType === '0' ? Math.floor(rows / 2) : rows) * (foldLineType === '1' ? Math.floor(columns / 2) : columns)
+    : rows * columns;
+  //填充到格子数
+  const paddedImageList = [...imageList];
+  const paddedConfig = [...config];
+  while (paddedImageList.length < totalSlots) {
+    paddedImageList.push(undefined);
+    paddedConfig.push(undefined);
+  }
+  //用填充后的初始化
+  const newImageList = new Array(totalSlots).fill(undefined);
+  const newConfigList = new Array(totalSlots).fill(undefined);
 
   // 通用翻转函数
   const applyFlip = (effectiveRows, effectiveColumns, flipType) => {
-    for (let x = 0; x < effectiveColumns; x++) {
-      for (let y = 0; y < effectiveRows; y++) {
-        const originalIndex = x * effectiveRows + y;
+    for (let y = 0; y < effectiveRows; y++) {
+      for (let x = 0; x < effectiveColumns; x++) {
+        const originalIndex = y * effectiveColumns + x;
         let newX = x;
         let newY = y;
 
@@ -301,10 +326,10 @@ export const adjustBackPageImageOrder = (pageData, Config) => {
             break;
         }
 
-        const newIndex = newX * (isFoldInHalf ? effectiveRows : rows) + newY;
-        if (newIndex < newImageList.length) {
-          newImageList[newIndex] = imageList[originalIndex];
-          newConfigList[newIndex] = config[originalIndex];
+        const newIndex = newY * (isFoldInHalf ? effectiveColumns : columns) + newX;
+        if (newIndex < totalSlots) {
+          newImageList[newIndex] = paddedImageList[originalIndex];
+          newConfigList[newIndex] = paddedConfig[originalIndex];
         }
       }
     }
@@ -388,9 +413,9 @@ export const adjustBackPageImageOrder = (pageData, Config) => {
       }
     } else {
       // 无翻转
-      for (let i = 0; i < imageList.length; i++) {
-        newImageList[i] = imageList[i];
-        newConfigList[i] = config[i];
+      for (let i = 0; i < totalSlots; i++) {
+        newImageList[i] = paddedImageList[i];
+        newConfigList[i] = paddedConfig[i];
       }
     }
   } else if (flipWay !== 0) {
@@ -410,16 +435,16 @@ export const adjustBackPageImageOrder = (pageData, Config) => {
       }
     }
   } else {
-    for (let i = 0; i < imageList.length; i++) {
-      newImageList[i] = imageList[i];
-      newConfigList[i] = config[i];
+    for (let i = 0; i < totalSlots; i++) {
+      newImageList[i] = paddedImageList[i];
+      newConfigList[i] = paddedConfig[i];
     }
   }
 
   return {
     ...pageData,
     config: newConfigList,
-    imageList: newImageList
+    imageList: newImageList,
   };
 };
 

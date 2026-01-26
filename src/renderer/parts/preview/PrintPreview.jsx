@@ -20,6 +20,7 @@ export const PrintPreview = forwardRef((props, ref) => {
 
   const containerRef = useRef(null);
   const imageRef = useRef(null);
+  const svgRef = useRef(null);
 
   const ZOOM_STEP = 0.1;
   const MIN_SCALE = 0.1;
@@ -27,23 +28,20 @@ export const PrintPreview = forwardRef((props, ref) => {
 
   // 计算适配容器的缩放比例和位置
   const fitToContainer = () => {
-    if (!containerRef.current || !imageRef.current) return;
+    if (!containerRef.current) return;
 
     const container = containerRef.current.getBoundingClientRect();
-    const img = imageRef.current;
 
-    // 获取图片原始尺寸
-    const imgWidth = img.naturalWidth || imageSize.width;
-    const imgHeight = img.naturalHeight || imageSize.height;
+    // 获取尺寸（img 用 naturalWidth，SVG 用 imageSize）
+    const imgWidth = imageRef.current?.naturalWidth || imageSize.width;
+    const imgHeight = imageRef.current?.naturalHeight || imageSize.height;
 
     if (!imgWidth || !imgHeight) return;
 
-    // 计算缩放比例（取较小值以确保完整显示）
     const scaleX = container.width / imgWidth;
     const scaleY = container.height / imgHeight;
     const newScale = Math.min(scaleX, scaleY);
 
-    // 计算居中位置
     const scaledWidth = imgWidth * newScale;
     const scaledHeight = imgHeight * newScale;
     const newX = (container.width - scaledWidth) / 2;
@@ -136,6 +134,13 @@ export const PrintPreview = forwardRef((props, ref) => {
       setTimeout(() => fitToContainer(), 0);
     }
   };
+  //SVG 加载后触发适配
+  const isSvg = imageData && imageData.includes('svg');
+  useEffect(() => {
+    if (isSvg && imageSize.width && imageSize.height) {
+      setTimeout(() => fitToContainer(), 0);
+    }
+  }, [imageSize, isSvg]);
 
   // 监听全局鼠标事件
   useEffect(() => {
@@ -164,13 +169,89 @@ export const PrintPreview = forwardRef((props, ref) => {
     };
   }, [imageSize]);
 
+
+  const [svgContent, setSvgContent] = useState('');
+
+  // 解码 SVG 内容
+  const decodeSvg = (data) => {
+    if (!data) return '';
+    try {
+      let decoded = '';
+      if (data.startsWith('<svg')) {
+        decoded = data;
+      } else if (data.startsWith('data:image/svg+xml;charset=utf-8,')) {
+        decoded = decodeURIComponent(data.replace('data:image/svg+xml;charset=utf-8,', ''));
+      } else if (data.startsWith('data:image/svg+xml,')) {
+        decoded = decodeURIComponent(data.replace('data:image/svg+xml,', ''));
+      } else if (data.startsWith('data:image/svg+xml;base64,')) {
+        const base64Data = data.replace('data:image/svg+xml;base64,', '');
+        decoded = atob(base64Data);
+      }
+      //提取 SVG 尺寸并设置到 imageSize
+      if (decoded) {
+        const widthMatch = decoded.match(/width="(\d+)"/);
+        const heightMatch = decoded.match(/height="(\d+)"/);
+        if (widthMatch && heightMatch) {
+          setImageSize({
+            width: parseInt(widthMatch[1]),
+            height: parseInt(heightMatch[1])
+          });
+        }
+      }
+      return decoded;
+    } catch (e) {
+      console.error('Failed to decode SVG:', e);
+    }
+    return '';
+  };
+  // ✅ SVG 加载后，将低清图片替换为高清
+  useEffect(() => {
+    if (!isSvg || !svgRef.current) return;
+
+    const svgElement = svgRef.current.querySelector('svg');
+    if (!svgElement) return;
+
+    // 找到所有 cardrac:// 图片
+    const images = svgElement.querySelectorAll('image[href^="cardrac://"]');
+
+    images.forEach((img) => {
+      const lowQualityUrl = img.getAttribute('href');
+
+      // 创建一个临时 Image 对象测试加载
+      const testImg = new Image();
+
+      testImg.onload = () => {
+        // ✅ 低清图片加载成功，替换为高清
+        const highQualityUrl = lowQualityUrl.replace('quality=low', 'quality=high');
+
+        // 延迟替换，让低清图片先显示
+        setTimeout(() => {
+          img.setAttribute('href', highQualityUrl);
+        }, 100);
+      };
+
+      testImg.onerror = () => {
+        console.error('Failed to load image:', lowQualityUrl);
+      };
+
+      // 触发加载测试
+      testImg.src = lowQualityUrl;
+    });
+  }, [svgContent, isSvg]);
+
   // 加载图片
   useEffect(() => {
-    if(ready) {
+    if (ready) {
       (async () => {
         if (exportPageCount > 0) {
           const data = await getExportPreview(exportPreviewIndex);
           setImageData(data);
+
+          if (data && data.includes('svg')) {
+            setSvgContent(decodeSvg(data));
+          } else {
+            setSvgContent('');
+          }
         }
       })();
     }
@@ -181,57 +262,54 @@ export const PrintPreview = forwardRef((props, ref) => {
     return async () => {
       await clearPreviewCache();
       setReady(false);
-    }
+    };
   }, []);
 
   return (
-    <div
-      className="PrintPreviewContainer"
-      ref={containerRef}
-      onMouseDown={handleMouseDown}
-      style={{
-        cursor: isDragging ? 'grabbing' : 'grab',
-        overflow: 'hidden',
-        position: 'relative',
-        width: '100%',
-        height: '100%',
-      }}
-    >
-      {imageData ? (
-        <img
-          ref={imageRef}
-          src={imageData}
-          alt="Preview"
-          className="CardImage"
-          onLoad={handleImageLoad}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            maxWidth: 'none',
-            maxHeight: 'none',
-            width: imageSize.width || 'auto',
-            height: imageSize.height || 'auto',
-            transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-            transformOrigin: '0 0',
-            transition: isDragging ? 'none' : 'transform 0.1s ease-out',
-            userSelect: 'none',
-          }}
-          draggable={false}
-        />
-      ) : (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '100%',
-          height: '100%',
-          color: '#999'
-        }}>
-          Loading...
-        </div>
-      )}
-    </div>
+    <>
+      <div className='PrintPreviewContainer' ref={containerRef} onMouseDown={handleMouseDown}
+           style={{ cursor: isDragging ? 'grabbing' : 'grab', overflow: 'hidden',
+             position: 'relative', width: '100%', height: '100%' }}>
+        {imageData ? (
+          isSvg ? (
+            <div
+              ref={svgRef}
+              dangerouslySetInnerHTML={{ __html: svgContent }}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: imageSize.width || 'auto', //复用 imageSize
+                height: imageSize.height || 'auto',
+                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                transformOrigin: '0 0',
+                transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+                userSelect: 'none',
+              }}
+            />
+          ) : (
+            //非 SVG 使用 img 标签
+            <img ref={imageRef} src={imageData} alt='Preview' className='CardImage'
+                 onLoad={handleImageLoad}
+                 style={{
+                   position: 'absolute', top: 0, left: 0, maxWidth: 'none', maxHeight: 'none',
+                   width: imageSize.width || 'auto', height: imageSize.height || 'auto',
+                   transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                   transformOrigin: '0 0',
+                   transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+                   userSelect: 'none',
+                 }}
+                 draggable={false} />
+          )
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: '100%', height: '100%', color: '#999' }}>
+            Loading...
+          </div>
+        )}
+      </div>
+    </>
+
   );
 });
 

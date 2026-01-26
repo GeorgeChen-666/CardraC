@@ -2,7 +2,7 @@ import { app, dialog, ipcMain } from 'electron';
 import { exportFile } from './file_render';
 import { getConfigStore, saveDataToFile } from '../functions';
 import { getPagedImageListByCardList } from './file_render/Utils';
-import { eleActions, exportType } from '../../../shared/constants';
+import { eleActions, exportType, layoutSides } from '../../../shared/constants';
 import { SharpAdapter } from './file_render/adapter/SharpAdapter';
 import { JsPDFAdapter } from './file_render/adapter/JsPdfAdapter';
 import JSZip from 'jszip';
@@ -15,7 +15,7 @@ export default (mainWindow) => {
     let extension = targetFileType;
     const state = { CardList, globalBackground };
     const pagedImageList = getPagedImageListByCardList(state, Config);
-    if(pagedImageList.length > 1 && targetFileType === exportType.png) {
+    if((pagedImageList.length > (Config.sides === layoutSides.foldInHalf ? 2 : 1)) && targetFileType !== exportType.pdf) {
       extension = exportType.zip;
     }
     const result = await dialog.showSaveDialog(mainWindow,{
@@ -39,7 +39,7 @@ export default (mainWindow) => {
         })();
         const blob = await exportFile(doc, state);
         let returnContent = blob;
-        if(blob.length > 1) {
+        if(Array.isArray(blob) && blob.length > 1) {
           const zip = new JSZip();
 
           blob.forEach((page, pageNumber) => {

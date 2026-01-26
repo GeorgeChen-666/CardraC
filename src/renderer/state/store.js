@@ -392,17 +392,17 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       return {...state};
     });
   },
-  selectedCardsConfig: (config) => {
+  editCardsConfig: (ids, config) => {
     set(state => {
-      const selection = state.CardList.filter(c => c.selected);
-      selection.forEach(c => {
+      const editedCards = state.CardList.filter(c => ids.includes(c.id));
+      editedCards.forEach(c => {
         if(Object.values(config?.bleed || {}).filter(e => !!e).length > 0) {
           c.config = config;
         } else {
           delete c.config;
         }
       });
-      state.CardList = state.CardList.map(c => selection.includes(c) ? { ...c } : c);
+      state.CardList = state.CardList.map(c => ids.includes(c.id) ? { ...c } : c);
       return {...state};
     });
   }
@@ -437,9 +437,6 @@ function createSelectors(storeHook) {
 }
 
 useGlobalStore.selectors = createSelectors(useGlobalStore);
-// useGlobalStore.setState({
-//   selectors: createSelectors(useGlobalStore)
-// })
 
 const state = useGlobalStore.getState();
 onOpenProjectFile((data) => {

@@ -88,7 +88,7 @@ export default memo(({ data,dialogCardSettingRef, index }) => {
       },
       {
         label: t('cardEditor.spicalConfig'), onClick: () => {
-          dialogCardSettingRef.current.openDialog();
+          dialogCardSettingRef.current.openDialog([data.id]);
         },
       }
     ]),
@@ -210,12 +210,12 @@ export default memo(({ data,dialogCardSettingRef, index }) => {
         sides !== layoutSides.brochure && bleedConfig && (<Card className={'CardOwnConfigDiv'}>
           <div title={t('configDialog.bleed')}>
             <div>{t('cardEditor.face')}:
-              <pre> {bleedConfig?.faceBleedX || 'NoV'}|{bleedConfig?.faceBleedY || 'NoV'}</pre>
+              <pre> {bleedConfig?.faceBleedX ?? 'NoV'}|{bleedConfig?.faceBleedY ?? 'NoV'}</pre>
             </div>
             {
               sides !== layoutSides.oneSide && (
                 <div>{t('cardEditor.back')}:
-                  <pre> {bleedConfig?.backBleedX || 'NoV'}|{bleedConfig?.backBleedY || 'NoV'}</pre>
+                  <pre> {bleedConfig?.backBleedX ?? 'NoV'}|{bleedConfig?.backBleedY ?? 'NoV'}</pre>
                 </div>
               )
             }

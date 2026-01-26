@@ -19,7 +19,7 @@ export const PreviewToolbar = ({ previewRef }) => {
   const exportPageCount = Global.exportPageCount() || 0;
   const exportPreviewIndex = Global.exportPreviewIndex() || 1;
   useEffect(() => {
-    CardList.length > 1 && getExportPageCount()
+    CardList.length > 0 && getExportPageCount()
   }, [CardList]);
   useEffect(() => {
     mergeGlobal({ exportPreviewIndex: 1 });
