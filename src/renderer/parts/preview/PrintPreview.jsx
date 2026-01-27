@@ -24,7 +24,14 @@ export const PrintPreview = forwardRef((props, ref) => {
 
   const isSvg = imageData && imageData.includes('svg');
   const ZOOM_STEP = isSvg ? 2 : 0.1;
-  const MIN_SCALE = isSvg ? 0.5 : 0.1;
+  const MIN_SCALE = isSvg ? 0.5
+
+
+    : 0.1;
+
+
+
+
   const MAX_SCALE = isSvg ? 40 : 5;
 
   // 计算适配容器的缩放比例和位置
@@ -204,7 +211,7 @@ export const PrintPreview = forwardRef((props, ref) => {
     }
     return '';
   };
-  // ✅ SVG 加载后，将低清图片替换为高清
+  //SVG 加载后，将低清图片替换为高清
   useEffect(() => {
     if (!isSvg || !svgRef.current) return;
 
@@ -221,7 +228,7 @@ export const PrintPreview = forwardRef((props, ref) => {
       const testImg = new Image();
 
       testImg.onload = () => {
-        // ✅ 低清图片加载成功，替换为高清
+        //低清图片加载成功，替换为高清
         const highQualityUrl = lowQualityUrl.replace('quality=low', 'quality=high');
 
         // 延迟替换，让低清图片先显示

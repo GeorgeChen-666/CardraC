@@ -30,6 +30,7 @@ export const flipWay = Object.freeze({
 export const exportType = Object.freeze({
   pdf: 'pdf',
   png: 'png',
+  svg: 'svg',
   zip: 'zip'
 })
 

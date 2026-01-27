@@ -71,7 +71,7 @@ async function prerenderPage(pageIndex, state, Config) {
   }
 
   const task = (async () => {
-    // ✅ 开始计时
+    //开始计时
     const startTime = performance.now();
     console.log(`🎨 Page ${pageIndex + 1}: Starting render...`);
 
@@ -81,18 +81,18 @@ async function prerenderPage(pageIndex, state, Config) {
 
       const result = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
 
-      // ✅ 结束计时
+      //结束计时
       const endTime = performance.now();
       const duration = (endTime - startTime).toFixed(2);
-      console.log(`✅ Page ${pageIndex + 1}: Rendered in ${duration}ms`);
+      console.log(`Page ${pageIndex + 1}: Rendered in ${duration}ms`);
 
       previewCache.set(cacheKey, result);
       return result;
     } catch (error) {
-      // ✅ 错误也记录时间
+      //错误也记录时间
       const endTime = performance.now();
       const duration = (endTime - startTime).toFixed(2);
-      console.error(`❌ Page ${pageIndex + 1}: Failed after ${duration}ms`, error);
+      console.error(`Page ${pageIndex + 1}: Failed after ${duration}ms`, error);
       throw error;
     } finally {
       previewTasks.delete(cacheKey);
@@ -123,7 +123,7 @@ export default (mainWindow) => {
 
     const actualIndex = pageIndex - 1;
 
-    // ✅ 记录总请求时间
+    //记录总请求时间
     const requestStartTime = performance.now();
     console.log(`\n📄 Request: Page ${pageIndex}`);
 
@@ -225,9 +225,6 @@ export default (mainWindow) => {
 
     const reloadImageJobs = [];
     const newOverviewStorage = {};
-    Object.keys(ImageStorage).forEach(k => {
-      delete ImageStorage[k];
-    })
     colorCache.clear();
     let isTerminated = false;
     cancelChannel && ipcMain.once(cancelChannel, () => {
@@ -248,6 +245,7 @@ export default (mainWindow) => {
             if (isTerminated) return;
             cb && cb(mtime.getTime());
             if (isTerminated) return;
+            delete ImageStorage[imagePathKey];
             const {overviewData} = await pathToImageData(path);
             if (isTerminated) return;
             newOverviewStorage[imagePathKey] = overviewData;

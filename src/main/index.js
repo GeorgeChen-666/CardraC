@@ -55,7 +55,7 @@ const createWindow = () => {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
 
-  // ✅ 注册 cardrac:// 协议（使用 registerBufferProtocol）
+  //注册 cardrac:// 协议（使用 registerBufferProtocol）
   protocol.handle('cardrac', async (request) => {
     try {
       const url = request.url;
@@ -85,7 +85,7 @@ app.whenReady().then(() => {
         };
         const mimeType = mimeTypes[ext] || 'image/png';
 
-        // ✅ 返回 Response 对象
+        //返回 Response 对象
         return new Response(buffer, {
           headers: { 'Content-Type': mimeType }
         });
@@ -93,7 +93,7 @@ app.whenReady().then(() => {
         console.error('Image not found in storage:', imagePath);
         console.log('Available keys:', Object.keys(storage).slice(0, 5));
 
-        // ✅ 返回 404 错误
+        //返回 404 错误
         return new Response('Image not found', {
           status: 404,
           headers: { 'Content-Type': 'text/plain' }
@@ -102,7 +102,7 @@ app.whenReady().then(() => {
     } catch (error) {
       console.error('Protocol handler error:', error);
 
-      // ✅ 返回 500 错误
+      //返回 500 错误
       return new Response('Internal server error', {
         status: 500,
         headers: { 'Content-Type': 'text/plain' }

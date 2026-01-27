@@ -24,7 +24,7 @@ import { ImageViewer } from '../ImageViewer';
 
 const ExportIcon = ({ label = 'PDF' }) => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-    {/* ✅ 保留文档外框和背景 */}
+    {/*保留文档外框和背景 */}
     <path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
     <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6z"/>
     <text
@@ -107,6 +107,11 @@ export function EditToolbar() {
         icon={<ExportIcon label={'png'} />}
         onClick={() => exportFile(exportType.png)}
       />
+      {/*<GeneralIconButton*/}
+      {/*  label={t('toolbar.btnExport')}*/}
+      {/*  icon={<ExportIcon label={'svg'} />}*/}
+      {/*  onClick={() => exportFile(exportType.svg)}*/}
+      {/*/>*/}
       <span style={{color: '#666', padding:'4px'}}>|</span>
       <LangSelectButton label={t('toolbar.btnLang')} />
       <GeneralIconButton

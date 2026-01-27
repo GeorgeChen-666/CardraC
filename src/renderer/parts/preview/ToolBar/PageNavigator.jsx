@@ -10,8 +10,8 @@ export const PageNavigator = ({ currentPage, totalPages, onPageChange }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [inputValue, setInputValue] = useState(currentPage.toString());
   const dropdownRef = useRef(null);
-  const inputRef = useRef(null);  // ✅ 添加 input ref
-  const scrollPositionRef = useRef(0);  // ✅ 记录滚动位置
+  const inputRef = useRef(null);  //添加 input ref
+  const scrollPositionRef = useRef(0);  //记录滚动位置
   const isSelectingRef = useRef(false);
 
   // 同步当前页到输入框
@@ -24,14 +24,14 @@ export const PageNavigator = ({ currentPage, totalPages, onPageChange }) => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
-        inputRef.current?.blur();  // ✅ 关闭时失焦
+        inputRef.current?.blur();  //关闭时失焦
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // ✅ 保持滚动位置
+  //保持滚动位置
   useEffect(() => {
     if (isDropdownOpen && dropdownRef.current) {
       const dropdown = dropdownRef.current.querySelector('[data-dropdown-list]');
@@ -95,6 +95,24 @@ export const PageNavigator = ({ currentPage, totalPages, onPageChange }) => {
     setIsDropdownOpen(false);
   };
 
+  const handleWheel = (e) => {
+    e.preventDefault(); // 阻止默认滚动
+    if (isDropdownOpen) {
+      return;
+    }
+    if (e.deltaY < 0) {
+      // 向上滚 - 上一页
+      if (currentPage > 1) {
+        onPageChange(currentPage - 1);
+      }
+    } else if (e.deltaY > 0) {
+      // 向下滚 - 下一页
+      if (currentPage < totalPages) {
+        onPageChange(currentPage + 1);
+      }
+    }
+  };
+
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle' }}>
       <GeneralIconButton
@@ -113,6 +131,7 @@ export const PageNavigator = ({ currentPage, totalPages, onPageChange }) => {
           onKeyDown={handleInputKeyDown}
           onBlur={handleInputBlur}
           onFocus={() => setIsDropdownOpen(true)}
+          onWheel={handleWheel}
           style={{
             width: '20px',
             textAlign: 'center',

@@ -12,7 +12,8 @@ export class SVGAdapter extends IAdapter {
     this.pages = [];
     this.currentPageIndex = -1;
     this.currentPage = null;
-
+    this.transformStack = [];
+    this.currentTransform = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
     // 解析页面尺寸
     const [width, height] = this.parsePageSize(config.pageSize);
 
@@ -31,7 +32,7 @@ export class SVGAdapter extends IAdapter {
       landscape: config.landscape
     });
 
-    // ✅ 创建第一页
+    //创建第一页
     this.createNewPage();
   }
 
@@ -44,7 +45,7 @@ export class SVGAdapter extends IAdapter {
     return [595, 842];
   }
 
-  // ✅ 创建新页面
+  //创建新页面
   createNewPage() {
     this.currentPageIndex++;
     this.currentPage = {
@@ -54,7 +55,7 @@ export class SVGAdapter extends IAdapter {
     this.pages.push(this.currentPage);
   }
 
-  // ✅ 添加新页面
+  //添加新页面
   addPage() {
     this.createNewPage();
   }
@@ -66,9 +67,32 @@ export class SVGAdapter extends IAdapter {
     };
   }
 
-  saveState() {}
-  restoreState() {}
-  setTransform() {}
+  //实现 setTransform
+  setTransform({ a = 1, b = 0, c = 0, d = 1, e = 0, f = 0 }) {
+    this.currentTransform = { a, b, c, d, e, f };
+  }
+
+  //实现 saveState
+  saveState() {
+    this.transformStack.push({ ...this.currentTransform });
+  }
+
+  //实现 restoreState
+  restoreState() {
+    if (this.transformStack.length > 0) {
+      this.currentTransform = this.transformStack.pop();
+    }
+  }
+
+  //应用变换到坐标
+  applyTransform(x, y) {
+    const { a, b, c, d, e, f } = this.currentTransform;
+    return {
+      x: a * x + c * y + e,
+      y: b * x + d * y + f
+    };
+  }
+  
   setLineStyle({ width, color }) {
     this.currentLineWidth = width;
     this.currentLineColor = color;
@@ -95,12 +119,12 @@ export class SVGAdapter extends IAdapter {
       adjustedX = x - width;
       adjustedY = y + height;
     }
-
+    const transformed = this.applyTransform(adjustedX, adjustedY);
     this.currentPage.elements.push({
       type: 'image',
       href: imageSource,
-      x: adjustedX,
-      y: adjustedY,
+      x: transformed.x,
+      y: transformed.y,
       width,
       height,
       rotation,
@@ -109,29 +133,45 @@ export class SVGAdapter extends IAdapter {
   }
 
   drawText({ text, x, y, size = 12 }) {
+    const transformed = this.applyTransform(x, y);
     this.currentPage.elements.push({
       type: 'text',
-      text, x, y, size: Math.floor(size / 2.5)
+      text,
+      x: transformed.x,
+      y: transformed.y,
+      size: Math.floor(size / 2.5)
     });
   }
 
   drawLine({ x1, y1, x2, y2, dash }) {
+    const transformed1 = this.applyTransform(x1, y1);
+    const transformed2 = this.applyTransform(x2, y2);
+
     this.currentPage.elements.push({
       type: 'line',
-      x1, y1, x2, y2, dash,
-      width: this.currentLineWidth || 1,  // ✅ 使用存储的线宽
+      x1: transformed1.x,
+      y1: transformed1.y,
+      x2: transformed2.x,
+      y2: transformed2.y,
+      dash,
+      width: this.currentLineWidth || 1,
       color: this.currentLineColor || '#000000'
     });
   }
 
   fillRect({ x, y, width, height, color }) {
+    const transformed = this.applyTransform(x, y);
     this.currentPage.elements.push({
       type: 'rect',
-      x, y, width, height, color
+      x: transformed.x,
+      y: transformed.y,
+      width,
+      height,
+      color
     });
   }
 
-  // ✅ 生成单个页面的 SVG
+  //生成单个页面的 SVG
   generatePageSVG(page) {
     const rects = page.elements.filter(el => el.type === 'rect');
     const others = page.elements.filter(el => el.type !== 'rect');
@@ -192,7 +232,7 @@ export class SVGAdapter extends IAdapter {
     }
   }
 
-  // ✅ 完成渲染，返回单个或多个 SVG
+  //完成渲染，返回单个或多个 SVG
   finalize() {
     const validPages = this.pages.filter(page => page.elements.length > 0);
 
@@ -200,7 +240,7 @@ export class SVGAdapter extends IAdapter {
       throw new Error('No pages to export');
     }
 
-    // ✅ 单页返回字符串，多页返回数组
+    //单页返回字符串，多页返回数组
     if (validPages.length === 1) {
       return this.generatePageSVG(validPages[0]);
     } else {

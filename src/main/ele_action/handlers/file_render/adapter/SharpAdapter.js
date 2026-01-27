@@ -10,7 +10,7 @@ export class SharpAdapter extends IAdapter {
     this.currentPage = null;
     this.renderingTasks = [];
 
-    // ✅ 清晰度配置：高、中、低
+    //清晰度配置：高、中、低
     const qualitySettings = {
       high: {
         scaleFactor: 9,
@@ -367,7 +367,7 @@ export class SharpAdapter extends IAdapter {
   }
 
   async finalize() {
-    // ✅ 提前开始所有页面的渲染
+    //提前开始所有页面的渲染
     this.pages.forEach(page => {
       if (!page.isRendering && !page.renderPromise) {
         this.startPageRendering(page);

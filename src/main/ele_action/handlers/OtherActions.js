@@ -6,6 +6,7 @@ import { eleActions, exportType, layoutSides } from '../../../shared/constants';
 import { SharpAdapter } from './file_render/adapter/SharpAdapter';
 import { JsPDFAdapter } from './file_render/adapter/JsPdfAdapter';
 import JSZip from 'jszip';
+import { SVGAdapter } from './file_render/adapter/SVGAdapter';
 // import { getCutRectangleList } from './pdf/Utils';
 
 export default (mainWindow) => {
@@ -36,6 +37,9 @@ export default (mainWindow) => {
           } else if (targetFileType === exportType.png) {
             return new SharpAdapter(Config)
           }
+          else if (targetFileType === exportType.svg) {
+            return new SVGAdapter(Config)
+          }
         })();
         const blob = await exportFile(doc, state);
         let returnContent = blob;
@@ -44,7 +48,7 @@ export default (mainWindow) => {
 
           blob.forEach((page, pageNumber) => {
             const fileName = `page${pageNumber}.${targetFileType}`;
-            zip.file(fileName, page.buffer);
+            zip.file(fileName, page.buffer || page);
           });
 
           returnContent = await zip.generateAsync({

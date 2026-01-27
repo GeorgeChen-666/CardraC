@@ -135,7 +135,10 @@ export const useGlobalStore = create(middlewares((set, get) => ({
           delete projectData.OverviewStorage;
         }
         delete projectData?.ImageStorage;
-        get().mergeState(projectData);
+        get().mergeState({
+          ...projectData,
+          Config: {...initialState.Config, ...projectData.Config}
+        });
       }
     });
   },
