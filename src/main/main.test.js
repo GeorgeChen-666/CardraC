@@ -1,6 +1,30 @@
-import { describe, test, expect } from 'vitest';
-import { getCutRectangleList, getPagedImageListByCardList, adjustBackPageImageOrder, isNeedRotation   } from './ele_action/handlers/pdf/Utils';
-import { layoutSides } from '../public/constants';
+import { describe, test, expect, beforeEach, vi } from 'vitest';
+
+const mockConfigStore = {
+  Config: { ...initialState.Config }
+};
+vi.mock('./ele_action/functions', () => ({
+  getConfigStore: vi.fn(() => mockConfigStore),
+  saveDataToFile: vi.fn(),
+  getBorderAverageColors: vi.fn((base64) => {
+    return Promise.resolve('#FF0000'); // 统一返回红色
+  })
+}));
+
+import { getCutRectangleList, getPagedImageListByCardList, adjustBackPageImageOrder, isNeedRotation, ImageStorage  } from './ele_action/handlers/file_render/Utils';
+import { layoutSides, initialState } from '../shared/constants';
+import { ShadowAdapter } from './ele_action/handlers/file_render/adapter/ShadowAdapter';
+import { exportFile } from './ele_action/handlers/file_render';
+
+// 辅助函数：重置配置为初始状态
+const resetConfig = () => {
+  mockConfigStore.Config = { ...initialState.Config };
+};
+
+// 辅助函数：修改配置
+const setConfig = (newConfig) => {
+  Object.assign(mockConfigStore.Config, newConfig);
+};
 
 describe('getPagedImageListByCardList', () => {
   // 创建测试用的卡片数据
@@ -199,8 +223,6 @@ describe('getPagedImageListByCardList', () => {
 
       const result = getPagedImageListByCardList(state, config);
 
-      console.log('小册子结果:', result);
-
       // 4张卡片会被配对成2对
       expect(result.length).toBe(2);
       expect(result[0].type).toBe('face');
@@ -253,8 +275,6 @@ describe('getPagedImageListByCardList', () => {
 
       const result = getPagedImageListByCardList(state, config);
 
-      console.log('小册子重复模式结果:', result);
-
       // 每页重复模式会重复配对
       expect(result.length).toBe(2);
       expect(result[0].imageList.length).toBe(8); // rows * columns * 2
@@ -282,16 +302,6 @@ describe('getPagedImageListByCardList', () => {
       };
 
       const result = getPagedImageListByCardList(state, config);
-
-      console.log('配对顺序测试:');
-      result.forEach((page, i) => {
-        console.log(`页${i + 1} (${page.type}):`, page.imageList.map(img => img?.path));
-      });
-
-      // 验证配对逻辑
-      // 原始: [1,2,3,4,5,6,7,8]
-      // 配对: [[1,2], [3,4], [5,6], [7,8]]
-      // 重排: [[8,7], [1,2], [6,5], [3,4]]
       expect(result.length).toBe(4);
     });
   });
@@ -408,9 +418,9 @@ describe('getPagedImageListByCardList', () => {
 });
 
 describe('getCutRectangleList', () => {
-  const createMockDoc = (width = 210, height = 297) => ({
-    getPageWidth: () => width,
-    getPageHeight: () => height,
+  const createPageSize = (width = 210, height = 297) => ({
+    maxWidth: width,
+    maxHeight: height
   });
 
   const baseConfig = {
@@ -431,8 +441,8 @@ describe('getCutRectangleList', () => {
   describe('全局参数 - scale', () => {
     test('scale = 50% 所有尺寸减半', () => {
       const config = { ...baseConfig, scale: 50 };
-      const doc = createMockDoc();
-      const result = getCutRectangleList(config, doc, true, false);
+      const pageSize = createPageSize();
+      const result = getCutRectangleList(config, pageSize, true, false);
 
       expect(result[0].width).toBe(31.5);
       expect(result[0].height).toBe(44);
@@ -440,8 +450,8 @@ describe('getCutRectangleList', () => {
 
     test('scale = 200% 所有尺寸翻倍', () => {
       const config = { ...baseConfig, scale: 200 };
-      const doc = createMockDoc();
-      const result = getCutRectangleList(config, doc, true, false);
+      const pageSize = createPageSize();
+      const result = getCutRectangleList(config, pageSize, true, false);
 
       expect(result[0].width).toBe(126);
       expect(result[0].height).toBe(176);
@@ -449,8 +459,8 @@ describe('getCutRectangleList', () => {
 
     test('scale 影响 bleed', () => {
       const config = { ...baseConfig, scale: 50, bleedX: 2, bleedY: 2 };
-      const doc = createMockDoc();
-      const result = getCutRectangleList(config, doc, false, false);
+      const pageSize = createPageSize();
+      const result = getCutRectangleList(config, pageSize, false, false);
 
       expect(result[0].width).toBe(31.5 + 1 * 2);
     });
@@ -459,16 +469,16 @@ describe('getCutRectangleList', () => {
   describe('全局参数 - cardWidth/cardHeight', () => {
     test('增加 cardWidth', () => {
       const config = { ...baseConfig, cardWidth: 100 };
-      const doc = createMockDoc();
-      const result = getCutRectangleList(config, doc, true, false);
+      const pageSize = createPageSize();
+      const result = getCutRectangleList(config, pageSize, true, false);
 
       expect(result[0].width).toBe(100);
     });
 
     test('增加 cardHeight', () => {
       const config = { ...baseConfig, cardHeight: 120 };
-      const doc = createMockDoc();
-      const result = getCutRectangleList(config, doc, true, false);
+      const pageSize = createPageSize();
+      const result = getCutRectangleList(config, pageSize, true, false);
 
       expect(result[0].height).toBe(120);
     });
@@ -478,10 +488,10 @@ describe('getCutRectangleList', () => {
     test('增加 marginX 影响间距', () => {
       const config1 = { ...baseConfig, marginX: 5 };
       const config2 = { ...baseConfig, marginX: 10 };
-      const doc = createMockDoc();
+      const pageSize = createPageSize();
 
-      const result1 = getCutRectangleList(config1, doc, true, false);
-      const result2 = getCutRectangleList(config2, doc, true, false);
+      const result1 = getCutRectangleList(config1, pageSize, true, false);
+      const result2 = getCutRectangleList(config2, pageSize, true, false);
 
       const spacing1 = result1[2].x - result1[0].x;
       const spacing2 = result2[2].x - result2[0].x;
@@ -491,8 +501,8 @@ describe('getCutRectangleList', () => {
 
     test('margin = 0 紧密排列', () => {
       const config = { ...baseConfig, marginX: 0, marginY: 0 };
-      const doc = createMockDoc();
-      const result = getCutRectangleList(config, doc, true, false);
+      const pageSize = createPageSize();
+      const result = getCutRectangleList(config, pageSize, true, false);
 
       expect(result[2].x).toBe(result[0].x + result[0].width);
     });
@@ -501,24 +511,24 @@ describe('getCutRectangleList', () => {
   describe('全局参数 - bleedX/bleedY', () => {
     test('bleedX 增加宽度', () => {
       const config = { ...baseConfig, bleedX: 3 };
-      const doc = createMockDoc();
-      const result = getCutRectangleList(config, doc, false, false);
+      const pageSize = createPageSize();
+      const result = getCutRectangleList(config, pageSize, false, false);
 
       expect(result[0].width).toBe(63 + 3 * 2);
     });
 
     test('bleedY 增加高度', () => {
       const config = { ...baseConfig, bleedY: 4 };
-      const doc = createMockDoc();
-      const result = getCutRectangleList(config, doc, false, false);
+      const pageSize = createPageSize();
+      const result = getCutRectangleList(config, pageSize, false, false);
 
       expect(result[0].height).toBe(88 + 4 * 2);
     });
 
     test('ignoreBleed = true 时不生效', () => {
       const config = { ...baseConfig, bleedX: 5, bleedY: 5 };
-      const doc = createMockDoc();
-      const result = getCutRectangleList(config, doc, true, false);
+      const pageSize = createPageSize();
+      const result = getCutRectangleList(config, pageSize, true, false);
 
       expect(result[0].width).toBe(63);
     });
@@ -527,16 +537,16 @@ describe('getCutRectangleList', () => {
   describe('全局参数 - columns/rows', () => {
     test('增加 columns', () => {
       const config = { ...baseConfig, columns: 3 };
-      const doc = createMockDoc();
-      const result = getCutRectangleList(config, doc, true, false);
+      const pageSize = createPageSize();
+      const result = getCutRectangleList(config, pageSize, true, false);
 
       expect(result.length).toBe(6);
     });
 
     test('大网格 5x5', () => {
       const config = { ...baseConfig, columns: 5, rows: 5 };
-      const doc = createMockDoc();
-      const result = getCutRectangleList(config, doc, true, false);
+      const pageSize = createPageSize();
+      const result = getCutRectangleList(config, pageSize, true, false);
 
       expect(result.length).toBe(25);
     });
@@ -545,18 +555,18 @@ describe('getCutRectangleList', () => {
   describe('全局参数 - offsetX/offsetY', () => {
     test('offsetX 向右偏移', () => {
       const config = { ...baseConfig, offsetX: 10 };
-      const doc = createMockDoc();
-      const result = getCutRectangleList(config, doc, true, false);
-      const resultNoOffset = getCutRectangleList({ ...baseConfig, offsetX: 0 }, doc, true, false);
+      const pageSize = createPageSize();
+      const result = getCutRectangleList(config, pageSize, true, false);
+      const resultNoOffset = getCutRectangleList({ ...baseConfig, offsetX: 0 }, pageSize, true, false);
 
       expect(result[0].x).toBe(resultNoOffset[0].x + 10);
     });
 
     test('负数 offset', () => {
       const config = { ...baseConfig, offsetX: -10, offsetY: -10 };
-      const doc = createMockDoc();
-      const result = getCutRectangleList(config, doc, true, false);
-      const resultNoOffset = getCutRectangleList({ ...baseConfig }, doc, true, false);
+      const pageSize = createPageSize();
+      const result = getCutRectangleList(config, pageSize, true, false);
+      const resultNoOffset = getCutRectangleList({ ...baseConfig }, pageSize, true, false);
 
       expect(result[0].x).toBe(resultNoOffset[0].x - 10);
     });
@@ -564,20 +574,20 @@ describe('getCutRectangleList', () => {
 
   describe('独立卡片 bleed 配置', () => {
     test('单张卡片：有 bleed vs 无 bleed', () => {
-      const doc = createMockDoc();
+      const pageSize = createPageSize();
 
       const config1 = { ...baseConfig, bleedX: 2, bleedY: 3, columns: 1, rows: 1 };
       const config2 = { ...baseConfig, bleedX: 0, bleedY: 0, columns: 1, rows: 1 };
 
-      const result1 = getCutRectangleList(config1, doc, false, false);
-      const result2 = getCutRectangleList(config2, doc, false, false);
+      const result1 = getCutRectangleList(config1, pageSize, false, false);
+      const result2 = getCutRectangleList(config2, pageSize, false, false);
 
       expect(result1[0].width).toBe(63 + 2 * 2);
       expect(result2[0].width).toBe(63);
     });
 
     test('不同卡片不同 bleed 值', () => {
-      const doc = createMockDoc();
+      const pageSize = createPageSize();
       const cards = [
         { bleedX: 1, bleedY: 1 },
         { bleedX: 2, bleedY: 2 },
@@ -586,7 +596,7 @@ describe('getCutRectangleList', () => {
 
       const results = cards.map(card => {
         const config = { ...baseConfig, ...card, columns: 1, rows: 1 };
-        return getCutRectangleList(config, doc, false, false)[0];
+        return getCutRectangleList(config, pageSize, false, false)[0];
       });
 
       expect(results[0].width).toBe(63 + 1 * 2);
@@ -595,13 +605,13 @@ describe('getCutRectangleList', () => {
     });
 
     test('正面和背面不同 bleed', () => {
-      const doc = createMockDoc();
+      const pageSize = createPageSize();
 
       const faceConfig = { ...baseConfig, bleedX: 3, bleedY: 3, columns: 1, rows: 1 };
       const backConfig = { ...baseConfig, bleedX: 1, bleedY: 1, columns: 1, rows: 1 };
 
-      const faceResult = getCutRectangleList(faceConfig, doc, false, false);
-      const backResult = getCutRectangleList(backConfig, doc, false, true);
+      const faceResult = getCutRectangleList(faceConfig, pageSize, false, false);
+      const backResult = getCutRectangleList(backConfig, pageSize, false, true);
 
       expect(faceResult[0].width).toBe(63 + 3 * 2);
       expect(backResult[0].width).toBe(63 + 1 * 2);
@@ -617,8 +627,8 @@ describe('getCutRectangleList', () => {
         columns: 1,
         rows: 1,
       };
-      const doc = createMockDoc();
-      const result = getCutRectangleList(config, doc, false, false);
+      const pageSize = createPageSize();
+      const result = getCutRectangleList(config, pageSize, false, false);
 
       expect(config.bleedX).toBeLessThanOrEqual(config.marginX / 2);
       expect(result[0].width).toBe(63 + 5 * 2);
@@ -632,8 +642,8 @@ describe('getCutRectangleList', () => {
         columns: 2,
         rows: 1,
       };
-      const doc = createMockDoc();
-      const result = getCutRectangleList(config, doc, false, false);
+      const pageSize = createPageSize();
+      const result = getCutRectangleList(config, pageSize, false, false);
 
       const card1Right = result[0].x + result[0].width;
       const card2Left = result[1].x;
@@ -641,7 +651,7 @@ describe('getCutRectangleList', () => {
     });
 
     test('模拟 4 张卡片不同 bleed', () => {
-      const doc = createMockDoc();
+      const pageSize = createPageSize();
       const cards = [
         { id: 1, faceBleed: { bleedX: 1, bleedY: 1 }, backBleed: { bleedX: 0, bleedY: 0 } },
         { id: 2, faceBleed: { bleedX: 2, bleedY: 2 }, backBleed: { bleedX: 1, bleedY: 1 } },
@@ -651,7 +661,7 @@ describe('getCutRectangleList', () => {
 
       const faceResults = cards.map(card => {
         const config = { ...baseConfig, ...card.faceBleed, columns: 1, rows: 1 };
-        return getCutRectangleList(config, doc, false, false)[0];
+        return getCutRectangleList(config, pageSize, false, false)[0];
       });
 
       expect(faceResults[0].width).toBe(63 + 1 * 2);
@@ -663,16 +673,16 @@ describe('getCutRectangleList', () => {
 
   describe('全局参数 + 独立 bleed 组合', () => {
     test('scale + 独立 bleed', () => {
-      const doc = createMockDoc();
+      const pageSize = createPageSize();
       const config = { ...baseConfig, scale: 50, bleedX: 4, bleedY: 4, columns: 1, rows: 1 };
-      const result = getCutRectangleList(config, doc, false, false);
+      const result = getCutRectangleList(config, pageSize, false, false);
 
       const scaledBleed = 4 * 0.5;
       expect(result[0].width).toBe(31.5 + scaledBleed * 2);
     });
 
     test('不同 scale 下的独立 bleed', () => {
-      const doc = createMockDoc();
+      const pageSize = createPageSize();
       const configs = [
         { scale: 50, bleedX: 2, bleedY: 2 },
         { scale: 100, bleedX: 2, bleedY: 2 },
@@ -681,7 +691,7 @@ describe('getCutRectangleList', () => {
 
       const results = configs.map(c => {
         const config = { ...baseConfig, ...c, columns: 1, rows: 1 };
-        return getCutRectangleList(config, doc, false, false)[0];
+        return getCutRectangleList(config, pageSize, false, false)[0];
       });
 
       expect(results[0].width).toBe(31.5 + 1 * 2);
@@ -690,7 +700,7 @@ describe('getCutRectangleList', () => {
     });
 
     test('margin + 独立 bleed 验证', () => {
-      const doc = createMockDoc();
+      const pageSize = createPageSize();
       const config = {
         ...baseConfig,
         marginX: 10,
@@ -700,7 +710,7 @@ describe('getCutRectangleList', () => {
         columns: 1,
         rows: 1,
       };
-      const result = getCutRectangleList(config, doc, false, false);
+      const result = getCutRectangleList(config, pageSize, false, false);
 
       expect(config.bleedX).toBeLessThanOrEqual(config.marginX / 2);
       expect(config.bleedY).toBeLessThanOrEqual(config.marginY / 2);
@@ -708,7 +718,7 @@ describe('getCutRectangleList', () => {
     });
 
     test('offset + 独立 bleed', () => {
-      const doc = createMockDoc();
+      const pageSize = createPageSize();
       const config = {
         ...baseConfig,
         bleedX: 2,
@@ -718,10 +728,10 @@ describe('getCutRectangleList', () => {
         columns: 1,
         rows: 1,
       };
-      const result = getCutRectangleList(config, doc, false, false);
+      const result = getCutRectangleList(config, pageSize, false, false);
       const resultNoOffset = getCutRectangleList(
         { ...baseConfig, bleedX: 2, bleedY: 2, columns: 1, rows: 1 },
-        doc,
+        pageSize,
         false,
         false
       );
@@ -733,7 +743,7 @@ describe('getCutRectangleList', () => {
 
   describe('小册子模式 + 独立 bleed', () => {
     test('小册子模式不同 bleed', () => {
-      const doc = createMockDoc();
+      const pageSize = createPageSize();
       const config1 = {
         ...baseConfig,
         sides: layoutSides.brochure,
@@ -751,8 +761,8 @@ describe('getCutRectangleList', () => {
         rows: 1,
       };
 
-      const result1 = getCutRectangleList(config1, doc, false, false);
-      const result2 = getCutRectangleList(config2, doc, false, false);
+      const result1 = getCutRectangleList(config1, pageSize, false, false);
+      const result2 = getCutRectangleList(config2, pageSize, false, false);
 
       expect(result1[0].width).toBe(63 + 1);
       expect(result2[0].width).toBe(63 + 3);
@@ -761,7 +771,7 @@ describe('getCutRectangleList', () => {
 
   describe('折叠模式 + 独立 bleed', () => {
     test('折叠模式正背面不同 bleed', () => {
-      const doc = createMockDoc();
+      const pageSize = createPageSize();
       const faceConfig = {
         ...baseConfig,
         sides: layoutSides.foldInHalf,
@@ -774,8 +784,8 @@ describe('getCutRectangleList', () => {
       };
       const backConfig = { ...faceConfig, bleedX: 1, bleedY: 1 };
 
-      const faceResult = getCutRectangleList(faceConfig, doc, false, false);
-      const backResult = getCutRectangleList(backConfig, doc, false, true);
+      const faceResult = getCutRectangleList(faceConfig, pageSize, false, false);
+      const backResult = getCutRectangleList(backConfig, pageSize, false, true);
 
       expect(faceResult[0].width).toBe(63 + 2 * 2);
       expect(backResult[0].width).toBe(63 + 1 * 2);
@@ -784,15 +794,15 @@ describe('getCutRectangleList', () => {
 
   describe('极端参数组合', () => {
     test('极小 scale + 独立 bleed', () => {
-      const doc = createMockDoc();
+      const pageSize = createPageSize();
       const config = { ...baseConfig, scale: 10, bleedX: 1, bleedY: 1, columns: 1, rows: 1 };
-      const result = getCutRectangleList(config, doc, false, false);
+      const result = getCutRectangleList(config, pageSize, false, false);
 
       expect(result[0].width).toBeCloseTo(6.3 + 0.1 * 2, 1);
     });
 
     test('极大 margin + 小 bleed', () => {
-      const doc = createMockDoc();
+      const pageSize = createPageSize();
       const config = {
         ...baseConfig,
         marginX: 50,
@@ -802,7 +812,7 @@ describe('getCutRectangleList', () => {
         columns: 2,
         rows: 1,
       };
-      const result = getCutRectangleList(config, doc, false, false);
+      const result = getCutRectangleList(config, pageSize, false, false);
 
       expect(config.bleedX).toBeLessThanOrEqual(config.marginX / 2);
       const spacing = result[1].x - result[0].x;
@@ -810,7 +820,7 @@ describe('getCutRectangleList', () => {
     });
 
     test('所有参数最大化', () => {
-      const doc = createMockDoc();
+      const pageSize = createPageSize();
       const config = {
         ...baseConfig,
         scale: 150,
@@ -825,7 +835,7 @@ describe('getCutRectangleList', () => {
         offsetX: 8,
         offsetY: 8,
       };
-      const result = getCutRectangleList(config, doc, false, false);
+      const result = getCutRectangleList(config, pageSize, false, false);
 
       expect(result.length).toBe(9);
       const scaledWidth = 80 * 1.5;
@@ -834,8 +844,6 @@ describe('getCutRectangleList', () => {
     });
   });
 });
-
-
 
 describe('adjustBackPageImageOrder', () => {
   // 小册子模式测试
@@ -1315,3 +1323,649 @@ describe('isNeedRotation', () => {
     });
   });
 });
+
+describe('ExportFile - 默认配置测试', () => {
+  let testState;
+
+  beforeEach(() => {
+    // 每次测试前重置配置
+    resetConfig();
+
+    // 创建测试数据
+    testState = {
+      Config: mockConfigStore.Config,
+      CardList: Array.from({ length: 8 }, (_, i) => ({
+        id: `card-${i + 1}`,
+        face: {
+          base64: `data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==`,
+          ext: 'png',
+          path: `face${i + 1}.png`,
+          mtime: Date.now()
+        },
+        back: {
+          base64: `data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==`,
+          ext: 'png',
+          path: `back${i + 1}.png`,
+          mtime: Date.now()
+        },
+        repeat: 1,
+        selected: false
+      })),
+      globalBackground: null
+    };
+    testState.CardList.forEach(card => {
+      if (card.face?.path) {
+        ImageStorage[card.face.path] = card.face;
+      }
+      if (card.back?.path) {
+        ImageStorage[card.back.path] = card.back;
+      }
+    });
+
+  });
+
+  test('默认配置：验证 8 张图片位置和旋转', async () => {
+    const adapter = new ShadowAdapter(mockConfigStore.Config);
+    await exportFile(adapter, testState);
+
+    const result = await adapter.finalize();
+
+    expect(result.totalPages).toBe(2);
+    expect(result.pages).toHaveLength(2);
+
+    // 使用 getPagedImageListByCardList 获取初始顺序
+    const pagedImageList = getPagedImageListByCardList(testState, mockConfigStore.Config);
+
+    expect(pagedImageList).toHaveLength(2);
+
+    // 正面图片（不需要调整）
+    const expectedFrontImages = pagedImageList[0].imageList;
+
+    // 背面图片需要经过 adjustBackPageImageOrder 调整
+    const adjustedBackPageData = adjustBackPageImageOrder(
+      pagedImageList[1],
+      mockConfigStore.Config
+    );
+    const expectedBackImages = adjustedBackPageData.imageList;
+
+    // 页面尺寸
+    const pageSize = {
+      maxWidth: result.pages[0].width,
+      maxHeight: result.pages[0].height
+    };
+
+    // 共同验证函数
+    const validatePageImages = (pageIndex, expectedImages, isBack) => {
+      const page = result.pages[pageIndex];
+      const actualImages = page.elements.filter(e => e.type === 'image');
+
+      expect(actualImages).toHaveLength(expectedImages.length);
+
+      // 获取期望的坐标
+      const expectedRects = getCutRectangleList(
+        mockConfigStore.Config,
+        pageSize,
+        false,
+        isBack
+      );
+
+      // 验证每张图片
+      expectedImages.forEach((expectedImage, index) => {
+        const expectedPath = expectedImage?.path;
+        const img = actualImages.find(img => img.dataPath === expectedPath);
+        const expectedRect = expectedRects[index];
+
+        expect(img).toBeDefined();
+        expect(img.x).toBeCloseTo(expectedRect.x, 1);
+        expect(img.y).toBeCloseTo(expectedRect.y, 1);
+        expect(img.width).toBeCloseTo(expectedRect.width, 1);
+        expect(img.height).toBeCloseTo(expectedRect.height, 1);
+        expect(img.rotation).toBe(isBack ? 180 : 0);
+        expect(img.rotated).toBe(isBack);
+      });
+
+      // 验证所有图片路径都存在
+      const actualPaths = actualImages.map(img => img.dataPath).sort();
+      const expectedPaths = expectedImages.map(img => img?.path).sort();
+      expect(actualPaths).toEqual(expectedPaths);
+    };
+
+    // 验证正面
+    validatePageImages(0, expectedFrontImages, false);
+
+    // 验证背面
+    validatePageImages(1, expectedBackImages, true);
+
+    // 验证统计信息
+    expect(result.summary.byType.image).toBe(16);
+    expect(result.summary.byPage[0].elements.image).toBe(8);
+    expect(result.summary.byPage[1].elements.image).toBe(8);
+  });
+
+  test('默认配置：验证切割辅助线', async () => {
+    const adapter = new ShadowAdapter(mockConfigStore.Config);
+    await exportFile(adapter, testState);
+
+    const result = await adapter.finalize();
+
+    const frontPage = result.pages[0];
+    const frontPageLines = frontPage.elements.filter(e => e.type === 'line' && !e.dashed);
+
+    // 获取所有矩形坐标（忽略出血）
+    const pageSize = {
+      maxWidth: frontPage.width,
+      maxHeight: frontPage.height
+    };
+
+    const rects = getCutRectangleList(mockConfigStore.Config, pageSize, true, false);
+
+    // 提取所有唯一的 x 和 y 坐标
+    const xCoords = new Set();
+    const yCoords = new Set();
+
+    rects.forEach(rect => {
+      xCoords.add(rect.x);
+      xCoords.add(rect.x + rect.width);
+      yCoords.add(rect.y);
+      yCoords.add(rect.y + rect.height);
+    });
+
+    const uniqueXCoords = Array.from(xCoords).sort((a, b) => a - b);
+    const uniqueYCoords = Array.from(yCoords).sort((a, b) => a - b);
+
+    const maxY = Math.max(...uniqueYCoords);
+    const maxX = Math.max(...uniqueXCoords);
+
+    // 验证每个 x 坐标的垂直线
+    uniqueXCoords.forEach(x => {
+      // 查找该 x 坐标的所有垂直实线
+      const verticalLines = frontPageLines.filter(line =>
+        Math.abs(line.x1 - x) < 0.1 &&
+        Math.abs(line.x2 - x) < 0.1
+      );
+
+      // 应该至少有 2 根线
+      expect(verticalLines.length).toBeGreaterThanOrEqual(2);
+
+      // 其中一根的 y 坐标应该是 0（从顶部开始）
+      const lineFromTop = verticalLines.find(line =>
+        Math.abs(line.y1 - 0) < 0.1 || Math.abs(line.y2 - 0) < 0.1
+      );
+      expect(lineFromTop).toBeDefined();
+
+      // 另一根的 y 坐标应该是 maxY（到底部结束）
+      const lineToBottom = verticalLines.find(line =>
+        Math.abs(line.y1 - maxY) < 0.1 || Math.abs(line.y2 - maxY) < 0.1
+      );
+      expect(lineToBottom).toBeDefined();
+    });
+
+    // 验证每个 y 坐标的水平线
+    uniqueYCoords.forEach(y => {
+      // 查找该 y 坐标的所有水平实线
+      const horizontalLines = frontPageLines.filter(line =>
+        Math.abs(line.y1 - y) < 0.1 &&
+        Math.abs(line.y2 - y) < 0.1
+      );
+
+      // 应该至少有 2 根线
+      expect(horizontalLines.length).toBeGreaterThanOrEqual(2);
+
+      // 其中一根的 x 坐标应该是 0（从左边开始）
+      const lineFromLeft = horizontalLines.find(line =>
+        Math.abs(line.x1 - 0) < 0.1 || Math.abs(line.x2 - 0) < 0.1
+      );
+      expect(lineFromLeft).toBeDefined();
+
+      // 另一根的 x 坐标应该是 maxX（到右边结束）
+      const lineToRight = horizontalLines.find(line =>
+        Math.abs(line.x1 - maxX) < 0.1 || Math.abs(line.x2 - maxX) < 0.1
+      );
+      expect(lineToRight).toBeDefined();
+    });
+
+    // 验证线条样式
+    frontPageLines.forEach(line => {
+      expect(line.width).toBe(mockConfigStore.Config.lineWeight * 0.3527);
+      expect(line.color).toBe(mockConfigStore.Config.cutlineColor);
+    });
+
+  });
+
+  test('默认配置：验证 marginFilling 矩形', async () => {
+    setConfig({
+      marginFilling: true
+    });
+
+    const adapter = new ShadowAdapter(mockConfigStore.Config);
+    await exportFile(adapter, testState);
+
+    const result = await adapter.finalize();
+
+    const frontPage = result.pages[0];
+    const frontPageRects = frontPage.elements.filter(e => e.type === 'rect');
+
+    // 获取切割位置（忽略出血）
+    const pageSize = {
+      maxWidth: frontPage.width,
+      maxHeight: frontPage.height
+    };
+
+    const cutRects = getCutRectangleList(
+      mockConfigStore.Config,
+      pageSize,
+      false,
+      false
+    );
+
+    const { marginX, marginY, bleedX, bleedY } = mockConfigStore.Config;
+    const xOffset = marginX / 2 - bleedX;
+    const yOffset = marginY / 2 - bleedY;
+
+    // 应该有相同数量的矩形
+    expect(frontPageRects.length).toBeGreaterThanOrEqual(cutRects.length);
+
+    // 验证每个切割位置
+    cutRects.forEach((cutRect, index) => {
+      const expectedRect = {
+        x: cutRect.x - xOffset,
+        y: cutRect.y - yOffset,
+        width: cutRect.width + xOffset * 2,
+        height: cutRect.height + yOffset * 2
+      };
+
+      const actualRect = frontPageRects.find(rect =>
+        Math.abs(rect.x - expectedRect.x) < 0.1 &&
+        Math.abs(rect.y - expectedRect.y) < 0.1 &&
+        Math.abs(rect.width - expectedRect.width) < 0.1 &&
+        Math.abs(rect.height - expectedRect.height) < 0.1
+      );
+
+      expect(actualRect).toBeDefined();
+
+      if (actualRect) {
+        // 验证颜色
+        expect(actualRect.color).toBe('#FF0000'); // 正面应该是红色
+      }
+    });
+  });
+
+  test('默认配置：验证十字切割线（前后页）', async () => {
+    setConfig({
+      fCutLine: '2', // 正面十字线
+      bCutLine: '2'  // 背面十字线
+    });
+
+    const adapter = new ShadowAdapter(mockConfigStore.Config);
+    await exportFile(adapter, testState);
+
+    const result = await adapter.finalize();
+
+    const pageSize = {
+      maxWidth: result.pages[0].width,
+      maxHeight: result.pages[0].height
+    };
+
+    const { scale } = mockConfigStore.Config;
+    const crossLength = 2 * scale / 100;
+
+    // 验证十字线的辅助函数
+    const validateCrossLines = (page, pageType, isBack) => {
+      const pageLines = page.elements.filter(e => e.type === 'line' && !e.dashed);
+
+      const cutRects = getCutRectangleList(
+        mockConfigStore.Config,
+        pageSize,
+        true,
+        isBack
+      );
+
+      // 收集所有角点
+      const allCorners = [];
+      cutRects.forEach((rect, rectIndex) => {
+        allCorners.push(
+          { rectIndex, corner: '左上', x: rect.x, y: rect.y },
+          { rectIndex, corner: '右上', x: rect.x + rect.width, y: rect.y },
+          { rectIndex, corner: '左下', x: rect.x, y: rect.y + rect.height },
+          { rectIndex, corner: '右下', x: rect.x + rect.width, y: rect.y + rect.height }
+        );
+      });
+
+      // 验证每个角点
+      let validCorners = 0;
+      allCorners.forEach(({ rectIndex, corner, x, y }) => {
+        // 查找水平线
+        const hLine = pageLines.find(line =>
+          Math.abs(line.y1 - y) < 0.1 &&
+          Math.abs(line.y2 - y) < 0.1 &&
+          Math.abs((line.x1 + line.x2) / 2 - x) < 0.1
+        );
+
+        // 查找垂直线
+        const vLine = pageLines.find(line =>
+          Math.abs(line.x1 - x) < 0.1 &&
+          Math.abs(line.x2 - x) < 0.1 &&
+          Math.abs((line.y1 + line.y2) / 2 - y) < 0.1
+        );
+
+        expect(hLine).toBeDefined();
+        expect(vLine).toBeDefined();
+
+        if (hLine && vLine) {
+          // 验证线的长度
+          const hLength = Math.abs(hLine.x2 - hLine.x1);
+          const vLength = Math.abs(vLine.y2 - vLine.y1);
+          expect(hLength).toBeCloseTo(crossLength * 2, 1);
+          expect(vLength).toBeCloseTo(crossLength * 2, 1);
+
+          // 验证交叉点在中点
+          expect((hLine.x1 + hLine.x2) / 2).toBeCloseTo(x, 1);
+          expect((hLine.y1 + hLine.y2) / 2).toBeCloseTo(y, 1);
+          expect((vLine.x1 + vLine.x2) / 2).toBeCloseTo(x, 1);
+          expect((vLine.y1 + vLine.y2) / 2).toBeCloseTo(y, 1);
+
+          validCorners++;
+        }
+      });
+      expect(validCorners).toBe(allCorners.length);
+    };
+
+    // 验证正面
+    validateCrossLines(result.pages[0], '正面', false);
+
+    // 验证背面
+    validateCrossLines(result.pages[1], '背面', true);
+  });
+
+  describe('对折模式和小册子模式线条验证', () => {
+
+    test('对折模式：横向折叠虚线', async () => {
+      setConfig({
+        sides: layoutSides.foldInHalf,
+        foldLineType: '0', // 横向折叠
+        rows: 4,
+        columns: 2
+      });
+
+      const adapter = new ShadowAdapter(mockConfigStore.Config);
+      await exportFile(adapter, testState);
+
+      const result = await adapter.finalize();
+      const frontPage = result.pages[0];
+
+      // 查找虚线
+      const dashedLines = frontPage.elements.filter(e =>
+        e.type === 'line' && e.dashed && e.dashPattern.length > 0
+      );
+
+      console.log('虚线数量:', dashedLines.length);
+
+      // 横向折叠：应该有一条水平虚线在页面中央
+      expect(dashedLines.length).toBeGreaterThanOrEqual(1);
+
+      const { offsetX, offsetY } = mockConfigStore.Config;
+      const expectedY = frontPage.height / 2 + offsetY;
+
+      // 查找横向折叠线
+      const horizontalFoldLine = dashedLines.find(line =>
+        Math.abs(line.y1 - expectedY) < 0.1 &&
+        Math.abs(line.y2 - expectedY) < 0.1 &&
+        Math.abs(line.x1 - offsetX) < 0.1 &&
+        Math.abs(line.x2 - (frontPage.width + offsetX)) < 0.1
+      );
+
+      expect(horizontalFoldLine).toBeDefined();
+      expect(horizontalFoldLine.dashPattern).toEqual([0.5]);
+
+      console.log('✓ 横向折叠线验证通过:', {
+        y: horizontalFoldLine.y1,
+        x1: horizontalFoldLine.x1,
+        x2: horizontalFoldLine.x2,
+        expectedY
+      });
+    });
+
+    test('对折模式：纵向折叠虚线', async () => {
+      setConfig({
+        sides: layoutSides.foldInHalf,
+        foldLineType: '1', // 纵向折叠
+        rows: 2,
+        columns: 4
+      });
+
+      const adapter = new ShadowAdapter(mockConfigStore.Config);
+      await exportFile(adapter, testState);
+
+      const result = await adapter.finalize();
+      const frontPage = result.pages[0];
+
+      const dashedLines = frontPage.elements.filter(e =>
+        e.type === 'line' && e.dashed && e.dashPattern.length > 0
+      );
+
+      console.log('虚线数量:', dashedLines.length);
+
+      expect(dashedLines.length).toBeGreaterThanOrEqual(1);
+
+      const { offsetX, offsetY } = mockConfigStore.Config;
+      const expectedX = frontPage.width / 2 + offsetX;
+
+      // 查找纵向折叠线
+      const verticalFoldLine = dashedLines.find(line =>
+        Math.abs(line.x1 - expectedX) < 0.1 &&
+        Math.abs(line.x2 - expectedX) < 0.1 &&
+        Math.abs(line.y1 - offsetY) < 0.1 &&
+        Math.abs(line.y2 - (frontPage.height + offsetY)) < 0.1
+      );
+
+      expect(verticalFoldLine).toBeDefined();
+      expect(verticalFoldLine.dashPattern).toEqual([0.5]);
+
+      console.log('✓ 纵向折叠线验证通过:', {
+        x: verticalFoldLine.x1,
+        y1: verticalFoldLine.y1,
+        y2: verticalFoldLine.y2,
+        expectedX
+      });
+    });
+
+    test('小册子模式：页面拆分线（实线+虚线）', async () => {
+      setConfig({
+        sides: layoutSides.brochure,
+        rows: 2,
+        columns: 2,
+        fCutLine: '0' // 关闭切割线，只看页面拆分线
+      });
+
+      const adapter = new ShadowAdapter(mockConfigStore.Config);
+      await exportFile(adapter, testState);
+
+      const result = await adapter.finalize();
+      const frontPage = result.pages[0];
+
+      const { offsetX, offsetY, columns, rows } = mockConfigStore.Config;
+      const pageWidth = frontPage.width / columns;
+      const pageHeight = frontPage.height / rows;
+
+      // 1. 验证垂直分割线（实线）
+      const solidLines = frontPage.elements.filter(e =>
+        e.type === 'line' && !e.dashed
+      );
+
+      console.log('实线数量:', solidLines.length);
+
+      // 应该有 (columns - 1) 条垂直实线
+      for (let i = 1; i < columns; i++) {
+        const expectedX = i * pageWidth + offsetX;
+
+        const verticalLine = solidLines.find(line =>
+          Math.abs(line.x1 - expectedX) < 0.1 &&
+          Math.abs(line.x2 - expectedX) < 0.1 &&
+          Math.abs(line.y1 - 0) < 0.1 &&
+          Math.abs(line.y2 - frontPage.height) < 0.1
+        );
+
+        expect(verticalLine).toBeDefined();
+        console.log(`✓ 垂直分割线 ${i} 验证通过: x=${expectedX}`);
+      }
+
+      // 应该有 (rows - 1) 条水平实线
+      for (let j = 1; j < rows; j++) {
+        const expectedY = j * pageHeight + offsetY;
+
+        const horizontalLine = solidLines.find(line =>
+          Math.abs(line.y1 - expectedY) < 0.1 &&
+          Math.abs(line.y2 - expectedY) < 0.1 &&
+          Math.abs(line.x1 - 0) < 0.1 &&
+          Math.abs(line.x2 - frontPage.width) < 0.1
+        );
+
+        expect(horizontalLine).toBeDefined();
+        console.log(`✓ 水平分割线 ${j} 验证通过: y=${expectedY}`);
+      }
+
+      // 2. 验证折叠线（虚线）
+      const dashedLines = frontPage.elements.filter(e =>
+        e.type === 'line' && e.dashed && e.dashPattern.length > 0
+      );
+
+      console.log('虚线数量:', dashedLines.length);
+
+      // 获取切割矩形来计算折叠线位置
+      const pageSize = {
+        maxWidth: frontPage.width,
+        maxHeight: frontPage.height
+      };
+
+      const markRectList = getCutRectangleList(mockConfigStore.Config, pageSize, true, false);
+      const xList = [...new Set(markRectList.map(r => r.x))];
+      const yList = [...new Set(markRectList.map(r => r.y))];
+      const width = markRectList[0].width;
+      const height = markRectList[0].height;
+
+      console.log('xList:', xList);
+      console.log('yList:', yList);
+
+      // 验证偶数列的折叠线
+      xList.forEach((v, vIndex) => {
+        const isEvenColumn = vIndex % 2 === 0;
+
+        if (isEvenColumn) {
+          const foldX = v + width;
+
+          // 应该有 (rows + 1) 段虚线
+          for (let j = 0; j <= rows; j++) {
+            const y1 = j === 0 ? 0 : yList[j - 1] + height;
+            const y2 = j === rows ? frontPage.height : yList[j];
+
+            const foldLine = dashedLines.find(line =>
+              Math.abs(line.x1 - foldX) < 0.1 &&
+              Math.abs(line.x2 - foldX) < 0.1 &&
+              Math.abs(line.y1 - y1) < 0.1 &&
+              Math.abs(line.y2 - y2) < 0.1
+            );
+
+            expect(foldLine).toBeDefined();
+            expect(foldLine.dashPattern).toEqual([1, 1]);
+
+          }
+        }
+      });
+    });
+
+    test('小册子模式：3x3 布局验证', async () => {
+      setConfig({
+        sides: layoutSides.brochure,
+        rows: 3,
+        columns: 3,
+        fCutLine: '0'
+      });
+
+      const adapter = new ShadowAdapter(mockConfigStore.Config);
+      await exportFile(adapter, testState);
+
+      const result = await adapter.finalize();
+      const frontPage = result.pages[0];
+
+      const { columns, rows } = mockConfigStore.Config;
+      const pageWidth = frontPage.width / columns;
+      const pageHeight = frontPage.height / rows;
+
+      const solidLines = frontPage.elements.filter(e =>
+        e.type === 'line' && !e.dashed
+      );
+
+      // 验证垂直分割线数量
+      const verticalSplitLines = solidLines.filter(line =>
+        Math.abs(line.y1 - 0) < 0.1 &&
+        Math.abs(line.y2 - frontPage.height) < 0.1
+      );
+
+      expect(verticalSplitLines.length).toBe(columns - 1);
+
+      // 验证水平分割线数量
+      const horizontalSplitLines = solidLines.filter(line =>
+        Math.abs(line.x1 - 0) < 0.1 &&
+        Math.abs(line.x2 - frontPage.width) < 0.1
+      );
+
+      expect(horizontalSplitLines.length).toBe(rows - 1);
+
+    });
+
+    test('对折模式：背面不应该有折叠线', async () => {
+      setConfig({
+        sides: layoutSides.foldInHalf,
+        foldLineType: '0',
+        rows: 4,
+        columns: 2
+      });
+
+      const adapter = new ShadowAdapter(mockConfigStore.Config);
+      await exportFile(adapter, testState);
+
+      const result = await adapter.finalize();
+      const backPage = result.pages[1];
+
+      // 背面不应该有折叠虚线
+      const dashedLines = backPage.elements.filter(e =>
+        e.type === 'line' && e.dashed && e.dashPattern.length > 0
+      );
+
+      // 背面可能有切割线的虚线，但不应该有折叠线
+      // 折叠线的特征是 dash: [0.5]
+      const foldLines = dashedLines.filter(line =>
+        line.dashed[0] === 0.5
+      );
+
+      expect(foldLines.length).toBe(0);
+
+    });
+
+    test('小册子模式：背面不应该有页面拆分线', async () => {
+      setConfig({
+        sides: layoutSides.brochure,
+        rows: 2,
+        columns: 2,
+        fCutLine: '0',
+        bCutLine: '0'
+      });
+
+      const adapter = new ShadowAdapter(mockConfigStore.Config);
+      await exportFile(adapter, testState);
+
+      const result = await adapter.finalize();
+      const backPage = result.pages[1];
+
+      const solidLines = backPage.elements.filter(e =>
+        e.type === 'line' && !e.dashed
+      );
+
+      // 背面不应该有任何实线（因为关闭了切割线，也没有页面拆分线）
+      expect(solidLines.length).toBe(0);
+
+    });
+
+  });
+});
+

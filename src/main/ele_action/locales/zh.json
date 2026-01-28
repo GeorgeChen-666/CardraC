@@ -22,10 +22,16 @@
     "btnSave" : "保存pnp文件。",
     "btnLang" : "语言设置。",
     "btnConfig" : "参数设置。",
-    "btnExport" : "导出pdf。",
+    "btnExport" : "导出{{format}}。",
     "btnGlobalBackground" : "全局默认背景图。",
     "lblSwitchView": "切换视图",
     "compressLevel": "压缩等级",
+    "btnPrev": "上一页",
+    "btnNext": "下一页",
+    "page": "第{{num}}页",
+    "zoomOut": "缩小",
+    "zoomIn": "放大",
+    "zoomFix": "适应窗口",
     "compressMenu": {
       "compressLevelDesc": "无|轻微|一般|较强|强力",
       "fixPath": "修正路径",
@@ -35,7 +41,7 @@
       "manualReloadTooltip": "从源图按压缩等级重载图像。"
     },
     "bulkMenu": {
-      "labelSelection": "选择项...",
+      "labelSelection": "选择的{{count}}项...",
       "menuRemove": "删除",
       "menuFillBackground": "填充背景",
       "menuFillMultiBackground": "多图填充背景",
@@ -44,6 +50,7 @@
       "duplidate": "复制"
     },
     "lblShowOverviewWindow": "显示预览",
+    "chatScan": "使用QQ扫描加入群聊",
     "btnAbout": "关于"
   },
   "cardEditor": {
@@ -116,7 +123,6 @@
   },
   "footer": {
     "files": "文件数",
-    "images": "卡牌数",
-    "selectedFiles": "选中文件数"
+    "images": "卡牌数"
   }
 }

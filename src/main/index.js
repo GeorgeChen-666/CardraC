@@ -1,7 +1,7 @@
-import electron, { app, BrowserWindow, shell } from 'electron';
+import electron, { app, BrowserWindow, shell, protocol } from 'electron';
 import { registerRendererActionHandlers } from './ele_action';
-import { getCutRectangleList } from './ele_action/handlers/pdf/Utils';
-
+import { OverviewStorage } from './ele_action/handlers/file_render/Utils';
+import { ImageStorage } from './ele_action/handlers/file_render/Utils';
 
 if (typeof electron === 'string') {
   throw new TypeError('Not running in an Electron environment!');
@@ -54,6 +54,63 @@ const createWindow = () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+
+  //注册 cardrac:// 协议（使用 registerBufferProtocol）
+  protocol.handle('cardrac', async (request) => {
+    try {
+      const url = request.url;
+      const urlObj = new URL(url);
+      const pathname = urlObj.pathname; // /image/C%3A...
+      const quality = urlObj.searchParams.get('quality') || 'high';
+
+      let imagePath = decodeURIComponent(pathname.replace('/image/', ''));
+      if (imagePath.startsWith('/')) {
+        imagePath = imagePath.substring(1);
+      }
+
+      const storage = quality === 'low' ? OverviewStorage : ImageStorage;
+      const imageData = storage[imagePath];
+
+      if (imageData) {
+        const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+
+        const ext = imagePath.split('.').pop().toLowerCase();
+        const mimeTypes = {
+          'jpg': 'image/jpeg',
+          'jpeg': 'image/jpeg',
+          'png': 'image/png',
+          'gif': 'image/gif',
+          'webp': 'image/webp'
+        };
+        const mimeType = mimeTypes[ext] || 'image/png';
+
+        //返回 Response 对象
+        return new Response(buffer, {
+          headers: { 'Content-Type': mimeType }
+        });
+      } else {
+        console.error('Image not found in storage:', imagePath);
+        console.log('Available keys:', Object.keys(storage).slice(0, 5));
+
+        //返回 404 错误
+        return new Response('Image not found', {
+          status: 404,
+          headers: { 'Content-Type': 'text/plain' }
+        });
+      }
+    } catch (error) {
+      console.error('Protocol handler error:', error);
+
+      //返回 500 错误
+      return new Response('Internal server error', {
+        status: 500,
+        headers: { 'Content-Type': 'text/plain' }
+      });
+    }
+  });
+
+
   createWindow();
 
   // On OS X it's common to re-create a window in the app when the

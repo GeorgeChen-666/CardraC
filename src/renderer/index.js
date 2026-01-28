@@ -1,17 +1,12 @@
 import React from 'react';
 import * as ReactDOM from 'react-dom/client';
-import './State/store';
-import { defaultTheme } from './Theme/default';
-import IconToolbar from './Parts/Toolbar';
+import './state/store';
+import { defaultTheme } from './theme/default';
 import { ThemeProvider } from '@mui/material';
 import './global.css'
 import "toastr";
-import { Notification } from './Parts/Notification';
-import { CardList } from './Parts/Card/CardList';
 import { SnackbarProvider } from 'notistack';
-import { LoadingModal } from './Parts/LoadingModal';
-import { Footer } from './Parts/Footer';
-import Stack from '@mui/material/Stack';
+import { Main } from './parts/Main';
 
 const container = document.getElementById('root');
 const root = ReactDOM.createRoot(container);
@@ -20,13 +15,7 @@ const root = ReactDOM.createRoot(container);
 root.render(
   <ThemeProvider theme={defaultTheme}>
     <SnackbarProvider>
-      <Stack height={'100vh'}>
-        <IconToolbar />
-        <CardList />
-        <Footer />
-      </Stack>
-      <LoadingModal />
-      <Notification />
+      <Main />
     </SnackbarProvider>
   </ThemeProvider>
 );
