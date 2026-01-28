@@ -18,6 +18,7 @@ import './styles.css'
 import Tooltip from '@mui/material/Tooltip';
 import { withConfirmation } from '../../../../componments/withConfirmation';
 import { useGlobalStore } from '../../../../state/store';
+import { initialState } from '../../../../../shared/constants';
 
 const ConfirmIconButton = withConfirmation(IconButton);
 
@@ -104,7 +105,9 @@ export const TemplateMenu = props => {
           e.stopPropagation();
           if(e.target === e.currentTarget) {
             handleClose();
-            mergeConfig({...item.Config});
+            mergeConfig({
+              Config: {...initialState.Config, ...item.Config}
+            });
           }
         }}>
           <ListItemText>{item.TemplateName}</ListItemText>

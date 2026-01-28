@@ -5,10 +5,12 @@ import { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 're
 import { clearPreviewCache } from '../../functions';
 
 export const PrintPreview = forwardRef((props, ref) => {
-  const { getExportPreview } = useGlobalStore.getState();
+  const { getExportPreview, setExportPreviewIndex, mergeGlobal } = useGlobalStore.getState();
   const { Global } = useGlobalStore.selectors;
   const exportPageCount = Global.exportPageCount() || 0;
   const exportPreviewIndex = Global.exportPreviewIndex() || 1;
+
+
   const [ready, setReady] = useState(false);
   const [imageData, setImageData] = useState(null);
 
@@ -24,15 +26,13 @@ export const PrintPreview = forwardRef((props, ref) => {
 
   const isSvg = imageData && imageData.includes('svg');
   const ZOOM_STEP = isSvg ? 2 : 0.1;
-  const MIN_SCALE = isSvg ? 0.5
-
-
-    : 0.1;
-
-
-
+  const MIN_SCALE = isSvg ? 0.5 : 0.1;
 
   const MAX_SCALE = isSvg ? 40 : 5;
+
+  const handlePageChange = (page) => {
+    mergeGlobal({ exportPreviewIndex: page });
+  };
 
   // 计算适配容器的缩放比例和位置
   const fitToContainer = () => {
@@ -73,10 +73,30 @@ export const PrintPreview = forwardRef((props, ref) => {
     canZoomOut: () => scale > MIN_SCALE,
   }));
 
-  // 鼠标滚轮缩放
+  const handleDoubleClick = () => {
+    fitToContainer();
+  };
+
   const handleWheel = (e) => {
     e.preventDefault();
 
+    //Shift + 滚轮 = 切换页面
+    if (e.shiftKey) {
+      if (e.deltaY < 0) {
+        // 向上滚 - 上一页
+        if (exportPreviewIndex > 1) {
+          handlePageChange(exportPreviewIndex - 1);
+        }
+      } else if (e.deltaY > 0) {
+        // 向下滚 - 下一页
+        if (exportPreviewIndex < exportPageCount) {
+          handlePageChange(exportPreviewIndex + 1);
+        }
+      }
+      return; //切换页面后不执行缩放
+    }
+
+    //添加缺失的缩放逻辑
     const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
     const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale + delta));
 
@@ -274,7 +294,7 @@ export const PrintPreview = forwardRef((props, ref) => {
 
   return (
     <>
-      <div className='PrintPreviewContainer' ref={containerRef} onMouseDown={handleMouseDown}
+      <div className='PrintPreviewContainer' ref={containerRef} onMouseDown={handleMouseDown} onDoubleClick={handleDoubleClick}
            style={{ cursor: isDragging ? 'grabbing' : 'grab', overflow: 'hidden',
              position: 'relative', width: '100%', height: '100%' }}>
         {imageData ? (

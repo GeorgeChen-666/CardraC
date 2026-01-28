@@ -98,12 +98,12 @@ export function EditToolbar() {
         disabled={cardListLength === 0}
       />
       <GeneralIconButton
-        label={t('toolbar.btnExport')}
+        label={t('toolbar.btnExport', {format:'PDF'})}
         icon={<ExportIcon />}
         onClick={() => exportFile(exportType.pdf)}
       />
       <GeneralIconButton
-        label={t('toolbar.btnExport')}
+        label={t('toolbar.btnExport', {format:'PNG'})}
         icon={<ExportIcon label={'png'} />}
         onClick={() => exportFile(exportType.png)}
       />

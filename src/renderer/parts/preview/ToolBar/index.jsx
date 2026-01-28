@@ -25,17 +25,6 @@ export const PreviewToolbar = ({ previewRef }) => {
   useEffect(() => {
     mergeGlobal({ exportPreviewIndex: 1 });
   },[])
-  const handlePrevPage = () => {
-    if (exportPreviewIndex > 0) {
-      mergeGlobal({ exportPreviewIndex: exportPreviewIndex - 1 });
-    }
-  };
-
-  const handleNextPage = () => {
-    if (exportPreviewIndex < exportPageCount) {
-      mergeGlobal({ exportPreviewIndex: exportPreviewIndex + 1 });
-    }
-  };
   const handlePageChange = (page) => {
     mergeGlobal({ exportPreviewIndex: page });
   };

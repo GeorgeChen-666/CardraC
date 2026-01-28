@@ -199,7 +199,7 @@ export const PageNavigator = ({ currentPage, totalPages, onPageChange }) => {
                   }
                 }}
               >
-                Page {page}
+                {t('toolbar.page', {num:page})}
               </div>
             ))}
           </div>
