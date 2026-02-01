@@ -1,4 +1,5 @@
 import { layoutSides } from '../../../../shared/constants';
+import { SVGAdapter } from './adapter/SVGAdapter';
 
 export const defaultImageStorage = {
   '_emptyImg': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
@@ -278,6 +279,7 @@ export const adjustBackPageImageOrder = (pageData, Config) => {
   const { flip, landscape, rows, columns, sides, foldLineType } = Config;
   const flipWay = ['none', 'long-edge binding', 'short-edge binding'].indexOf(flip);
   const isFoldInHalf = sides === layoutSides.foldInHalf;
+  const isBrochure = sides === layoutSides.brochure;
 
   if (pageData.type !== 'back') {
     return {
@@ -289,9 +291,11 @@ export const adjustBackPageImageOrder = (pageData, Config) => {
 
   const { imageList, config = [] } = pageData;
   //计算实际需要的格子数量
-  const totalSlots = isFoldInHalf
-    ? (foldLineType === '0' ? Math.floor(rows / 2) : rows) * (foldLineType === '1' ? Math.floor(columns / 2) : columns)
-    : rows * columns;
+  const totalSlots = isBrochure
+    ? imageList.length  // 小册子：使用实际图片数量
+    : isFoldInHalf
+      ? (foldLineType === '0' ? Math.floor(rows / 2) : rows) * (foldLineType === '1' ? Math.floor(columns / 2) : columns)
+      : rows * columns;
   //填充到格子数
   const paddedImageList = [...imageList];
   const paddedConfig = [...config];
@@ -462,3 +466,59 @@ export const isNeedRotation = (Config, isBack) => {
   // 对于普通双面和小册子模式
   return landscape && flipWay === 1 || !landscape && flipWay === 2;
 };
+
+// 在文件顶部添加缓存
+const previewCache = new Map(); // 存储已完成的预览
+const previewTasks = new Map(); // 存储进行中的任务
+
+
+// 预渲染函数
+export async function prerenderPage(pageIndex, state, Config, renderFunc, renderFuncId, quality = 'low') {
+  const cacheKey = `${renderFuncId}-${pageIndex}`;
+
+  if (previewCache.has(cacheKey)) {
+    console.log(`📦 Page ${pageIndex + 1}: Loaded from cache`);
+    return previewCache.get(cacheKey);
+  }
+
+  if (previewTasks.has(cacheKey)) {
+    console.log(`⏳ Page ${pageIndex + 1}: Waiting for existing render task`);
+    return previewTasks.get(cacheKey);
+  }
+
+  const task = (async () => {
+    //开始计时
+    const startTime = performance.now();
+    console.log(`🎨 Page ${pageIndex + 1}: Starting render...`);
+
+    try {
+      const doc = new SVGAdapter(Config, quality, true);
+      const svgString = await renderFunc(doc, state, [pageIndex]);
+
+      const result = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
+
+      //结束计时
+      const endTime = performance.now();
+      const duration = (endTime - startTime).toFixed(2);
+      console.log(`Page ${pageIndex + 1}: Rendered in ${duration}ms`);
+
+      previewCache.set(cacheKey, result);
+      return result;
+    } catch (error) {
+      //错误也记录时间
+      const endTime = performance.now();
+      const duration = (endTime - startTime).toFixed(2);
+      console.error(`Page ${pageIndex + 1}: Failed after ${duration}ms`, error);
+      throw error;
+    } finally {
+      previewTasks.delete(cacheKey);
+    }
+  })();
+
+  previewTasks.set(cacheKey, task);
+  return task;
+}
+export const clearPrerenderCache = () => {
+  previewCache.clear();
+  previewTasks.clear();
+}

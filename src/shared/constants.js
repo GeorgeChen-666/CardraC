@@ -4,6 +4,8 @@ export const eleActions = Object.freeze({
   openImage: 'open-image',
   loadConfig: 'load-config',
   saveConfig: 'save-config',
+  loadPrintConfig: 'load-print-config',
+  savePrintConfig: 'save-print-config',
   checkImage: 'check-image',
   getImagePath: 'get-image-path',
   getImageContent: 'get-image-content',
@@ -11,7 +13,10 @@ export const eleActions = Object.freeze({
   getExportPreview: 'get-export-preview',
   clearPreviewCache: 'clear-preview-cache',
   reloadLocalImage: 'reload-local-image',
-  exportFile: 'export-file'
+  exportFile: 'export-file',
+  getPrinters: 'get-printers',
+  adjustGuidePrint: 'adjust-guide-print',
+  printPages: 'print-pages',
 });
 
 export const layoutSides = Object.freeze({
@@ -54,11 +59,8 @@ export const initialState = Object.freeze({
     pageSize: 'A4:210,297',
     pageWidth: 210,
     pageHeight: 297,
-    scale: 100,
     offsetX: 0,
     offsetY: 0,
-    printOffsetX: 0,
-    printOffsetY: 0,
     landscape: true,
     sides: layoutSides.doubleSides,
     autoConfigFlip: false,

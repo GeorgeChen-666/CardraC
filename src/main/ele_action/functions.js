@@ -1,8 +1,9 @@
 import sharp from 'sharp';
 import Store from 'electron-store';
 import path from 'path';
-
-const fs = require('fs');
+const { Buffer } = require('buffer');
+import fs from 'fs';
+import { app, BrowserWindow } from 'electron';
 
 export async function getBorderAverageColors(base64String, borderWidth = 5) {
   try {
@@ -186,4 +187,245 @@ export const getConfigStore = () => {
   return store.get() || {};
 }
 
+/**
+ * 打印 PNG Buffer 数组
+ * @param printerName string - 打印机名
+ * @param {Buffer[]} buffers - PNG Buffer 数组
+ * @param {Object} options - 打印选项
+ * @param {number} [options.pageWidthMm=210] - 页面宽度（毫米）
+ * @param {number} [options.pageHeightMm=297] - 页面高度（毫米）
+ * @param {number} [options.offsetXmm=0] - 水平偏移（毫米）
+ * @param {number} [options.offsetYmm=0] - 垂直偏移（毫米）
+ * @param {number} [options.scaleX=1] - 水平缩放
+ * @param {number} [options.scaleY=1] - 垂直缩放
+ * @param {boolean} [options.landscape=false] - 横向打印
+ * @param {boolean} [options.silent=true] - 静默打印
+ */
+export async function printPNGs(printerName, buffers, options = {}) {
+  const {
+    pageWidthMm = 210,
+    pageHeightMm = 297,
+    offsetXmm = 0,
+    offsetYmm = 0,
+    scaleX = 1,
+    scaleY = 1,
+    landscape = false,
+    silent = false
+  } = options;
 
+  const actualWidth = landscape ? pageHeightMm : pageWidthMm;
+  const actualHeight = landscape ? pageWidthMm : pageHeightMm;
+
+  const decodeSvg = (data) => {
+    if (!data) return '';
+    try {
+      let decoded = '';
+      if (data.startsWith('<svg')) {
+        decoded = data;
+      } else if (data.startsWith('data:image/svg+xml;charset=utf-8,')) {
+        decoded = decodeURIComponent(data.replace('data:image/svg+xml;charset=utf-8,', ''));
+      } else if (data.startsWith('data:image/svg+xml,')) {
+        decoded = decodeURIComponent(data.replace('data:image/svg+xml,', ''));
+      } else if (data.startsWith('data:image/svg+xml;base64,')) {
+        const base64Data = data.replace('data:image/svg+xml;base64,', '');
+        decoded = Buffer.from(base64Data, 'base64').toString('utf-8');
+      }
+
+      decoded = decoded.replace(/quality=low/g, 'quality=high');
+
+      return decoded;
+    } catch (e) {
+      console.error('Failed to decode SVG:', e);
+      return '';
+    }
+  };
+
+  const pages = buffers.map((svgData) => {
+    const svgContent = decodeSvg(svgData);
+
+    return `<div class="page">
+  <div class="svg-container" style="
+    position: absolute;
+    left: ${offsetXmm}mm;
+    top: ${offsetYmm}mm;
+    width: ${actualWidth}mm;
+    height: ${actualHeight}mm;
+    transform: scale(${scaleX}, ${scaleY});
+    transform-origin: 0 0;
+  ">
+    ${svgContent}
+  </div>
+</div>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    @page { 
+      size: ${actualWidth}mm ${actualHeight}mm;
+      margin: 0; 
+    }
+    * { 
+      margin: 0; 
+      padding: 0; 
+    }
+    body { 
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .page { 
+      width: ${actualWidth}mm;
+      height: ${actualHeight}mm;
+      position: relative;
+      page-break-after: always;
+      overflow: hidden;
+    }
+    .page:last-child {
+      page-break-after: auto;
+    }
+    /* ✅ 让 SVG 填满容器 */
+    .svg-container {
+      overflow: hidden;
+    }
+    .svg-container svg {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+    }
+  </style>
+</head>
+<body>${pages}</body>
+</html>`;
+
+  const tempDir = app.getPath('temp');
+  const tempFile = path.join(tempDir, `cardrac_print_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.html`);
+
+  let fileCreated = false;
+
+  try {
+    fs.writeFileSync(tempFile, html, 'utf-8');
+    fileCreated = true;
+  } catch (error) {
+    throw new Error(`Failed to create temp file: ${error.message}`);
+  }
+
+  const win = new BrowserWindow({
+    show: false,
+    webPreferences: { offscreen: false }
+  });
+
+  try {
+    await win.loadFile(tempFile);
+
+    await win.webContents.executeJavaScript(`
+      new Promise(async (resolve) => {
+        if (document.readyState !== 'complete') {
+          await new Promise(r => window.addEventListener('load', r));
+        }
+    
+        const images = Array.from(document.querySelectorAll('svg image'));
+    
+        console.log('Waiting for', images.length, 'SVG images to load');
+    
+        if (images.length === 0) {
+          console.log('No images found, resolving immediately');
+          resolve();
+          return;
+        }
+    
+        const imagePromises = images.map((img, index) => {
+          return new Promise((resolveImg) => {
+            const href = img.getAttribute('href') || img.getAttribute('xlink:href');
+            
+            if (!href) {
+              console.log('Image', index, 'has no href');
+              resolveImg();
+              return;
+            }
+
+            const testImg = new Image();
+            
+            const onLoad = () => {
+              console.log('Image', index, 'loaded:', href.substring(0, 50));
+              resolveImg();
+            };
+            
+            const onError = () => {
+              console.warn('Image', index, 'failed to load:', href.substring(0, 50));
+              resolveImg();
+            };
+
+            testImg.addEventListener('load', onLoad);
+            testImg.addEventListener('error', onError);
+
+            setTimeout(() => {
+              console.warn('Image', index, 'timeout');
+              testImg.removeEventListener('load', onLoad);
+              testImg.removeEventListener('error', onError);
+              resolveImg();
+            }, 10000);
+
+            testImg.src = href;
+          });
+        });
+    
+        await Promise.race([
+          Promise.all(imagePromises),
+          new Promise(r => setTimeout(r, 30000))
+        ]);
+    
+        console.log('All SVG images loaded or timeout');
+        resolve();
+      })
+    `);
+
+    await new Promise(r => setTimeout(r, 1000));
+
+    const result = await new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error('Print timeout')), 30000);
+
+      win.webContents.print({
+        silent,
+        printBackground: true,
+        deviceName: printerName || '',
+        landscape: false,
+        margins: {
+          marginType: 'none'
+        },
+        pageSize: {
+          width: actualWidth * 1000,
+          height: actualHeight * 1000
+        }
+      }, (ok, err) => {
+        clearTimeout(t);
+
+        if (ok) {
+          resolve({ success: true, cancelled: false });
+        } else {
+          const isCancelled = !err || err === 'cancelled' || err === 'canceled';
+
+          if (isCancelled) {
+            resolve({ success: false, cancelled: true });
+          } else {
+            resolve({ success: false, cancelled: false, error: err });
+          }
+        }
+      });
+    });
+
+    return result;
+
+  } finally {
+    win.destroy();
+
+    if (fileCreated) {
+      try {
+        fs.unlinkSync(tempFile);
+      } catch (e) {
+        console.warn('Failed to delete temp file:', tempFile, e);
+      }
+    }
+  }
+}

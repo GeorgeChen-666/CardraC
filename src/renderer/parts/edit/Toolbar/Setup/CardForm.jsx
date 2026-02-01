@@ -69,10 +69,10 @@ export const CardForm = () => {
       </FormControl>
       <FormControl label={t('configDialog.auto')} attrKey={'autoColumnsRows'} type={ControlType.Checkbox}></FormControl>
     </FormControl>
-    <FormControl label={t('configDialog.scale')} width={'145px'} attrKey={'scale'}
-                 type={ControlType.NumberInput} min={1}>
-      %
-    </FormControl>
+    {/*<FormControl label={t('configDialog.scale')} width={'145px'} attrKey={'scale'}*/}
+    {/*             type={ControlType.NumberInput} min={1}>*/}
+    {/*  %*/}
+    {/*</FormControl>*/}
     {Config.sides() === layoutSides.brochure &&
       (<FormControl label={t('configDialog.brochureRepeatPerPage')} attrKey={'brochureRepeatPerPage'}
                     type={ControlType.Checkbox}></FormControl>)}
