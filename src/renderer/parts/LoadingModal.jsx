@@ -8,10 +8,10 @@ import Typography from '@mui/material/Typography';
 
 export const LoadingModal = () => {
   const { Global } = useGlobalStore.selectors;
-  const isLoading = Global.isLoading();
-  const isInProgress = Global.isInProgress();
-  const progress = Global.progress();
-  const loadingText = Global.loadingText();
+  const isLoading = Global.isLoading() ?? false;
+  const isInProgress = Global.isInProgress() ?? false;
+  const progress = Global.progress() ?? 0;
+  const loadingText = Global.loadingText() ?? 'Loading ...';
   return (<Dialog open={isLoading}>
     <DialogContent>
       <DialogContentText sx={{

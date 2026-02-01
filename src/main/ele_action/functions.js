@@ -216,6 +216,8 @@ export async function printPNGs(printerName, buffers, options = {}) {
   const actualWidth = landscape ? pageHeightMm : pageWidthMm;
   const actualHeight = landscape ? pageWidthMm : pageHeightMm;
 
+  const PRINT_SCALE = 3; // 3倍分辨率，相当于 288 DPI
+
   const decodeSvg = (data) => {
     if (!data) return '';
     try {
@@ -274,6 +276,9 @@ export async function printPNGs(printerName, buffers, options = {}) {
     body { 
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
+      /* ✅ 提高渲染质量 */
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
     }
     .page { 
       width: ${actualWidth}mm;
@@ -285,7 +290,6 @@ export async function printPNGs(printerName, buffers, options = {}) {
     .page:last-child {
       page-break-after: auto;
     }
-    /* ✅ 让 SVG 填满容器 */
     .svg-container {
       overflow: hidden;
     }
@@ -293,6 +297,11 @@ export async function printPNGs(printerName, buffers, options = {}) {
       width: 100% !important;
       height: 100% !important;
       display: block;
+    }
+    /* ✅ 提高 SVG 图片质量 */
+    .svg-container svg image {
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: high-quality;
     }
   </style>
 </head>
@@ -313,7 +322,11 @@ export async function printPNGs(printerName, buffers, options = {}) {
 
   const win = new BrowserWindow({
     show: false,
-    webPreferences: { offscreen: false }
+    webPreferences: {
+      offscreen: false,
+      enableWebGL: true,
+      zoomFactor: PRINT_SCALE
+    }
   });
 
   try {
@@ -381,7 +394,7 @@ export async function printPNGs(printerName, buffers, options = {}) {
       })
     `);
 
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 2000));
 
     const result = await new Promise((resolve, reject) => {
       const t = setTimeout(() => reject(new Error('Print timeout')), 30000);
@@ -397,6 +410,10 @@ export async function printPNGs(printerName, buffers, options = {}) {
         pageSize: {
           width: actualWidth * 1000,
           height: actualHeight * 1000
+        },
+        dpi: {
+          horizontal: 300,
+          vertical: 300
         }
       }, (ok, err) => {
         clearTimeout(t);
@@ -429,3 +446,4 @@ export async function printPNGs(printerName, buffers, options = {}) {
     }
   }
 }
+

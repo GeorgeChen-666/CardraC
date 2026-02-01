@@ -48,8 +48,8 @@ const pathToImageData = async (path, cb) => {
     }
     ImageStorageLoadingJobs[path]();
   }
-  returnObj.overviewData = await readCompressedImage(path, { maxWidth: 100 });
-  OverviewStorage[imagePathKey] = returnObj.overviewData;
+  // returnObj.overviewData = await readCompressedImage(path, { maxWidth: 100 });
+  OverviewStorage[imagePathKey] = await readCompressedImage(path, { maxWidth: 100 });
   colorCache.delete(imagePathKey);
   cb && cb();
   return returnObj;
@@ -239,7 +239,7 @@ export default (mainWindow) => {
       });
     } else {
       mainWindow.webContents.send(progressChannel, 1);
-      mainWindow.webContents.send(returnChannel, {OverviewStorage: newOverviewStorage, CardList, Config});
+      mainWindow.webContents.send(returnChannel, {CardList, Config});
     }
   });
 }

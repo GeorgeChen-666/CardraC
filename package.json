@@ -45,6 +45,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.1.0",
     "@mui/material": "^7.1.0",
+    "@tanstack/react-virtual": "^3.13.18",
     "electron-log": "^5.4.1",
     "electron-squirrel-startup": "^1.0.0",
     "electron-store": "^8.2.0",

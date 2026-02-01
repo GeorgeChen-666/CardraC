@@ -76,7 +76,8 @@ const loadCpnpFile = (filePath, { onProgress, onFinish, onError }) => {
         if(c.back?.path === '_emptyImg') {
           c.back = null;
         }
-      })
+      });
+      delete projectJson.OverviewStorage;
       onFinish && onFinish(projectJson);
     }
     catch (e) {

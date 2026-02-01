@@ -5,7 +5,6 @@ import { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 're
 import { clearPreviewCache } from '../../functions';
 import { PrintDrawer } from './ToolBar/Print/PrintDrawer';
 
-// ✅ 标尺组件 - 跟随 SVG 移动和缩放
 const Ruler = ({ orientation, length }) => {
   const pixelsPerMM = 10;
   const majorTickInterval = 10;
@@ -191,17 +190,6 @@ export const PrintPreview = forwardRef((props, ref) => {
     setScale(newScale);
   };
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    container.addEventListener('wheel', handleWheel, { passive: false });
-
-    return () => {
-      container.removeEventListener('wheel', handleWheel);
-    };
-  }, [scale, position, exportPreviewIndex, exportPageCount]);
-
   const handleMouseDown = (e) => {
     if (e.button !== 0) return;
     const drawerElement = drawerPrintRef.current;
@@ -361,6 +349,7 @@ export const PrintPreview = forwardRef((props, ref) => {
         ref={containerRef}
         onMouseDown={handleMouseDown}
         onDoubleClick={handleDoubleClick}
+        onWheel={handleWheel}
         style={{
           cursor: isDragging ? 'grabbing' : 'grab',
           overflow: 'hidden',

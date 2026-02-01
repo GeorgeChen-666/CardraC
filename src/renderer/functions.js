@@ -1,15 +1,11 @@
 import { ipcRenderer } from 'electron';
-import { eleActions } from '../shared/constants';
+import { eleActions, emptyImg } from '../shared/constants';
 // import { Actions, store } from './store';
 import { i18nInstance } from './i18n';
 import { triggerNotification } from './parts/Notification';
 import { useGlobalStore } from './state/store';
 
-export const emptyImg = {
-  path: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
-    '12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg==',
-  ext: 'png',
-};
+
 
 export const isDev = 'ELECTRON_IS_DEV' in process?.env;
 
@@ -21,7 +17,10 @@ export const getResourcesPath = (path) => (isDev ? '' : '..') + path;
 
 export const isObject = data => typeof data === 'object' && data?.constructor === Object;
 
-export const getImageSrc = imageData => OverviewStorage[imageData?.path?.replaceAll?.('\\', '')] || emptyImg.path;
+export const getImageSrc = (imageData, quality = 'low') =>
+  imageData?.path
+    ? `cardrac://image/${imageData.path.replaceAll('\\', '')}?quality=${quality}`
+    : emptyImg.path;
 
 export const fillByObjectValue = (source, value) => {
   if (isObject(source) && isObject(value)) {
@@ -66,11 +65,6 @@ export const openImage = (key) => callMain(eleActions.openImage, {
   if (imageDatas.length === 0) return;
   const imageData = imageDatas[0];
   imageData.ext = imageData.path.split('.').pop();
-  if(imageData.overviewData) {
-    const imagePathKey = imageData?.path.replaceAll('\\','');
-    window.OverviewStorage[imagePathKey] = imageData.overviewData;
-    delete imageData.overviewData;
-  }
   return imageData;
 });
 
@@ -81,11 +75,6 @@ export const openMultiImage = (key) => callMain(eleActions.openImage, {
   const newImageDatas = [...imageDatas];
   for (const imageData of newImageDatas) {
     imageData.ext = imageData.path.split('.').pop();
-    if(imageData.overviewData) {
-      const imagePathKey = imageData?.path.replaceAll('\\','');
-      window.OverviewStorage[imagePathKey] = imageData.overviewData;
-      delete imageData.overviewData;
-    }
   }
   return newImageDatas;
 });

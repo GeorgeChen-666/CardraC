@@ -88,3 +88,9 @@ export const initialState = Object.freeze({
   },
   CardList: [],
 })
+
+export const emptyImg = {
+  path: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
+    '12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg==',
+  ext: 'png',
+};

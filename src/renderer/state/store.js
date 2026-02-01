@@ -69,10 +69,6 @@ const stateSchema = yup.object({
   CardList: yup.array().of(yup.object()).notRequired(),
 });
 
-window.OverviewStorage = {};
-window.ImageStorage = {};
-
-
 const middlewares = (args) => actionLogger(args, ({ action, params, prev, next }) => {
   if (typeof window !== 'undefined' && window.console) {
     console.groupCollapsed(`[Zustand Action] ${action}`, ...params);
@@ -127,11 +123,6 @@ export const useGlobalStore = create(middlewares((set, get) => ({
     get().loading(async () => {
       const projectData = await callMain(eleActions.openProject);
       if (projectData) {
-        if (projectData?.OverviewStorage) {
-          window.OverviewStorage = projectData.OverviewStorage;
-          delete projectData.OverviewStorage;
-        }
-        delete projectData?.ImageStorage;
         get().mergeState({
           ...projectData,
           Config: {...initialState.Config, ...projectData.Config}
@@ -165,9 +156,6 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList };
       const stateData = await callMain(eleActions.reloadLocalImage, param);
       if (stateData && !stateData.isAborted) {
-        delete window.OverviewStorage;
-        delete window.ImageStorage;
-        window.OverviewStorage = stateData.OverviewStorage;
         get().mergeState({CardList: stateData.CardList, Config: stateData.Config});
       }
     });
@@ -447,9 +435,7 @@ useGlobalStore.selectors = createSelectors(useGlobalStore);
 
 const state = useGlobalStore.getState();
 onOpenProjectFile((data) => {
-  const { OverviewStorage, ...newState } = data;
-  window.OverviewStorage = OverviewStorage;
-  state.fillState(newState);
+  state.fillState(data);
 });
 let config = await loadConfig();
 await initI18n(config.Global);
