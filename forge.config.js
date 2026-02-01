@@ -1,13 +1,17 @@
 const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
+const path = require('path');
 
 module.exports = {
   packagerConfig: {
     icon: "icon",
     asar: {
       unpack: "**/node_modules/{sharp,@img}/**/*"
-    }
+    },
     // asar: false,
+    extraResource: [
+      'src/main/ele_action/locales'
+    ]
   },
   rebuildConfig: {},
   makers: [

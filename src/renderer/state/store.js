@@ -33,11 +33,8 @@ const stateSchema = yup.object({
     pageSize: yup.string().required(), //'A4:210,297',
     pageWidth: yup.number().min(1).required(), //210,
     pageHeight: yup.number().min(1).required(), //297,
-    scale: yup.number().min(1).required(), //100,
     offsetX: yup.number().required(), //0,
     offsetY: yup.number().required(), //0,
-    printOffsetX: yup.number().required(), //0,
-    printOffsetY: yup.number().required(), //0,
     landscape: yup.boolean().required(), //true,
     sides: yup.string().oneOf([
       layoutSides.oneSide,
@@ -153,6 +150,13 @@ export const useGlobalStore = create(middlewares((set, get) => ({
     get().loading(async () => {
       const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList, targetFileType };
       const isSuccess = await callMain(eleActions.exportFile, param);
+      isSuccess && notificationSuccess();
+    });
+  },
+  printPages: ({ pageList, printConfig }) => {
+    get().loading(async () => {
+      const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList, pageList, printConfig };
+      const isSuccess = await callMain(eleActions.printPages, param);
       isSuccess && notificationSuccess();
     });
   },
@@ -463,6 +467,9 @@ try {
   });
 } finally {
   const newStateData = _.pick(config, ['Global', 'Config']);
+  delete newStateData.Config.printOffsetX
+  delete newStateData.Config.printOffsetY
+  newStateData.Config.scale = 100;
   state.fillState(newStateData);
   callMain(eleActions.saveConfig, { state: newStateData });
   regUpdateProgress(state.progress);

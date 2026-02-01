@@ -10,7 +10,6 @@ export class SharpAdapter extends IAdapter {
     this.currentPage = null;
     this.renderingTasks = [];
 
-    //清晰度配置：高、中、低
     const qualitySettings = {
       high: {
         scaleFactor: 9,
@@ -32,7 +31,6 @@ export class SharpAdapter extends IAdapter {
       }
     };
 
-    // 获取当前清晰度设置
     const settings = qualitySettings[quality] || qualitySettings.high;
     this.scaleFactor = settings.scaleFactor;
     this.kernel = settings.kernel;
@@ -41,15 +39,12 @@ export class SharpAdapter extends IAdapter {
 
     const [width, height] = this.parsePageSize(config.pageSize);
 
-    // 原始尺寸（返回给调用者）
     this.pageWidth = Math.ceil(config.landscape ? height : width);
     this.pageHeight = Math.ceil(config.landscape ? width : height);
 
-    // 实际渲染尺寸（缩放后）
     this.renderWidth = Math.ceil(this.pageWidth * this.scaleFactor);
     this.renderHeight = Math.ceil(this.pageHeight * this.scaleFactor);
 
-    // 创建第一页
     this.createNewPage();
   }
 
@@ -71,10 +66,11 @@ export class SharpAdapter extends IAdapter {
 
     this.currentPage = {
       index: this.currentPageIndex,
-      width: this.renderWidth,   // 使用渲染尺寸
+      width: this.renderWidth,
       height: this.renderHeight,
       background: null,
-      layers: [],
+      // ✅ 改为按顺序存储绘制命令
+      drawCommands: [],
       isRendering: false,
       renderPromise: null
     };
@@ -99,6 +95,7 @@ export class SharpAdapter extends IAdapter {
     this.createNewPage();
   }
 
+  // ✅ 按绘制顺序渲染
   startPageRendering(page) {
     if (page.isRendering || page.renderPromise) {
       return;
@@ -114,18 +111,17 @@ export class SharpAdapter extends IAdapter {
 
         let composite = sharp(page.background);
 
-        const validLayers = page.layers.filter(layer => layer !== null);
-
-        if (validLayers.length > 0) {
-          const layerBuffers = await Promise.all(
-            validLayers.map(layer => layer.promise || Promise.resolve(layer))
-          );
-
-          const overlays = layerBuffers.filter(o => o !== null);
-
-          if (overlays.length > 0) {
-            composite = composite.composite(overlays);
+        // ✅ 按顺序处理每个绘制命令
+        const overlays = [];
+        for (const command of page.drawCommands) {
+          const overlay = await command();
+          if (overlay !== null) {
+            overlays.push(overlay);
           }
+        }
+
+        if (overlays.length > 0) {
+          composite = composite.composite(overlays);
         }
 
         page.buffer = await composite.png().toBuffer();
@@ -156,7 +152,6 @@ export class SharpAdapter extends IAdapter {
 
       let image = sharp(imageBuffer);
 
-      // 缩放尺寸
       const scaledWidth = Math.ceil(this.scale(width));
       const scaledHeight = Math.ceil(this.scale(height));
 
@@ -180,8 +175,8 @@ export class SharpAdapter extends IAdapter {
       }
 
       image = image.png({
-        compressionLevel: this.compressionLevel,  // 0-9，越低越快
-        effort: this.effort  // 1-10，越低越快
+        compressionLevel: this.compressionLevel,
+        effort: this.effort
       });
 
       return {
@@ -219,7 +214,6 @@ export class SharpAdapter extends IAdapter {
 
   async createLineLayer(x1, y1, x2, y2, lineWidth, color, dash) {
     try {
-      // 缩放所有坐标和线宽
       const sx1 = this.scale(x1);
       const sy1 = this.scale(y1);
       const sx2 = this.scale(x2);
@@ -234,7 +228,6 @@ export class SharpAdapter extends IAdapter {
       const boxWidth = Math.max(Math.ceil(maxX - minX), 1);
       const boxHeight = Math.max(Math.ceil(maxY - minY), 1);
 
-      // 缩放虚线样式
       const dashArray = dash
         ? dash.map(d => this.scale(d)).join(',')
         : '';
@@ -268,7 +261,6 @@ export class SharpAdapter extends IAdapter {
 
   async createTextLayer(text, x, y, size) {
     try {
-      // 缩放文本坐标和字号
       const sx = this.scale(x);
       const sy = this.scale(y);
       const sSize = this.scale(size) * 0.3;
@@ -328,9 +320,11 @@ export class SharpAdapter extends IAdapter {
     this.currentTransform = { a, b, c, d, e, f };
   }
 
+  // ✅ 添加绘制命令到队列
   drawText({ text, x, y, size = 12 }) {
-    const layerPromise = this.createTextLayer(text, x, y, size);
-    this.currentPage.layers.push({ promise: layerPromise });
+    this.currentPage.drawCommands.push(() =>
+      this.createTextLayer(text, x, y, size)
+    );
   }
 
   setLineStyle({ width, color }) {
@@ -339,27 +333,31 @@ export class SharpAdapter extends IAdapter {
   }
 
   drawLine({ x1, y1, x2, y2, dash }) {
-    const layerPromise = this.createLineLayer(
-      x1, y1, x2, y2,
-      this.currentLineWidth || 1,
-      this.currentLineColor || '#000000',
-      dash
+    const lineWidth = this.currentLineWidth || 1;
+    const lineColor = this.currentLineColor || '#000000';
+    this.currentPage.drawCommands.push(() =>
+      this.createLineLayer(
+        x1, y1, x2, y2,
+        lineWidth,
+        lineColor,
+        dash
+      )
     );
-    this.currentPage.layers.push({ promise: layerPromise });
   }
 
   fillRect({ x, y, width, height, color }) {
-    const layerPromise = this.createRectLayer(x, y, width, height, color);
-    this.currentPage.layers.push({ promise: layerPromise });
+    this.currentPage.drawCommands.push(() =>
+      this.createRectLayer(x, y, width, height, color)
+    );
   }
 
   async drawImage({ data, x, y, width, height, rotation = 0 }) {
-    const layerPromise = this.createImageLayer(data, x, y, width, height, rotation);
-    this.currentPage.layers.push({ promise: layerPromise });
+    this.currentPage.drawCommands.push(() =>
+      this.createImageLayer(data, x, y, width, height, rotation)
+    );
   }
 
   getPageSize() {
-    // 返回原始尺寸，不返回缩放后的
     return {
       width: this.pageWidth,
       height: this.pageHeight
@@ -367,7 +365,6 @@ export class SharpAdapter extends IAdapter {
   }
 
   async finalize() {
-    //提前开始所有页面的渲染
     this.pages.forEach(page => {
       if (!page.isRendering && !page.renderPromise) {
         this.startPageRendering(page);
@@ -388,5 +385,4 @@ export class SharpAdapter extends IAdapter {
       return validPages.map(page => page.buffer);
     }
   }
-
 }

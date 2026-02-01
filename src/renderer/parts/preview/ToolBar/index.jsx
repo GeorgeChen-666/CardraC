@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Box from '@mui/material/Box';
 import { GeneralIconButton } from '../../../componments/GeneralIconButton';
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
@@ -11,6 +11,9 @@ import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
 import { useGlobalStore } from '../../../state/store';
 import { PageNavigator } from './PageNavigator';
+import { callMain } from '../../../functions';
+import { eleActions } from '../../../../shared/constants';
+import { PrintDrawer } from './Print/PrintDrawer';
 
 
 export const PreviewToolbar = ({ previewRef }) => {
@@ -41,7 +44,7 @@ export const PreviewToolbar = ({ previewRef }) => {
         />
         <span style={{ color: '#666', padding: '4px' }}>|</span>
         <GeneralIconButton
-          label={t('toolbar.btnAdd')}
+          label={t('toolbar.zoomOut')}
           icon={<RemoveIcon />}
           onClick={() => {
             {
@@ -51,7 +54,7 @@ export const PreviewToolbar = ({ previewRef }) => {
         />
 
         <GeneralIconButton
-          label={t('toolbar.btnAdd')}
+          label={t('toolbar.zoomIn')}
           icon={<AddIcon />}
           onClick={() => {
             {
@@ -60,7 +63,7 @@ export const PreviewToolbar = ({ previewRef }) => {
           }}
         />
         <GeneralIconButton
-          label={t('toolbar.btnAdd')}
+          label={t('toolbar.zoomFix')}
           icon={<FitScreenIcon />}
           onClick={() => {
             {
@@ -68,13 +71,17 @@ export const PreviewToolbar = ({ previewRef }) => {
             }
           }}
         />
-        {/*<GeneralIconButton*/}
-        {/*  label={t('toolbar.btnAdd')}*/}
-        {/*  icon={<PrintIcon />}*/}
-        {/*/>*/}
+        <GeneralIconButton
+          disabled={exportPageCount === 0}
+          label={t('toolbar.print')}
+          icon={<PrintIcon />}
+          onClick={() => {
+            previewRef.current.drawerPrintRef.current.openDrawer();
+          }}
+        />
         <div style={{ float: 'right' }}>
           <GeneralIconButton
-            label={t('toolbar.btnAdd')}
+            label={t('toolbar.close')}
             icon={<CloseIcon />}
             onClick={() => {
               mergeGlobal({ currentView: 'edit' })

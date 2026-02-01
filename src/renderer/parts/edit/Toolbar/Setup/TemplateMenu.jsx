@@ -103,14 +103,12 @@ export const TemplateMenu = props => {
         <MenuItem key={item.id} onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          if(e.target === e.currentTarget) {
+          if(e.target.classList.contains('listItem')) {
             handleClose();
-            mergeConfig({
-              Config: {...initialState.Config, ...item.Config}
-            });
+            mergeConfig({...initialState.Config, ...item.Config});
           }
         }}>
-          <ListItemText>{item.TemplateName}</ListItemText>
+          <ListItemText className={'listItem'} disableTypography={true}>{item.TemplateName}</ListItemText>
           <Typography>
             <IconButton size="small"
                         onMouseDown={(e) => {

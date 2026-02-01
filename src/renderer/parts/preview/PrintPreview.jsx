@@ -3,63 +3,142 @@ import './styles.css';
 import { useGlobalStore } from '../../state/store';
 import { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import { clearPreviewCache } from '../../functions';
+import { PrintDrawer } from './ToolBar/Print/PrintDrawer';
+
+// ✅ 标尺组件 - 跟随 SVG 移动和缩放
+const Ruler = ({ orientation, length }) => {
+  const pixelsPerMM = 10;
+  const majorTickInterval = 10;
+
+  const ticks = [];
+  const maxMM = Math.ceil(length / pixelsPerMM);
+
+  for (let mm = 0; mm <= maxMM; mm++) {
+    const position = mm * pixelsPerMM;
+    const isMajor = mm % majorTickInterval === 0;
+
+    ticks.push({
+      position,
+      mm,
+      isMajor
+    });
+  }
+
+  const isHorizontal = orientation === 'horizontal';
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: isHorizontal ? '-25px' : '0',
+        left: isHorizontal ? '0' : '-25px',
+        [isHorizontal ? 'width' : 'height']: `${length}px`,
+        [isHorizontal ? 'height' : 'width']: '25px',
+        backgroundColor: 'rgba(240, 240, 240, 0.9)',
+        borderBottom: isHorizontal ? '1px solid #999' : 'none',
+        borderRight: isHorizontal ? 'none' : '1px solid #999',
+        userSelect: 'none',
+        pointerEvents: 'none'
+      }}
+    >
+      {ticks.map((tick, i) => (
+        <div
+          key={i}
+          style={{
+            position: 'absolute',
+            [isHorizontal ? 'left' : 'top']: `${tick.position}px`,
+            [isHorizontal ? 'bottom' : 'right']: 0,
+            [isHorizontal ? 'width' : 'height']: '1px',
+            [isHorizontal ? 'height' : 'width']: tick.isMajor ? '10px' : '5px',
+            backgroundColor: '#666'
+          }}
+        />
+      ))}
+      {ticks.filter(t => t.isMajor).map((tick, i) => (
+        <div
+          key={`label-${i}`}
+          style={{
+            position: 'absolute',
+            [isHorizontal ? 'left' : 'top']: isHorizontal ? `${tick.position + 2}px` : `${tick.position + 8}px`,
+            [isHorizontal ? 'top' : 'left']: '2px',
+            fontSize: '10px',
+            color: '#333',
+            transform: isHorizontal ? 'none' : 'rotate(-90deg)',
+            transformOrigin: isHorizontal ? 'none' : 'left top',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {tick.mm}
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export const PrintPreview = forwardRef((props, ref) => {
+  const drawerPrintRef = useRef(null);
   const { getExportPreview, setExportPreviewIndex, mergeGlobal } = useGlobalStore.getState();
   const { Global } = useGlobalStore.selectors;
   const exportPageCount = Global.exportPageCount() || 0;
   const exportPreviewIndex = Global.exportPreviewIndex() || 1;
 
-
   const [ready, setReady] = useState(false);
   const [imageData, setImageData] = useState(null);
-
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const containerRef = useRef(null);
   const imageRef = useRef(null);
   const svgRef = useRef(null);
 
   const isSvg = imageData && imageData.includes('svg');
-  const ZOOM_STEP = isSvg ? 2 : 0.1;
-  const MIN_SCALE = isSvg ? 0.5 : 0.1;
-
-  const MAX_SCALE = isSvg ? 40 : 5;
+  const ZOOM_STEP = 0.1;
+  const MIN_SCALE = 0.1;
+  const MAX_SCALE = 5;
+  const DRAWER_WIDTH = 500;
 
   const handlePageChange = (page) => {
     mergeGlobal({ exportPreviewIndex: page });
   };
 
-  // 计算适配容器的缩放比例和位置
   const fitToContainer = () => {
     if (!containerRef.current) return;
 
     const container = containerRef.current.getBoundingClientRect();
-
-    // 获取尺寸（img 用 naturalWidth，SVG 用 imageSize）
     const imgWidth = imageRef.current?.naturalWidth || imageSize.width;
     const imgHeight = imageRef.current?.naturalHeight || imageSize.height;
 
     if (!imgWidth || !imgHeight) return;
 
-    const scaleX = container.width / imgWidth;
-    const scaleY = container.height / imgHeight;
+    const rulerSize = isSvg ? 25 : 0;
+    const drawerWidth = isDrawerOpen ? DRAWER_WIDTH : 0;
+    const availableWidth = container.width - rulerSize - drawerWidth;
+    const availableHeight = container.height - rulerSize;
+
+    const scaleX = availableWidth / imgWidth;
+    const scaleY = availableHeight / imgHeight;
     const newScale = Math.min(scaleX, scaleY);
 
     const scaledWidth = imgWidth * newScale;
     const scaledHeight = imgHeight * newScale;
-    const newX = (container.width - scaledWidth) / 2;
-    const newY = (container.height - scaledHeight) / 2;
+
+    const newX = rulerSize + (availableWidth - scaledWidth) / 2;
+    const newY = rulerSize + (availableHeight - scaledHeight) / 2;
 
     setScale(newScale);
     setPosition({ x: newX, y: newY });
   };
 
-  // 暴露给父组件的控制函数
+  useEffect(() => {
+    if (imageSize.width && imageSize.height) {
+      fitToContainer();
+    }
+  }, [isDrawerOpen, imageSize]);
+
   useImperativeHandle(ref, () => ({
     zoomIn: () => {
       setScale(prev => Math.min(prev + ZOOM_STEP, MAX_SCALE));
@@ -71,6 +150,7 @@ export const PrintPreview = forwardRef((props, ref) => {
     getScale: () => scale,
     canZoomIn: () => scale < MAX_SCALE,
     canZoomOut: () => scale > MIN_SCALE,
+    drawerPrintRef,
   }));
 
   const handleDoubleClick = () => {
@@ -80,23 +160,19 @@ export const PrintPreview = forwardRef((props, ref) => {
   const handleWheel = (e) => {
     e.preventDefault();
 
-    //Shift + 滚轮 = 切换页面
     if (e.shiftKey) {
       if (e.deltaY < 0) {
-        // 向上滚 - 上一页
         if (exportPreviewIndex > 1) {
           handlePageChange(exportPreviewIndex - 1);
         }
       } else if (e.deltaY > 0) {
-        // 向下滚 - 下一页
         if (exportPreviewIndex < exportPageCount) {
           handlePageChange(exportPreviewIndex + 1);
         }
       }
-      return; //切换页面后不执行缩放
+      return;
     }
 
-    //添加缺失的缩放逻辑
     const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
     const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale + delta));
 
@@ -115,22 +191,23 @@ export const PrintPreview = forwardRef((props, ref) => {
     setScale(newScale);
   };
 
-  // 手动添加 wheel 事件监听器
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    // 添加非 passive 的监听器
     container.addEventListener('wheel', handleWheel, { passive: false });
 
     return () => {
       container.removeEventListener('wheel', handleWheel);
     };
-  }, [scale, position]); // 依赖 scale 和 position
+  }, [scale, position, exportPreviewIndex, exportPageCount]);
 
-  // 鼠标拖拽
   const handleMouseDown = (e) => {
     if (e.button !== 0) return;
+    const drawerElement = drawerPrintRef.current;
+    if (drawerElement && e.target.closest('.print-drawer')) {
+      return; // 如果点击在 Drawer 内，不处理拖拽
+    }
     setIsDragging(true);
     setDragStart({
       x: e.clientX - position.x,
@@ -151,25 +228,22 @@ export const PrintPreview = forwardRef((props, ref) => {
     setIsDragging(false);
   };
 
-  // 图片加载完成
   const handleImageLoad = () => {
     if (imageRef.current) {
       setImageSize({
         width: imageRef.current.naturalWidth,
         height: imageRef.current.naturalHeight,
       });
-      // 图片加载后自动适配
       setTimeout(() => fitToContainer(), 0);
     }
   };
-  //SVG 加载后触发适配
+
   useEffect(() => {
     if (isSvg && imageSize.width && imageSize.height) {
       setTimeout(() => fitToContainer(), 0);
     }
   }, [imageSize, isSvg]);
 
-  // 监听全局鼠标事件
   useEffect(() => {
     if (isDragging) {
       window.addEventListener('mousemove', handleMouseMove);
@@ -181,7 +255,6 @@ export const PrintPreview = forwardRef((props, ref) => {
     }
   }, [isDragging, dragStart]);
 
-  // 监听容器大小变化
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -194,12 +267,10 @@ export const PrintPreview = forwardRef((props, ref) => {
     return () => {
       resizeObserver.disconnect();
     };
-  }, [imageSize]);
-
+  }, [imageSize, isDrawerOpen]);
 
   const [svgContent, setSvgContent] = useState('');
 
-  // 解码 SVG 内容
   const decodeSvg = (data) => {
     if (!data) return '';
     try {
@@ -214,7 +285,6 @@ export const PrintPreview = forwardRef((props, ref) => {
         const base64Data = data.replace('data:image/svg+xml;base64,', '');
         decoded = atob(base64Data);
       }
-      //提取 SVG 尺寸并设置到 imageSize
       if (decoded) {
         const widthMatch = decoded.match(/width="(\d+)"/);
         const heightMatch = decoded.match(/height="(\d+)"/);
@@ -231,27 +301,21 @@ export const PrintPreview = forwardRef((props, ref) => {
     }
     return '';
   };
-  //SVG 加载后，将低清图片替换为高清
+
   useEffect(() => {
     if (!isSvg || !svgRef.current) return;
 
     const svgElement = svgRef.current.querySelector('svg');
     if (!svgElement) return;
 
-    // 找到所有 cardrac:// 图片
     const images = svgElement.querySelectorAll('image[href^="cardrac://"]');
 
     images.forEach((img) => {
       const lowQualityUrl = img.getAttribute('href');
-
-      // 创建一个临时 Image 对象测试加载
       const testImg = new Image();
 
       testImg.onload = () => {
-        //低清图片加载成功，替换为高清
         const highQualityUrl = lowQualityUrl.replace('quality=low', 'quality=high');
-
-        // 延迟替换，让低清图片先显示
         setTimeout(() => {
           img.setAttribute('href', highQualityUrl);
         }, 100);
@@ -261,12 +325,10 @@ export const PrintPreview = forwardRef((props, ref) => {
         console.error('Failed to load image:', lowQualityUrl);
       };
 
-      // 触发加载测试
       testImg.src = lowQualityUrl;
     });
   }, [svgContent, isSvg]);
 
-  // 加载图片
   useEffect(() => {
     if (ready) {
       (async () => {
@@ -294,49 +356,85 @@ export const PrintPreview = forwardRef((props, ref) => {
 
   return (
     <>
-      <div className='PrintPreviewContainer' ref={containerRef} onMouseDown={handleMouseDown} onDoubleClick={handleDoubleClick}
-           style={{ cursor: isDragging ? 'grabbing' : 'grab', overflow: 'hidden',
-             position: 'relative', width: '100%', height: '100%' }}>
+      <div
+        className='PrintPreviewContainer'
+        ref={containerRef}
+        onMouseDown={handleMouseDown}
+        onDoubleClick={handleDoubleClick}
+        style={{
+          cursor: isDragging ? 'grabbing' : 'grab',
+          overflow: 'hidden',
+          position: 'relative',
+          width: '100%',
+          height: '100%'
+        }}
+      >
         {imageData ? (
           isSvg ? (
             <div
-              ref={svgRef}
-              dangerouslySetInnerHTML={{ __html: svgContent }}
               style={{
                 position: 'absolute',
                 top: 0,
                 left: 0,
-                width: imageSize.width || 'auto', //复用 imageSize
+                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                transformOrigin: '0 0',
+                transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+              }}
+            >
+              <Ruler orientation="horizontal" length={imageSize.width} />
+              <Ruler orientation="vertical" length={imageSize.height} />
+
+              <div
+                ref={svgRef}
+                dangerouslySetInnerHTML={{ __html: svgContent }}
+                style={{
+                  width: imageSize.width || 'auto',
+                  height: imageSize.height || 'auto',
+                  userSelect: 'none',
+                }}
+              />
+            </div>
+          ) : (
+            <img
+              ref={imageRef}
+              src={imageData}
+              alt='Preview'
+              className='CardImage'
+              onLoad={handleImageLoad}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                maxWidth: 'none',
+                maxHeight: 'none',
+                width: imageSize.width || 'auto',
                 height: imageSize.height || 'auto',
                 transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
                 transformOrigin: '0 0',
                 transition: isDragging ? 'none' : 'transform 0.1s ease-out',
                 userSelect: 'none',
               }}
+              draggable={false}
             />
-          ) : (
-            //非 SVG 使用 img 标签
-            <img ref={imageRef} src={imageData} alt='Preview' className='CardImage'
-                 onLoad={handleImageLoad}
-                 style={{
-                   position: 'absolute', top: 0, left: 0, maxWidth: 'none', maxHeight: 'none',
-                   width: imageSize.width || 'auto', height: imageSize.height || 'auto',
-                   transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-                   transformOrigin: '0 0',
-                   transition: isDragging ? 'none' : 'transform 0.1s ease-out',
-                   userSelect: 'none',
-                 }}
-                 draggable={false} />
           )
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: '100%', height: '100%', color: '#999' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            height: '100%',
+            color: '#999'
+          }}>
             Loading...
           </div>
         )}
+        <PrintDrawer
+          ref={drawerPrintRef}
+          onOpenChange={setIsDrawerOpen}
+        />
       </div>
     </>
-
   );
 });
 

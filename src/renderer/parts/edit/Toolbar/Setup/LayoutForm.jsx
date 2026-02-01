@@ -1,9 +1,10 @@
 import React from 'react';
 import { FormControl, ControlType } from './FormControl';
 import { useTranslation } from 'react-i18next';
-import Link from '@mui/material/Link';
+import HelpIcon from '@mui/icons-material/Help';
 import { useGlobalStore } from '../../../../state/store';
 import { flipWay, layoutSides } from '../../../../../shared/constants';
+import Tooltip from '@mui/material/Tooltip';
 
 export const LayoutForm = () => {
   const { t } = useTranslation();
@@ -54,20 +55,22 @@ export const LayoutForm = () => {
     </FormControl>
 
     {![layoutSides.oneSide, layoutSides.foldInHalf].includes(sides) &&
-      (<FormControl disabled={autoConfigFlip} label={t('configDialog.flip')} width={'230px'}
-                    onChange={e => {
-                      const flip = e.target.value;
-                      mergeConfig({ flip, autoConfigFlip: (flip === '') });
-                    }}
-                    attrKey={'flip'} type={ControlType.Select} items={[
-        // { label: t('configDialog.auto'), value: '' },
-        { label: t('configDialog.longEdgeBinding'), value: flipWay.longEdgeBinding },
-        { label: t('configDialog.shortEdgeBinding'), value: flipWay.shortEdgeBinding },
-      ]}>
-        {autoConfigFlip && (<Link href='#' onClick={() => {
-          mergeConfig({ autoConfigFlip: false });
-        }}>{t('configDialog.edit')}</Link>)}
-      </FormControl>)
+      (<>
+        <FormControl disabled={autoConfigFlip} label={t('configDialog.flip')} width={'230px'}
+                     onChange={e => {
+                       const flip = e.target.value;
+                       mergeConfig({ flip, autoConfigFlip: (flip === '') });
+                     }}
+                     attrKey={'flip'} type={ControlType.Select} items={[
+          // { label: t('configDialog.auto'), value: '' },
+          { label: t('configDialog.longEdgeBinding'), value: flipWay.longEdgeBinding },
+          { label: t('configDialog.shortEdgeBinding'), value: flipWay.shortEdgeBinding },
+        ]}>
+          <Tooltip title={t('configDialog.flipRemark')}>
+            <HelpIcon />
+          </Tooltip>
+        </FormControl>
+      </>)
     }
     {layoutSides.foldInHalf === sides &&
       (<FormControl label={t('configDialog.foldLine')} width={'145px'} attrKey={'foldLineType'}

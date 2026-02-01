@@ -37,7 +37,7 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
   await waitCondition(() => getPendingList().size() === 0);
   const { Config } = getConfigStore();
 
-  const {avoidDislocation, scale, sides, lineWeight, cutlineColor, foldLineType, offsetX, offsetY, marginX, marginY, bleedX, bleedY, pageNumber, columns, rows, printOffsetX, printOffsetY} = Config;
+  const {avoidDislocation, scale, sides, lineWeight, cutlineColor, foldLineType, offsetX, offsetY, marginX, marginY, bleedX, bleedY, pageNumber, columns, rows, printOffsetX = 0, printOffsetY = 0} = Config;
   const maxWidth = fixFloat(doc.getPageSize().width);
   const maxHeight = fixFloat(doc.getPageSize().height);
   const isFoldInHalf = sides === layoutSides.foldInHalf;
@@ -86,8 +86,30 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
       })
     }
 
-
-    if ((cutline === '1' || cutline === '3')) {
+    // 对折线
+    if(isFoldInHalf && pageData.type !== 'back') {
+      const dashMarks = new Set();
+      foldLineType === '0' && dashMarks.add(`${0},${maxHeight / 2}-${maxWidth},${maxHeight / 2}`);
+      foldLineType === '1' && dashMarks.add(`${maxWidth / 2},${0}-${maxWidth / 2},${maxHeight}`);
+      dashMarks.forEach(nm => {
+        const [loc1, loc2] = nm.split('-');
+        const [x2, y2] = loc2.split(',');
+        const [x1, y1] = loc1.split(',');
+        try {
+          doc.setLineStyle({width: lineWeight * 0.3527, color: cutlineColor});
+          doc.drawLine({
+            x1: parseFloat(x1) + offsetX,
+            y1: parseFloat(y1) + offsetY,
+            x2: parseFloat(x2) + offsetX,
+            y2: parseFloat(y2) + offsetY,
+            dash: [0.5]
+          });
+        } catch (e) {
+        }
+      });
+    }
+    const isFoldInHalfBack = isFoldInHalf && pageData.type === 'back'
+    if ((cutline === '1' || cutline === '3') && !isFoldInHalfBack) {
       //cutline normal
       doc.setLineStyle({width:lineWeight * 0.3527, color:cutlineColor})
       const markRectList = getCutRectangleList(Config, { maxWidth, maxHeight }, true);
@@ -101,22 +123,50 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
       const height = markRectList[0].height;
       xList.forEach((v, vIndex) => {
         const t = vIndex % 2;
-        if(t === 0 || sides !== layoutSides.brochure) {
-          doc.drawLine({x1:v, y1:0, x2:v, y2:minY});
-          doc.drawLine({x1:v, y1:maxHeight, x2:v, y2:maxY + height});
+        // 对贴模式 - 垂直对折时跳过右半部分的垂直线
+        if (sides === layoutSides.foldInHalf && foldLineType === '1' && v >= maxWidth / 2) {
+          return;
         }
-        if(t === 1 || sides !== layoutSides.brochure) {
-          doc.drawLine({x1:v + width, y1:0, x2:v + width, y2:minY});
-          doc.drawLine({x1:v + width, y1:maxHeight, x2:v + width, y2:maxY + height});
+        if (t === 0 || sides !== layoutSides.brochure) {
+          // 水平对折时，跳过下半部分的线段
+          if (!(sides === layoutSides.foldInHalf && foldLineType === '0' && minY >= maxHeight / 2)) {
+            doc.drawLine({x1: v, y1: 0, x2: v, y2: minY});
+          }
+          if (!(sides === layoutSides.foldInHalf && foldLineType === '0' && maxHeight >= maxHeight / 2)) {
+            doc.drawLine({x1: v, y1: maxHeight, x2: v, y2: maxY + height});
+          }
         }
-      })
-      yList.forEach(v => {
-        doc.drawLine({x1:0, y1:v, x2:minX, y2:v});
-        doc.drawLine({x1:0, y1:v + height, x2:minX, y2:v + height});
+        if (t === 1 || sides !== layoutSides.brochure) {
+          // 水平对折时，跳过下半部分的线段
+          if (!(sides === layoutSides.foldInHalf && foldLineType === '0' && minY >= maxHeight / 2)) {
+            doc.drawLine({x1: v + width, y1: 0, x2: v + width, y2: minY});
+          }
+          if (!(sides === layoutSides.foldInHalf && foldLineType === '0' && maxHeight >= maxHeight / 2)) {
+            doc.drawLine({x1: v + width, y1: maxHeight, x2: v + width, y2: maxY + height});
+          }
+        }
+      });
 
-        doc.drawLine({x1:maxWidth, y1:v, x2:maxX + width, y2:v});
-        doc.drawLine({x1:maxWidth, y1:v + height, x2:maxX + width, y2:v + height});
-      })
+      yList.forEach(v => {
+        // 对贴模式 - 水平对折时跳过下半部分的水平线
+        if (sides === layoutSides.foldInHalf && foldLineType === '0' && v >= maxHeight / 2) {
+          return;
+        }
+        // 垂直对折时，跳过右半部分的线段
+        if (!(sides === layoutSides.foldInHalf && foldLineType === '1' && minX >= maxWidth / 2)) {
+          doc.drawLine({x1: 0, y1: v, x2: minX, y2: v});
+        }
+        if (!(sides === layoutSides.foldInHalf && foldLineType === '1' && minX >= maxWidth / 2)) {
+          doc.drawLine({x1: 0, y1: v + height, x2: minX, y2: v + height});
+        }
+        if (!(sides === layoutSides.foldInHalf && foldLineType === '1' && maxWidth >= maxWidth / 2)) {
+          doc.drawLine({x1: maxWidth, y1: v, x2: maxX + width, y2: v});
+        }
+        if (!(sides === layoutSides.foldInHalf && foldLineType === '1' && maxWidth >= maxWidth / 2)) {
+          doc.drawLine({x1: maxWidth, y1: v + height, x2: maxX + width, y2: v + height});
+        }
+      });
+
 
       if (sides === layoutSides.brochure && pageData.type !== 'back') {
         xList.forEach((v, vIndex) => {
@@ -240,30 +290,6 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
         // 右下角
         doc.drawLine({x1: r.x - crossLength + r.width, y1: r.y + r.height, x2: r.x + crossLength + r.width, y2: r.y + r.height});
         doc.drawLine({x1: r.x + r.width, y1: r.y - crossLength + r.height, x2: r.x + r.width, y2: r.y + crossLength + r.height});
-      });
-    }
-
-
-
-    // 对折线
-    if(isFoldInHalf && pageData.type !== 'back') {
-      const dashMarks = new Set();
-      foldLineType === '0' && dashMarks.add(`${0},${maxHeight / 2}-${maxWidth},${maxHeight / 2}`);
-      foldLineType === '1' && dashMarks.add(`${maxWidth / 2},${0}-${maxWidth / 2},${maxHeight}`);
-      dashMarks.forEach(nm => {
-        const [loc1, loc2] = nm.split('-');
-        const [x2, y2] = loc2.split(',');
-        const [x1, y1] = loc1.split(',');
-        try {
-          doc.drawLine({
-            x1: parseFloat(x1) + offsetX,
-            y1: parseFloat(y1) + offsetY,
-            x2: parseFloat(x2) + offsetX,
-            y2: parseFloat(y2) + offsetY,
-            dash: [0.5]
-          });
-        } catch (e) {
-        }
       });
     }
 

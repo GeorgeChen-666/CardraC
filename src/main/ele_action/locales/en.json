@@ -11,10 +11,13 @@
   },
   "button": {
     "next": "Next",
+    "prev": "Previous",
     "close": "Close",
     "OK": "OK",
+    "cancel": "Cancel",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "print": "Print"
   },
   "toolbar" : {
     "btnAdd" : "Create a New PNP File.",
@@ -32,6 +35,7 @@
     "zoomOut": "Zoom Out",
     "zoomIn": "Zoom In",
     "zoomFix": "Fit Window",
+    "print": "Print",
     "compressMenu": {
       "compressLevelDesc": "None|Mild|General|Strong|Very Strong",
       "fixPath": "Fix Path",
@@ -92,6 +96,7 @@
     "foldInHalfMargin": "Fold In Half Margin",
     "bleed": "Bleed",
     "scale": "Scale",
+    "scaleXY": "Scale X / Y",
     "columns_rows": "Rows / Columns",
     "fCutLine": "Front CutLine",
     "bCutLine": "Back CutLine",
@@ -119,10 +124,36 @@
     "brochureRepeatPerPage": "Repeat Per Page",
     "reloadImageFinish": "Reload Finish!",
     "saveCurrentConfig": "Save Current Config",
-    "clickMenuLoadConfig": "Click Menu Item To Load Config"
+    "clickMenuLoadConfig": "Click Menu Item To Load Config",
+    "flipRemark": "It is recommended to observe the neatness of the entire pack of paper before printing, and choose the edges with relatively consistent sizes as the axis for flipping (generally, the long edges are neater than the short edges). This way, even if the paper sizes are not standard, the printing offsets will be relatively consistent, making calibration easier."
+  },
+  "configPrintDialog": {
+    "pageRange": "Pages",
+    "printFilter": "Print Filter",
+    "printFilter_all": "All",
+    "printFilter_odd": "Odd",
+    "printFilter_even": "Even",
+    "printParams": "More Settings",
+    "adjustOffsetGuide": "Adjust Offset Guide",
+    "guideStep1_title": "Prepare Paper and Print",
+    "guideStep1_body": "Place a sheet of paper intended for formal printing into the printer. And prepare a ruler for measurement.",
+    "guideStep1_button1": "Start Printing",
+    "guideStep1_button2": "Skip This Step",
+    "guideStep2_title": "Measure Spacing",
+    "guideStep2_body": "Get printing paper and measure distance from each line to paper edge:",
+    "guideStep2_body_field1": "Top-left red line to paper left",
+    "guideStep2_body_field2": "Top-right blue line to paper top",
+    "guideStep2_body_field3": "Bottom-right purple line to paper right",
+    "guideStep2_body_field4": "Bottom-left cyan line to paper bottom",
+    "guideStep2_button1": "Completed",
+    "guideStep3_title": "Apply offset",
+    "guideStep3_body": "The offset is about to be set: OffsetX {{x}}, OffsetY {{y}}",
+    "guideStep3_button1": "Apply"
   },
   "footer": {
     "files": "Files",
-    "images": "Images"
+    "images": "Images",
+    "editView": "Edit View",
+    "previewView": "Preview View"
   }
 }

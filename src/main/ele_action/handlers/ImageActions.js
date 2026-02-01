@@ -4,8 +4,13 @@ import fs from 'fs';
 
 import { getConfigStore, readCompressedImage } from '../functions';
 import { eleActions, layoutSides } from '../../../shared/constants';
-import { getPagedImageListByCardList, ImageStorage, OverviewStorage } from './file_render/Utils';
-import { SVGAdapter } from './file_render/adapter/SVGAdapter';
+import {
+  clearPrerenderCache,
+  getPagedImageListByCardList,
+  ImageStorage,
+  OverviewStorage,
+  prerenderPage,
+} from './file_render/Utils';
 import { colorCache, exportFile } from './file_render';
 
 // 配置日志
@@ -51,57 +56,7 @@ const pathToImageData = async (path, cb) => {
 }
 
 
-// 在文件顶部添加缓存
-const previewCache = new Map(); // 存储已完成的预览
-const previewTasks = new Map(); // 存储进行中的任务
 
-
-// 预渲染函数
-async function prerenderPage(pageIndex, state, Config) {
-  const cacheKey = `${pageIndex}`;
-
-  if (previewCache.has(cacheKey)) {
-    console.log(`📦 Page ${pageIndex + 1}: Loaded from cache`);
-    return previewCache.get(cacheKey);
-  }
-
-  if (previewTasks.has(cacheKey)) {
-    console.log(`⏳ Page ${pageIndex + 1}: Waiting for existing render task`);
-    return previewTasks.get(cacheKey);
-  }
-
-  const task = (async () => {
-    //开始计时
-    const startTime = performance.now();
-    console.log(`🎨 Page ${pageIndex + 1}: Starting render...`);
-
-    try {
-      const doc = new SVGAdapter(Config, 'low', true);
-      const svgString = await exportFile(doc, state, [pageIndex]);
-
-      const result = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
-
-      //结束计时
-      const endTime = performance.now();
-      const duration = (endTime - startTime).toFixed(2);
-      console.log(`Page ${pageIndex + 1}: Rendered in ${duration}ms`);
-
-      previewCache.set(cacheKey, result);
-      return result;
-    } catch (error) {
-      //错误也记录时间
-      const endTime = performance.now();
-      const duration = (endTime - startTime).toFixed(2);
-      console.error(`Page ${pageIndex + 1}: Failed after ${duration}ms`, error);
-      throw error;
-    } finally {
-      previewTasks.delete(cacheKey);
-    }
-  })();
-
-  previewTasks.set(cacheKey, task);
-  return task;
-}
 
 
 
@@ -132,7 +87,7 @@ export default (mainWindow) => {
     const totalPages = isFoldInHalf ? pagedImageList.length / 2 : pagedImageList.length;
 
     // 获取当前页
-    const result = await prerenderPage(actualIndex, state, Config);
+    const result = await prerenderPage(actualIndex, state, Config, exportFile, 'exportFile');
 
     const requestEndTime = performance.now();
     const totalDuration = (requestEndTime - requestStartTime).toFixed(2);
@@ -143,7 +98,7 @@ export default (mainWindow) => {
     for (let i = 1; i <= 3; i++) {
       const nextIndex = actualIndex + i;
       if (nextIndex < totalPages) {
-        prerenderPage(nextIndex, state, Config).catch(err => {
+        prerenderPage(nextIndex, state, Config, exportFile, 'exportFile').catch(err => {
           console.error(`Failed to prerender page ${nextIndex + 1}:`, err);
         });
       }
@@ -155,8 +110,7 @@ export default (mainWindow) => {
 
 // 清除缓存
   ipcMain.handle(eleActions.clearPreviewCache, async () => {
-    previewCache.clear();
-    previewTasks.clear();
+    clearPrerenderCache();
     console.log('Preview cache cleared');
     return { success: true };
   });

@@ -11,10 +11,13 @@
   },
   "button": {
     "next": "下一步",
+    "prev": "上一步",
     "close": "关闭",
-    "OK": "OK",
+    "OK": "确定",
+    "cancel": "取消",
     "yes": "是",
-    "no": "否"
+    "no": "否",
+    "print": "打印"
   },
   "toolbar" : {
     "btnAdd" : "创建pnp文件。",
@@ -32,6 +35,7 @@
     "zoomOut": "缩小",
     "zoomIn": "放大",
     "zoomFix": "适应窗口",
+    "print": "打印",
     "compressMenu": {
       "compressLevelDesc": "无|轻微|一般|较强|强力",
       "fixPath": "修正路径",
@@ -92,6 +96,7 @@
     "foldInHalfMargin": "对贴间距",
     "bleed": "出血尺寸",
     "scale": "放缩",
+    "scaleXY": "横纵放缩",
     "columns_rows": "行/列",
     "fCutLine": "前切割线",
     "bCutLine": "后切割线",
@@ -119,10 +124,36 @@
     "brochureRepeatPerPage": "在每页中重复",
     "reloadImageFinish": "加载完成！",
     "saveCurrentConfig": "保存当前配置",
-    "clickMenuLoadConfig": "点击菜单项加载模板"
+    "clickMenuLoadConfig": "点击菜单项加载模板",
+    "flipRemark": "建议打印前观察整包纸的整齐程度，选择尺寸比较一致的边作为轴来翻面（一般都是长边比短边更整齐）。这样即使纸张尺寸不标准，打印的偏移也会比较一致，比较好校准。"
+  },
+  "configPrintDialog": {
+    "pageRange": "页面起止",
+    "printFilter": "打印范围",
+    "printFilter_all": "全部",
+    "printFilter_odd": "奇数页",
+    "printFilter_even": "偶数页",
+    "printParams": "打印参数",
+    "adjustOffsetGuide": "偏移修正向导",
+    "guideStep1_title": "准备纸张并打印",
+    "guideStep1_body": "将1张用于正式打印的纸张放入打印机。并准备一根直尺用于测量。",
+    "guideStep1_button1": "开始打印",
+    "guideStep1_button2": "跳过此步",
+    "guideStep2_title": "测量间距",
+    "guideStep2_body": "取出打印纸，分别测量：",
+    "guideStep2_body_field1": "左上角红线到纸张左边的距离",
+    "guideStep2_body_field2": "右上角蓝线到纸张顶边的距离",
+    "guideStep2_body_field3": "右下角紫线到纸张右边的距离",
+    "guideStep2_body_field4": "左下角青线到纸张底边的距离",
+    "guideStep2_button1": "测量完成",
+    "guideStep3_title": "应用偏移量",
+    "guideStep3_body": "需要设定偏移：横向{{x}}，纵向{{y}}",
+    "guideStep3_button1": "应用结果"
   },
   "footer": {
     "files": "文件数",
-    "images": "卡牌数"
+    "images": "卡牌数",
+    "editView": "编辑视图",
+    "previewView": "预览视图"
   }
 }

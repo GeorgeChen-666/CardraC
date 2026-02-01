@@ -19,17 +19,23 @@ export const withConfirmation = (WrappedComponent) => {
     const [open, setOpen] = React.useState(false);
     const [clickArgs, setClickArgs] = React.useState(null);
 
-    const handleOpen = (...args) => {
-      setClickArgs(args);
+    const handleOpen = (e,...args) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setClickArgs([e,...args]);
       setOpen(true);
     };
 
-    const handleClose = () => {
+    const handleClose = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       setOpen(false);
       setClickArgs(null);
     };
 
-    const handleConfirm = () => {
+    const handleConfirm = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       if (typeof onClick === 'function' && clickArgs) {
         onClick(...clickArgs);
       }
