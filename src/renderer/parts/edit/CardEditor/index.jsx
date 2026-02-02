@@ -1,0 +1,231 @@
+import React, { memo, useMemo } from 'react';
+import Card from '@mui/material/Card';
+import '../CardList/styles.css';
+import { useDrag, useDrop } from 'react-dnd';
+import { useTranslation } from 'react-i18next';
+import { getImageSrc, openImage } from '../../../functions';
+import { layoutSides } from '../../../../shared/constants';
+import { useGlobalStore } from '../../../state/store';
+import Menu from '@mui/material/Menu';
+import Stack from '@mui/material/Stack';
+import MenuItem from '@mui/material/MenuItem';
+import { CardImage } from './CardImage';
+import { CardToolbar } from './CardToolbar';
+import { CardFooter } from './CardFooter';
+import { useEvent } from './useEvent';
+
+const useMenuState = (items) => {
+  const [anchorEl, setAnchorEl] = React.useState(null);
+  const open = Boolean(anchorEl);
+
+  const onOpen = useEvent((event) => {
+    event?.stopPropagation?.();
+    setAnchorEl(event.currentTarget);
+  });
+
+  const onClose = useEvent(() => {
+    setAnchorEl(null);
+  });
+
+  return {
+    onOpen,
+    MenuElement: (
+      <Menu anchorEl={anchorEl} open={open} onClose={onClose}>
+        {items.map((option) => (
+          <MenuItem
+            key={option.label}
+            onClick={(e) => {
+              e.stopPropagation();
+              option?.onClick?.();
+              onClose();
+            }}
+          >
+            {option.label}
+          </MenuItem>
+        ))}
+      </Menu>
+    ),
+  };
+};
+
+export default memo(({ data, dialogCardSettingRef, index }) => {
+  const { t } = useTranslation();
+  const {
+    cardEditById, cardRemoveByIds, cardSelect,
+    cardShiftSelect, cardCtrlSelect, dragHoverMove, dragCardsMove
+  } = useGlobalStore.getState();
+
+  const { Config, Global, CardList } = useGlobalStore.selectors;
+  const sides = Config.sides();
+  const selected = CardList[index].selected() || false;
+  const isBackEditing = Global.isBackEditing();
+  const bleedConfig = data?.config?.bleed;
+
+  const handleSwap = useEvent((e) => {
+    e.stopPropagation();
+    cardEditById({ id: data.id, face: data.back, back: data.face });
+  });
+
+  const handleSelect = useEvent((event) => {
+    if (event.type === 'change' ||
+      event.target.nodeName.toLowerCase() === 'svg' ||
+      event.target.classList.contains('MuiBackdrop-root')) return;
+
+    if (event.shiftKey) {
+      cardShiftSelect(data.id);
+    } else if (event.ctrlKey || event.target.type === 'checkbox') {
+      cardCtrlSelect(data.id);
+    } else {
+      cardSelect(data.id);
+    }
+  });
+
+  const handleRemove = useEvent((e) => {
+    e.stopPropagation();
+    cardRemoveByIds([data.id]);
+  });
+
+  const handleDragStart = useEvent((e) => {
+    e.stopPropagation();
+    if (!selected) {
+      cardSelect(data.id);
+    }
+  });
+
+  const handleRepeatChange = useEvent(($, value) => {
+    cardEditById({ id: data.id, repeat: isNaN(value) ? 1 : value });
+  });
+
+  const handleMenuOpen = useEvent((e) => {
+    e.stopPropagation();
+    if (!selected) {
+      cardSelect(data.id);
+    }
+    onOpen(e);
+  });
+
+  // ✅ 缓存菜单项
+  const menuItems = useMemo(() => [
+    {
+      label: t('cardEditor.face'),
+      onClick: async () => {
+        const filePath = await openImage('setCardFace');
+        cardEditById({ id: data.id, face: filePath });
+      },
+    },
+    {
+      label: t('cardEditor.clearFace'),
+      onClick: () => {
+        cardEditById({ id: data.id, face: null });
+      },
+    },
+    ...(sides === layoutSides.brochure ? [] : [
+      {
+        label: t('cardEditor.back'),
+        onClick: async () => {
+          const filePath = await openImage('setCardFace');
+          cardEditById({ id: data.id, back: filePath });
+        },
+      },
+      {
+        label: t('cardEditor.clearBack'),
+        onClick: () => {
+          cardEditById({ id: data.id, back: null });
+        },
+      },
+      {
+        label: t('cardEditor.spicalConfig'),
+        onClick: () => {
+          dialogCardSettingRef.current.openDialog([data.id]);
+        },
+      }
+    ]),
+  ], [sides, data.id, t]);
+
+  const { onOpen, MenuElement } = useMenuState(menuItems);
+
+  // ✅ 缓存图片 URL
+  const faceUrl = useMemo(() => getImageSrc(data?.face), [data?.face]);
+  const backUrl = useMemo(() => getImageSrc(data?.back), [data?.back]);
+
+  // ✅ 缓存计算结果
+  const isShowBack = useMemo(() =>
+      [layoutSides.doubleSides, layoutSides.foldInHalf].includes(sides),
+    [sides]
+  );
+
+  const [, dropRef] = useDrop({
+    accept: 'Card',
+    hover({ id: draggedId }) {
+      if (draggedId !== data.id) {
+        dragHoverMove(index);
+      }
+    },
+    drop: dragCardsMove,
+  });
+
+  const [{ isDragging }, dragRef, previewRef] = useDrag({
+    item: { id: data.id, originalIndex: index },
+    isDragging: (monitor) => selected || monitor.getItem().id === data.id,
+    type: 'Card',
+    collect: (monitor) => ({ isDragging: monitor.isDragging() }),
+  });
+
+  return (
+    <Card
+      ref={node => previewRef(dropRef(node))}
+      sx={{ display: isDragging ? 'none' : 'unset' }}
+      className={'Card'}
+      onClick={handleSelect}
+    >
+      <CardToolbar
+        index={index}
+        onSwap={handleSwap}
+        onMenuOpen={handleMenuOpen}
+        onDragStart={handleDragStart}
+        dragRef={dragRef}
+      />
+      {MenuElement}
+
+      <div className={'CardMain'}>
+        <Stack direction='row' justifyContent={'space-between'}>
+          <CardImage
+            imageSrc={faceUrl}
+            path={data?.face?.path}
+            isBackEditing={isBackEditing}
+            isFace={true}
+          />
+          {isShowBack && (
+            <CardImage
+              imageSrc={backUrl}
+              path={data?.back?.path}
+              isBackEditing={isBackEditing}
+              isFace={false}
+            />
+          )}
+        </Stack>
+      </div>
+
+      <CardFooter
+        selected={selected}
+        onSelectChange={handleSelect}
+        bleedConfig={bleedConfig}
+        sides={sides}
+        repeat={data.repeat}
+        onRepeatChange={handleRepeatChange}
+        onRemove={handleRemove}
+        t={t}
+      />
+    </Card>
+  );
+}, (prev, next) => {
+  return (
+    prev.data.id === next.data.id &&
+    prev.data.face === next.data.face &&
+    prev.data.back === next.data.back &&
+    prev.data.repeat === next.data.repeat &&
+    prev.data.config?.bleed === next.data.config?.bleed &&
+    prev.index === next.index &&
+    prev.data.selected === next.data.selected
+  );
+});

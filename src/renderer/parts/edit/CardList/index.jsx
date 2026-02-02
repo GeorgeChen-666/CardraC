@@ -2,10 +2,10 @@ import React, { useRef, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import Card from './Card';
+import Card from '../CardEditor';
 import CardDropTarget from './CardDropTarget';
 import AddCard from './AddCard';
-import { CardSettingDialog } from '../CardSetting/CardSettingDialog';
+import { CardSettingDialog } from '../CardEditor/CardSettingDialog';
 import { useGlobalStore } from '../../../state/store';
 
 export const CardList = () => {
@@ -15,7 +15,6 @@ export const CardList = () => {
   const CardList = useGlobalStore(state => state.CardList);
   const dragHoverCancel = useGlobalStore(state => state.dragHoverCancel);
 
-  // ✅ 计算每行可以显示多少卡牌
   const [containerWidth, setContainerWidth] = React.useState(0);
   const cardWidth = 225; // 单个卡牌宽度（根据实际调整）
   const cardHeight = 282; // 单个卡牌高度（根据实际调整）
@@ -23,7 +22,6 @@ export const CardList = () => {
 
   const cardsPerRow = Math.max(1, Math.floor((containerWidth + gap) / (cardWidth + gap)));
 
-  // ✅ 监听容器宽度变化
   React.useEffect(() => {
     if (!parentRef.current) return;
 
