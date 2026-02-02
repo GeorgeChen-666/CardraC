@@ -8,14 +8,10 @@ export const defaultImageStorage = {
 };
 
 export const ImageStorage = new SmartStorage('ImageStorage', {
-  maxMemorySize: 50,  // 内存中最多保留 50 张高质量图片
-  useDiskCache: true   // 启用磁盘缓存
+  maxMemorySize: 100,  // 内存中最多保留 100 张高质量图片
 });
 
-export const OverviewStorage = new SmartStorage('OverviewStorage', {
-  maxMemorySize: 200,  // 内存中最多保留 200 张缩略图
-  useDiskCache: false  // 缩略图不使用磁盘缓存（已经很小了）
-});
+export const OverviewStorage = new SmartStorage('OverviewStorage');
 
 // 初始化默认图片
 ImageStorage['_emptyImg'] = defaultImageStorage['_emptyImg'];

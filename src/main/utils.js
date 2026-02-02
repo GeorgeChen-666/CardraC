@@ -1,8 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import { app } from 'electron';
+
 /**
- * LRU 缓存实现
+ * LRU 缓存
  */
 class LRUCache {
   constructor(maxSize = 100) {
@@ -15,28 +16,21 @@ class LRUCache {
     if (!this.cache.has(key)) {
       return undefined;
     }
-
-    // 更新访问顺序
     this.accessOrder = this.accessOrder.filter(k => k !== key);
     this.accessOrder.push(key);
-
     return this.cache.get(key);
   }
 
   set(key, value) {
-    // 如果已存在，先删除
     if (this.cache.has(key)) {
       this.accessOrder = this.accessOrder.filter(k => k !== key);
     }
-
-    // 如果超过容量，删除最久未使用的
-    if (this.cache.size >= this.maxSize) {
-      const oldestKey = this.accessOrder.shift();
-      this.cache.delete(oldestKey);
-    }
-
     this.cache.set(key, value);
     this.accessOrder.push(key);
+  }
+
+  getLRUKeys(count) {
+    return this.accessOrder.slice(0, count);
   }
 
   has(key) {
@@ -63,20 +57,30 @@ class LRUCache {
 }
 
 /**
- * 磁盘缓存管理器
+ * 磁盘缓存（优化版）
  */
 class DiskCache {
   constructor(cacheDir) {
-    this.cacheDir = cacheDir;
+    const processId = process.pid;
+    this.cacheDir = path.join(cacheDir, `pid-${processId}`);
+    this.baseCacheDir = cacheDir;
 
-    // 确保缓存目录存在
     if (!fs.existsSync(this.cacheDir)) {
       fs.mkdirSync(this.cacheDir, { recursive: true });
     }
+
+    // 写入队列
+    this.writeQueue = [];
+    this.isWriting = false;
+    this.maxBatchSize = 20;
+
+    console.log(`📁 DiskCache initialized at: ${this.cacheDir}`);
+
+    this.cleanupOldCaches();
+    this.registerCleanupOnExit();
   }
 
   getCachePath(key) {
-    // 使用 key 的 hash 作为文件名，避免特殊字符问题
     const hash = Buffer.from(key).toString('base64')
       .replace(/\//g, '_')
       .replace(/\+/g, '-')
@@ -84,33 +88,87 @@ class DiskCache {
     return path.join(this.cacheDir, `${hash}.cache`);
   }
 
-  async get(key) {
+  get(key) {
     const cachePath = this.getCachePath(key);
-
     try {
       if (fs.existsSync(cachePath)) {
-        return fs.readFileSync(cachePath, 'utf-8');
+        const buffer = fs.readFileSync(cachePath);
+
+        // 检查是否是原始 Buffer（优化后的格式）
+        if (buffer[0] === 0xFF && buffer[1] === 0xD8) {
+          // JPEG magic number
+          return `data:image/jpeg;base64,${buffer.toString('base64')}`;
+        } else if (buffer[0] === 0x89 && buffer[1] === 0x50) {
+          // PNG magic number
+          return `data:image/png;base64,${buffer.toString('base64')}`;
+        } else if (buffer[0] === 0x52 && buffer[1] === 0x49) {
+          // WEBP magic number
+          return `data:image/webp;base64,${buffer.toString('base64')}`;
+        } else {
+          // 旧格式（UTF-8 字符串）
+          return buffer.toString('utf-8');
+        }
       }
     } catch (error) {
       console.error(`Failed to read disk cache for ${key}:`, error);
     }
-
     return undefined;
   }
 
-  async set(key, value) {
-    const cachePath = this.getCachePath(key);
+  set(key, value) {
+    return new Promise((resolve, reject) => {
+      this.writeQueue.push({ key, value, resolve, reject });
+      this.processWriteQueue();
+    });
+  }
+
+  async processWriteQueue() {
+    if (this.isWriting || this.writeQueue.length === 0) {
+      return;
+    }
+
+    this.isWriting = true;
 
     try {
-      fs.writeFileSync(cachePath, value, 'utf-8');
-    } catch (error) {
-      console.error(`Failed to write disk cache for ${key}:`, error);
+      while (this.writeQueue.length > 0) {
+        const batch = this.writeQueue.splice(0, this.maxBatchSize);
+
+        await Promise.all(
+          batch.map(async ({ key, value, resolve, reject }) => {
+            try {
+              const cachePath = this.getCachePath(key);
+
+              let buffer;
+              if (value.startsWith('data:image/')) {
+                const base64Data = value.split(',')[1];
+                buffer = Buffer.from(base64Data, 'base64');
+              } else {
+                buffer = Buffer.from(value, 'utf-8');
+              }
+
+              await fs.promises.writeFile(cachePath, buffer);
+              resolve();
+
+            } catch (error) {
+              console.error(`Failed to write disk cache for ${key}:`, error);
+              reject(error);
+            }
+          })
+        );
+
+        await new Promise(r => setImmediate(r));
+      }
+    } finally {
+      this.isWriting = false;
+
+      if (this.writeQueue.length > 0) {
+        this.processWriteQueue();
+      }
     }
   }
 
   delete(key) {
     const cachePath = this.getCachePath(key);
-
     try {
       if (fs.existsSync(cachePath)) {
         fs.unlinkSync(cachePath);
@@ -122,111 +180,203 @@ class DiskCache {
 
   clear() {
     try {
-      const files = fs.readdirSync(this.cacheDir);
-      files.forEach(file => {
-        fs.unlinkSync(path.join(this.cacheDir, file));
-      });
+      if (fs.existsSync(this.cacheDir)) {
+        const files = fs.readdirSync(this.cacheDir);
+        files.forEach(file => {
+          fs.unlinkSync(path.join(this.cacheDir, file));
+        });
+      }
     } catch (error) {
       console.error('Failed to clear disk cache:', error);
+    }
+  }
+
+  cleanupOldCaches() {
+    try {
+      if (!fs.existsSync(this.baseCacheDir)) return;
+
+      const entries = fs.readdirSync(this.baseCacheDir, { withFileTypes: true });
+      const currentPid = process.pid;
+
+      entries.forEach(entry => {
+        if (!entry.isDirectory()) return;
+
+        const match = entry.name.match(/^pid-(\d+)$/);
+        if (!match) return;
+
+        const pid = parseInt(match[1], 10);
+        if (pid === currentPid) return;
+
+        if (!this.isProcessRunning(pid)) {
+          const oldCacheDir = path.join(this.baseCacheDir, entry.name);
+          console.log(`🗑️ Cleaning up old cache from PID ${pid}`);
+
+          try {
+            this.removeDirectory(oldCacheDir);
+          } catch (error) {
+            console.error(`Failed to cleanup old cache for PID ${pid}:`, error);
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Failed to cleanup old caches:', error);
+    }
+  }
+
+  isProcessRunning(pid) {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch (error) {
+      return error.code !== 'ESRCH';
+    }
+  }
+
+  removeDirectory(dirPath) {
+    if (!fs.existsSync(dirPath)) return;
+
+    const files = fs.readdirSync(dirPath);
+
+    files.forEach(file => {
+      const filePath = path.join(dirPath, file);
+      const stat = fs.statSync(filePath);
+
+      if (stat.isDirectory()) {
+        this.removeDirectory(filePath);
+      } else {
+        fs.unlinkSync(filePath);
+      }
+    });
+
+    fs.rmdirSync(dirPath);
+  }
+
+  registerCleanupOnExit() {
+    const cleanup = () => {
+      console.log(`🗑️ Cleaning up cache on exit`);
+      try {
+        this.removeDirectory(this.cacheDir);
+      } catch (error) {
+        console.error('Failed to cleanup cache on exit:', error);
+      }
+    };
+
+    app.on('before-quit', cleanup);
+    process.on('exit', cleanup);
+    process.on('SIGINT', () => {
+      cleanup();
+      process.exit(0);
+    });
+    process.on('SIGTERM', () => {
+      cleanup();
+      process.exit(0);
+    });
+  }
+
+  getCacheSize() {
+    try {
+      if (!fs.existsSync(this.cacheDir)) return 0;
+
+      const files = fs.readdirSync(this.cacheDir);
+      let totalSize = 0;
+
+      files.forEach(file => {
+        const filePath = path.join(this.cacheDir, file);
+        const stats = fs.statSync(filePath);
+        totalSize += stats.size;
+      });
+
+      return totalSize;
+    } catch (error) {
+      console.error('Failed to get cache size:', error);
+      return 0;
     }
   }
 }
 
 /**
- * 智能存储代理
+ * 智能存储
  */
-// src/main/ele_action/handlers/file_render/ImageStorageCache.js
-
-class SmartStorage {
+export class SmartStorage {
   constructor(name, options = {}) {
     this.name = name;
-    this.memoryCache = new LRUCache(options.maxMemorySize || 50);
-    this.useDiskCache = options.useDiskCache || false;
-    this._diskCache = null;
     this.allKeys = new Set();
 
-    // ✅ 新增：跟踪正在写入磁盘的 key
-    this.pendingDiskWrites = new Set();
+    if (options.maxMemorySize !== undefined) {
+      this.maxMemorySize = options.maxMemorySize;
+      this.useDiskCache = true;
+    } else {
+      this.maxMemorySize = 1000;
+      this.useDiskCache = true;
+    }
+
+    this._diskCache = null;
+    this.targetMemorySize = this.maxMemorySize;
+    this.compactionThreshold = Math.floor(this.maxMemorySize * 1.5);
+    this.isCompacting = false;
+    this.protectedKeys = new Set();
+    this.keysOnDisk = new Set();
+    this.memoryCache = new LRUCache(this.maxMemorySize);
 
     return new Proxy(this, {
       get: (target, prop) => {
-        if (prop === 'toJSON') {
-          return () => target.toPlainObject();
-        }
-
-        if (prop === 'constructor' || prop === 'prototype') {
-          return target[prop];
-        }
-
-        if (typeof target[prop] === 'function') {
-          return target[prop].bind(target);
-        }
-
+        if (prop === 'toJSON') return () => target.toPlainObject();
+        if (prop === 'constructor' || prop === 'prototype') return target[prop];
+        if (typeof target[prop] === 'function') return target[prop].bind(target);
         return target.get(prop);
       },
-
       set: (target, prop, value) => {
+        if (value instanceof Promise) {
+          console.error(`❌ Cannot store Promise for key: ${prop}`);
+          throw new Error(`Cannot store Promise for key: ${prop}`);
+        }
         target.set(prop, value);
         return true;
       },
-
       deleteProperty: (target, prop) => {
         target.delete(prop);
         return true;
       },
-
-      has: (target, prop) => {
-        return target.has(prop);
-      },
-
-      ownKeys: (target) => {
-        return Array.from(target.allKeys);
-      },
-
+      has: (target, prop) => target.has(prop),
+      ownKeys: (target) => Array.from(target.allKeys),
       getOwnPropertyDescriptor: (target, prop) => {
         if (target.has(prop)) {
-          return {
-            enumerable: true,
-            configurable: true,
-          };
+          return { enumerable: true, configurable: true };
         }
       }
     });
   }
 
   get diskCache() {
-    if (this.useDiskCache && !this._diskCache) {
-      this._diskCache = new DiskCache(this.name);
+    if (!this._diskCache) {
+      const appDataPath = app.getPath('appData');
+      const cachePath = path.join(appDataPath, 'cardrac', 'cache', this.name);
+      this._diskCache = new DiskCache(cachePath);
     }
     return this._diskCache;
   }
 
   get(key) {
-    // 1. 先从内存缓存获取
     if (this.memoryCache.has(key)) {
-      return this.memoryCache.get(key);
+      const value = this.memoryCache.get(key);
+      if (value instanceof Promise) {
+        console.error(`❌ Found Promise in memory cache for key: ${key}`);
+        return undefined;
+      }
+      return value;
     }
 
-    // 2. 从磁盘缓存获取
-    if (this.diskCache) {
-      try {
-        // ✅ 检查是否正在写入磁盘
-        if (this.pendingDiskWrites.has(key)) {
-          // 正在写入，返回 undefined（或等待写入完成）
-          return undefined;
-        }
-
-        const value = this.diskCache.get(key);
-        if (value) {
-          // 重新加载到内存缓存
-          this.memoryCache.set(key, value);
-          return value;
-        }
-      } catch (error) {
-        // ✅ 磁盘读取失败时，不抛出错误，只记录日志
-        if (error.code !== 'ENOENT') {
-          console.error(`Failed to get from disk cache for key ${key}:`, error);
-        }
+    try {
+      const value = this.diskCache.get(key);
+      if (value) {
+        this.memoryCache.set(key, value);
+        this.keysOnDisk.add(key);
+        this.checkAndStartCompaction();
+        return value;
+      }
+    } catch (error) {
+      if (error.code !== 'ENOENT') {
+        console.error(`Failed to get from disk cache for key ${key}:`, error);
       }
     }
 
@@ -236,47 +386,100 @@ class SmartStorage {
   set(key, value) {
     this.allKeys.add(key);
     this.memoryCache.set(key, value);
-
-    // 异步存入磁盘缓存
-    if (this.diskCache) {
-      // ✅ 标记为正在写入
-      this.pendingDiskWrites.add(key);
-
-      setImmediate(async () => {
-        try {
-          await this.diskCache.set(key, value);
-        } catch (error) {
-          console.error(`Failed to set disk cache for key ${key}:`, error);
-        } finally {
-          // ✅ 写入完成，移除标记
-          this.pendingDiskWrites.delete(key);
-        }
-      });
-    }
-  }
-
-  has(key) {
-    return this.allKeys.has(key);
+    // ✅ 不需要 this.keysOnDisk.delete(key)
+    this.checkAndStartCompaction();
   }
 
   delete(key) {
     this.allKeys.delete(key);
     this.memoryCache.delete(key);
-    this.pendingDiskWrites.delete(key);
+    this.protectedKeys.delete(key);
+    this.keysOnDisk.delete(key);
+    this.diskCache.delete(key);
+  }
 
-    if (this.diskCache) {
-      this.diskCache.delete(key);
+  checkAndStartCompaction() {
+    if (this.isCompacting) return;
+
+    if (this.memoryCache.size > this.compactionThreshold) {
+      console.log(`📊 Memory: ${this.memoryCache.size} > ${this.compactionThreshold}, starting compaction...`);
+      this.startBackgroundCompaction();
+    }
+  }
+
+  async startBackgroundCompaction() {
+    if (this.isCompacting) return;
+
+    this.isCompacting = true;
+    console.log(`🔄 Compaction started (current: ${this.memoryCache.size}, target: ${this.targetMemorySize})`);
+
+    try {
+      let evictedCount = 0;
+      let skippedCount = 0;
+
+      while (this.memoryCache.size > this.targetMemorySize) {
+        const lruKeys = this.memoryCache.getLRUKeys(10);
+        if (lruKeys.length === 0) break;
+
+        const keysToEvict = lruKeys.filter(key => {
+          if (this.protectedKeys.has(key)) return false;
+
+          if (this.keysOnDisk.has(key)) {
+            this.memoryCache.delete(key);
+            skippedCount++;
+            return false;
+          }
+
+          return true;
+        });
+
+        if (keysToEvict.length === 0 && skippedCount === 0) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          continue;
+        }
+
+        await Promise.all(
+          keysToEvict.map(async (key) => {
+            try {
+              const value = this.memoryCache.cache.get(key);
+              if (!value) return;
+
+              this.protectedKeys.add(key);
+              await this.diskCache.set(key, value);
+              this.keysOnDisk.add(key);
+              this.memoryCache.delete(key);
+              evictedCount++;
+
+            } catch (error) {
+              console.error(`Failed to evict key ${key}:`, error);
+            } finally {
+              this.protectedKeys.delete(key);
+            }
+          })
+        );
+
+        await new Promise(resolve => setImmediate(resolve));
+      }
+
+      console.log(`✅ Compaction done. Evicted ${evictedCount} items, Skipped ${skippedCount} items. Current: ${this.memoryCache.size}`);
+
+    } catch (error) {
+      console.error('❌ Compaction failed:', error);
+    } finally {
+      this.isCompacting = false;
     }
   }
 
   clear() {
     this.allKeys.clear();
     this.memoryCache.clear();
-    this.pendingDiskWrites.clear();
+    this.protectedKeys.clear();
+    this.keysOnDisk.clear();
+    this.diskCache.clear();
+  }
 
-    if (this.diskCache) {
-      this.diskCache.clear();
-    }
+  has(key) {
+    return this.allKeys.has(key);
   }
 
   keys() {
@@ -287,30 +490,48 @@ class SmartStorage {
     return this.allKeys.size;
   }
 
-  // ✅ 改进：toPlainObject 只从内存和磁盘获取已存在的数据
-  toPlainObject() {
-    const obj = {};
+  async waitForCompaction() {
+    while (this.isCompacting) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+  }
 
+  async toPlainObjectAsync() {
+    await this.waitForCompaction();
+    const obj = {};
     for (const key of this.allKeys) {
-      // 优先从内存获取
       if (this.memoryCache.has(key)) {
         obj[key] = this.memoryCache.get(key);
-      } else if (this.diskCache) {
-        // 从磁盘获取（如果存在）
+      } else {
         try {
           const value = this.diskCache.get(key);
-          if (value) {
-            obj[key] = value;
-          }
+          if (value) obj[key] = value;
         } catch (error) {
-          // ✅ 忽略不存在的文件
           if (error.code !== 'ENOENT') {
             console.error(`Failed to read disk cache for key ${key}:`, error);
           }
         }
       }
     }
+    return obj;
+  }
 
+  toPlainObject() {
+    const obj = {};
+    for (const key of this.allKeys) {
+      if (this.memoryCache.has(key)) {
+        obj[key] = this.memoryCache.get(key);
+      } else {
+        try {
+          const value = this.diskCache.get(key);
+          if (value) obj[key] = value;
+        } catch (error) {
+          if (error.code !== 'ENOENT') {
+            console.error(`Failed to read disk cache for key ${key}:`, error);
+          }
+        }
+      }
+    }
     return obj;
   }
 
@@ -318,9 +539,15 @@ class SmartStorage {
     return {
       memorySize: this.memoryCache.size,
       totalSize: this.allKeys.size,
-      pendingWrites: this.pendingDiskWrites.size,
-      memoryUsage: `${this.memoryCache.size}/${this.allKeys.size}`,
-      diskCacheEnabled: this.useDiskCache
+      maxMemorySize: this.maxMemorySize,
+      targetMemorySize: this.targetMemorySize,
+      compactionThreshold: this.compactionThreshold,
+      protectedKeys: this.protectedKeys.size,
+      keysOnDisk: this.keysOnDisk.size,
+      isCompacting: this.isCompacting,
+      diskCacheEnabled: this.useDiskCache,
+      diskCachePath: this._diskCache?.cacheDir,
+      diskCacheSize: this._diskCache?.getCacheSize()
     };
   }
 }

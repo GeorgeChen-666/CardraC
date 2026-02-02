@@ -58,7 +58,7 @@ app.whenReady().then(() => {
 
   //注册 cardrac:// 协议（使用 registerBufferProtocol）
   protocol.handle('cardrac', async (request) => {
-    // ✅ 在 try 外部定义变量
+    //在 try 外部定义变量
     let imagePath = '';
     let pathVariants = [];
 
@@ -75,7 +75,7 @@ app.whenReady().then(() => {
 
       const storage = quality === 'low' ? OverviewStorage : ImageStorage;
 
-      // ✅ 尝试多种路径格式
+      //尝试多种路径格式
       pathVariants = [
         imagePath,
         imagePath.replace(/\//g, '\\'),

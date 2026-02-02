@@ -1,9 +1,9 @@
-import { waitCondition } from '../../../../shared/functions';
+import { fixFloat, waitCondition } from '../../../../shared/functions';
 import { getPendingList } from '../ImageActions';
 import { getBorderAverageColors, getConfigStore } from '../../functions';
 import { adjustBackPageImageOrder, getCutRectangleList, getPagedImageListByCardList, isNeedRotation } from './utils';
 import { layoutSides } from '../../../../shared/constants';
-import { fixFloat, ImageStorage } from './utils';
+import { ImageStorage } from './utils';
 
 export const colorCache = new Map();
 const imageAverageColorSet = new Map();

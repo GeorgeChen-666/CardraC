@@ -2,6 +2,16 @@ const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 const path = require('path');
 
+const isProduction = process.argv.includes('package') ||
+  process.argv.includes('make') ||
+  process.argv.includes('publish');
+
+if (isProduction) {
+  process.env.NODE_ENV = 'production';
+} else {
+  process.env.NODE_ENV = 'development';
+}
+
 module.exports = {
   packagerConfig: {
     icon: "icon",

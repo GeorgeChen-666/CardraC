@@ -104,7 +104,7 @@ export default memo(({ data, dialogCardSettingRef, index }) => {
     onOpen(e);
   });
 
-  // ✅ 缓存菜单项
+  //缓存菜单项
   const menuItems = useMemo(() => [
     {
       label: t('cardEditor.face'),
@@ -144,11 +144,11 @@ export default memo(({ data, dialogCardSettingRef, index }) => {
 
   const { onOpen, MenuElement } = useMenuState(menuItems);
 
-  // ✅ 缓存图片 URL
-  const faceUrl = useMemo(() => getImageSrc(data?.face), [data?.face]);
-  const backUrl = useMemo(() => getImageSrc(data?.back), [data?.back]);
+  //缓存图片 URL
+  const faceUrl = useMemo(() => getImageSrc(data?.face), [data?.face?.path, data?.face?.mtime]);
+  const backUrl = useMemo(() => getImageSrc(data?.back), [data?.back?.path, data?.back?.mtime]);
 
-  // ✅ 缓存计算结果
+  //缓存计算结果
   const isShowBack = useMemo(() =>
       [layoutSides.doubleSides, layoutSides.foldInHalf].includes(sides),
     [sides]
@@ -221,6 +221,8 @@ export default memo(({ data, dialogCardSettingRef, index }) => {
 }, (prev, next) => {
   return (
     prev.data.id === next.data.id &&
+    prev.data.face?.path === next.data.face?.path &&
+    prev.data.face?.mtime === next.data.face?.mtime &&
     prev.data.face === next.data.face &&
     prev.data.back === next.data.back &&
     prev.data.repeat === next.data.repeat &&

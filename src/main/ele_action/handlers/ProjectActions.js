@@ -28,67 +28,82 @@ const refreshCardStorage = (CardList, globalBackground) => {
     delete ImageStorage[key];
   });
 }
-const loadCpnpFile = (filePath, { onProgress, onFinish, onError }) => {
-  const { size } = fs.statSync(filePath);
-  const readStream = fs.createReadStream(filePath);
-  let resultString = '';
-  readStream.on('data', (chunk) => {
-    resultString += chunk;
-    onProgress && onProgress(resultString.length / size);
-  });
+const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
+  try {
+    const { size } = fs.statSync(filePath);
+    const readStream = fs.createReadStream(filePath);
+    let resultString = '';
 
-  readStream.on('end', () => {
-    try {
-      const regexPattern = '"ImageStorage"\\s*:\\s*\\{(?:[^\\{\\}]*|\\{[^\\{\\}]*\\})*\\}';
-      const imageStorageRegexp = new RegExp(regexPattern, 'g');
-      let [imageStorageString= ''] = resultString.match(imageStorageRegexp) || [];
-      if(imageStorageString.endsWith(',')) {
-        imageStorageString = imageStorageString.substring(0, imageStorageString.length - 1);
-      }
-      (async () => {
-        const imageStorageJson = JSON.parse(`{${imageStorageString}}`);
-        ImageStorage.clear();
-        Object.keys(imageStorageJson.ImageStorage).forEach(key => {
-          ImageStorage[key] = imageStorageJson.ImageStorage[key];
-        });
-
-        if (!ImageStorage['_emptyImg']) {
-          ImageStorage['_emptyImg'] = defaultImageStorage['_emptyImg'];
-        }
-      })()
-      const result = resultString.replace(imageStorageString, ('"_":"_"'));
-      const projectJson = JSON.parse(result);
-      delete projectJson._;
-      if(projectJson.Config.globalBackground?.path === '_emptyImg') {
-        projectJson.Config.globalBackground = null;
-      }
-
-      OverviewStorage.clear();
-      Object.keys(projectJson.OverviewStorage).forEach(key => {
-        OverviewStorage[key] = projectJson.OverviewStorage[key];
+    //使用 Promise 包装流式读取
+    await new Promise((resolve, reject) => {
+      readStream.on('data', (chunk) => {
+        resultString += chunk;
+        onProgress && onProgress(resultString.length / size);
       });
 
-      projectJson.CardList.forEach(c => {
-        if(c.face?.path === '_emptyImg') {
-          c.face = null;
-        }
-        if(c.back?.path === '_emptyImg') {
-          c.back = null;
+      readStream.on('end', () => resolve());
+      readStream.on('error', (err) => reject(err));
+    });
+
+    //解析 JSON
+    const projectJson = JSON.parse(resultString);
+
+    //清空现有存储
+    ImageStorage.clear();
+    OverviewStorage.clear();
+
+    //加载 ImageStorage（过滤空对象）
+    if (projectJson.ImageStorage) {
+      Object.entries(projectJson.ImageStorage).forEach(([key, value]) => {
+        //检查值是否有效
+        if (value && typeof value === 'string' && value.length > 0) {
+          ImageStorage[key] = value;
+        } else if (value && typeof value === 'object' && Object.keys(value).length === 0) {
+          console.warn(`⚠️ Skipping empty object for key: ${key}`);
+        } else {
+          console.warn(`⚠️ Invalid value for key: ${key}`, value);
         }
       });
-      delete projectJson.OverviewStorage;
-      onFinish && onFinish(projectJson);
-    }
-    catch (e) {
-      onError && onError();
+
+      // 确保默认图片存在
+      if (!ImageStorage['_emptyImg']) {
+        ImageStorage['_emptyImg'] = defaultImageStorage['_emptyImg'];
+      }
     }
 
-  });
-  readStream.on('error', (err) => {
-    console.log(err);
+    //加载 OverviewStorage
+    if (projectJson.OverviewStorage) {
+      Object.entries(projectJson.OverviewStorage).forEach(([key, value]) => {
+        if (value && typeof value === 'string' && value.length > 0) {
+          OverviewStorage[key] = value;
+        } else {
+          console.warn(`⚠️ Invalid overview value for key: ${key}`);
+        }
+      });
+    }
+
+    //处理特殊值
+    if (projectJson.Config?.globalBackground?.path === '_emptyImg') {
+      projectJson.Config.globalBackground = null;
+    }
+
+    projectJson.CardList?.forEach(c => {
+      if (c.face?.path === '_emptyImg') c.face = null;
+      if (c.back?.path === '_emptyImg') c.back = null;
+    });
+
+    //清理临时数据
+    delete projectJson.ImageStorage;
+    delete projectJson.OverviewStorage;
+
+    //现在才调用 onFinish
+    onFinish && onFinish(projectJson);
+
+  } catch (e) {
+    console.error('Failed to load project:', e);
     onError && onError();
-  });
-}
+  }
+};
 
 export default (mainWindow) => {
   const renderLog = (...args) => setTimeout(() => mainWindow.webContents.send('console', args), 2000) ;
@@ -112,51 +127,68 @@ export default (mainWindow) => {
   }
 
   ipcMain.on(eleActions.saveProject, async (event, args) => {
-    const { CardList, globalBackground, returnChannel } = args;
-    const result = await dialog.showSaveDialog(mainWindow,{
+    const { CardList, globalBackground, returnChannel, progressChannel } = args;
+
+    const result = await dialog.showSaveDialog(mainWindow, {
       title: 'Save Project',
       defaultPath: 'myProject.cpnp',
       filters: [
         { name: 'Project file', extensions: ['cpnp'] }
       ]
     });
+
     if (result.canceled) {
       mainWindow.webContents.send(returnChannel, false);
-    } else {
+      return;
+    }
+
+    try {
       const projectPath = result.filePath;
       const { Config } = getConfigStore();
       Config.globalBackground = globalBackground;
       const projectData = { Config, CardList };
 
-      const imageStorageKeys = ImageStorage.keys();
-      const overviewStorageKeys = OverviewStorage.keys();
+      // 清理未使用的图片
+      refreshCardStorage(CardList, globalBackground);
 
-      imageStorageKeys.forEach(key => {
-        if (!overviewStorageKeys.includes(key) && key !== '_emptyImg') {
-          delete ImageStorage[key];
-        }
+      //使用异步版本，等待所有磁盘写入完成
+      console.log('📦 Preparing to save project...');
+      progressChannel && mainWindow.webContents.send(progressChannel, 0.1);
+
+      const imageStorageObj = await ImageStorage.toPlainObjectAsync();
+      progressChannel && mainWindow.webContents.send(progressChannel, 0.5);
+
+      const overviewStorageObj = await OverviewStorage.toPlainObjectAsync();
+      progressChannel && mainWindow.webContents.send(progressChannel, 0.8);
+
+      //验证数据完整性
+      const emptyImageKeys = Object.keys(imageStorageObj).filter(key => {
+        const value = imageStorageObj[key];
+        return !value || (typeof value === 'object' && Object.keys(value).length === 0);
       });
 
-      refreshCardStorage(CardList, globalBackground);
-      try {
-        const imageStorageObj = ImageStorage.toPlainObject();
-        const overviewStorageObj = OverviewStorage.toPlainObject();
+      if (emptyImageKeys.length > 0) {
+        console.error(`❌ Found ${emptyImageKeys.length} empty image values:`, emptyImageKeys);
+        throw new Error(`Failed to save: ${emptyImageKeys.length} images have no data`);
+      }
 
-        await saveDataToFile({
-          ...projectData,
-          ImageStorage: imageStorageObj,
-          OverviewStorage: overviewStorageObj
-        }, projectPath);
-      }
-      catch (e) {
-        mainWindow.webContents.send('notification', {
-          status: 'error',
-          description: "util.operationFailed"
-        });
-      }
-      finally {
-        mainWindow.webContents.send(returnChannel, true);
-      }
+      await saveDataToFile({
+        ...projectData,
+        ImageStorage: imageStorageObj,
+        OverviewStorage: overviewStorageObj
+      }, projectPath);
+
+      progressChannel && mainWindow.webContents.send(progressChannel, 1);
+      console.log('✅ Project saved successfully');
+      mainWindow.webContents.send(returnChannel, true);
+
+    } catch (e) {
+      console.error('❌ Save project failed:', e);
+      mainWindow.webContents.send('notification', {
+        status: 'error',
+        description: "util.operationFailed"
+      });
+      mainWindow.webContents.send(returnChannel, false);
     }
   });
 
@@ -172,7 +204,7 @@ export default (mainWindow) => {
       mainWindow.webContents.send(returnChannel, null);
     }
     else {
-      loadCpnpFile(result.filePaths[0], {
+      await loadCpnpFile(result.filePaths[0], {
         onProgress: (v) => mainWindow.webContents.send(progressChannel, v),
         onFinish: (projectJson) => mainWindow.webContents.send(returnChannel, projectJson),
         onError: () => {

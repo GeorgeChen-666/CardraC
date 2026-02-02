@@ -1,48 +1,80 @@
+// src/renderer/parts/edit/CardEditor/CardImage.jsx
+
 import React, { memo, useState, useEffect, useRef } from 'react';
 import Card from '@mui/material/Card';
 import { CardMedia } from '@mui/material';
 
 export const CardImage = memo(({ imageSrc, path, isBackEditing, isFace }) => {
   const imageViewerRef = window.imageViewerRef;
-  const [isVisible, setIsVisible] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const imgRef = useRef(null);
 
-  const size = (isBackEditing && isFace) || (!isBackEditing && !isFace) ? '160px' : '50px';
+  const size = (isBackEditing && isFace) || (!isBackEditing && !isFace) ? '50px' : '160px';
 
+  //简化：只处理错误状态
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => setIsVisible(entry.isIntersecting),
-      { rootMargin: '100px' }
-    );
-
-    if (imgRef.current) {
-      observer.observe(imgRef.current);
+    if (!imageSrc) {
+      setImageError(true);
+      return;
     }
 
-    return () => observer.disconnect();
-  }, []);
+    setImageError(false);
+
+    // 预加载图片以检测错误
+    const img = new Image();
+    img.onerror = () => setImageError(true);
+    img.src = imageSrc;
+
+    return () => {
+      img.onerror = null;
+    };
+  }, [imageSrc]);
 
   return (
     <Card
       ref={imgRef}
-      sx={{ minWidth: size, height: '100%', margin: '1px', padding: '1px' }}
+      sx={{
+        minWidth: size,
+        height: '100%',
+        margin: '1px',
+        padding: '1px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#fafafa'
+      }}
     >
-      {isVisible ? (
+      {imageError ? (
+        // 错误状态
+        <div style={{
+          width: size,
+          height: size,
+          background: '#ffebee',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#c62828',
+          fontSize: '12px'
+        }}>
+          ❌
+        </div>
+      ) : (
+        //直接渲染图片，浏览器自动处理加载
         <CardMedia
           component="img"
           className={'CardImage'}
           height={size}
-          style={{ maxWidth: size }}
+          style={{ maxWidth: size, objectFit: 'contain' }}
           image={imageSrc}
+          onError={() => setImageError(true)}
           onMouseOver={() => imageViewerRef.current?.update?.(path)}
           onMouseLeave={() => imageViewerRef.current?.close?.()}
         />
-      ) : (
-        <div style={{ width: size, height: size, background: '#f0f0f0' }} />
       )}
     </Card>
   );
 }, (prev, next) => {
   return prev.imageSrc === next.imageSrc &&
-    prev.isBackEditing === next.isBackEditing;
+    prev.isBackEditing === next.isBackEditing &&
+    prev.path === next.path;
 });

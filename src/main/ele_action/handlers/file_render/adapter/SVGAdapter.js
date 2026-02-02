@@ -163,7 +163,7 @@ export class SVGAdapter extends IAdapter {
     });
   }
 
-  // ✅ 修改：按绘制顺序渲染，不分组
+  //修改：按绘制顺序渲染，不分组
   generatePageSVG(page) {
     const svg = `<svg 
     width="${this.pageWidth * displayScale}" 

@@ -8,76 +8,43 @@ import { app, BrowserWindow } from 'electron';
 export async function getBorderAverageColors(base64String, borderWidth = 5) {
   try {
     const buffer = Buffer.from(base64String.split(',')[1], 'base64');
-    // 读取图片元数据
     const baseImage = sharp(buffer);
     const metadata = await baseImage.metadata();
-    const { width, height } = metadata;
+    const { width, height, channels } = metadata;
 
-    // 定义四边裁剪区域（自动处理小尺寸图片）
-    const regions = {
-      top: {
-        left: 0,
-        top: 0,
-        width: width,
-        height: Math.min(borderWidth, height)
-      },
-      bottom: {
-        left: 0,
-        top: Math.max(0, height - borderWidth),
-        width: width,
-        height: Math.min(borderWidth, height - Math.max(0, height - borderWidth))
-      },
-      left: {
-        left: 0,
-        top: 0,
-        width: Math.min(borderWidth, width),
-        height: height
-      },
-      right: {
-        left: Math.max(0, width - borderWidth),
-        top: 0,
-        width: Math.min(borderWidth, width - Math.max(0, width - borderWidth)),
-        height: height
-      }
-    };
+    //一次性获取所有像素数据
+    const { data } = await baseImage.raw().toBuffer({ resolveWithObject: true });
 
-    const colors = {};
+    const pixelsPerChannel = channels || 3;
+    const actualBorderWidth = Math.min(borderWidth, Math.floor(Math.min(width, height) / 2));
 
-    // 并行处理所有区域
-    await Promise.all(
-      Object.entries(regions).map(async ([name, rect]) => {
-        try {
-          // 跳过无效区域
-          if (rect.width <= 0 || rect.height <= 0) {
-            colors[name] = null;
-            return;
-          }
+    let totalR = 0, totalG = 0, totalB = 0;
+    let pixelCount = 0;
 
-          // 提取区域并计算统计信息
-          const stats = await baseImage
-            .clone()
-            .extract(rect)
-            .stats();
+    //遍历所有像素，只统计边框区域
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        // 判断是否在边框区域
+        const isInBorder =
+          y < actualBorderWidth ||                    // 上边框
+          y >= height - actualBorderWidth ||          // 下边框
+          x < actualBorderWidth ||                    // 左边框
+          x >= width - actualBorderWidth;             // 右边框
 
-          // 获取 RGB 通道平均值
-          const [r, g, b] = stats.channels
-            .slice(0, 3)
-            .map(c => Math.round(c.mean));
-
-          colors.r = (colors.r || 0) + Math.round(r);
-          colors.g = (colors.g || 0) + Math.round(g);
-          colors.b = (colors.b || 0) + Math.round(b);
-        } catch (error) {
-          console.error(`Error processing ${name}:`, error.message);
-          //colors[name] = null;
+        if (isInBorder) {
+          const index = (y * width + x) * pixelsPerChannel;
+          totalR += data[index];
+          totalG += data[index + 1];
+          totalB += data[index + 2];
+          pixelCount++;
         }
-      })
-    );
+      }
+    }
 
     return {
-      r: Math.round(colors.r / 4),
-      g: Math.round(colors.g / 4),
-      b: Math.round(colors.b / 4),
+      r: Math.round(totalR / pixelCount),
+      g: Math.round(totalG / pixelCount),
+      b: Math.round(totalB / pixelCount),
       alpha: 1
     };
   } catch (error) {
@@ -85,6 +52,7 @@ export async function getBorderAverageColors(base64String, borderWidth = 5) {
     return null;
   }
 }
+
 
 export const readCompressedImage = async (path, options = {}) => {
   options.format = options.format === 'jpg' ? 'jpeg' : 'png';
@@ -280,7 +248,7 @@ export async function printPNGs(printerName, buffers, options = {}) {
     body { 
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
-      /* ✅ 提高渲染质量 */
+      /*提高渲染质量 */
       image-rendering: -webkit-optimize-contrast;
       image-rendering: crisp-edges;
     }
@@ -302,7 +270,7 @@ export async function printPNGs(printerName, buffers, options = {}) {
       height: 100% !important;
       display: block;
     }
-    /* ✅ 提高 SVG 图片质量 */
+    /*提高 SVG 图片质量 */
     .svg-container svg image {
       image-rendering: -webkit-optimize-contrast;
       image-rendering: high-quality;
