@@ -9,7 +9,8 @@ export async function getBorderAverageColors(base64String, borderWidth = 5) {
   try {
     const buffer = Buffer.from(base64String.split(',')[1], 'base64');
     // 读取图片元数据
-    const metadata = await sharp(buffer).metadata();
+    const baseImage = sharp(buffer);
+    const metadata = await baseImage.metadata();
     const { width, height } = metadata;
 
     // 定义四边裁剪区域（自动处理小尺寸图片）
@@ -53,7 +54,10 @@ export async function getBorderAverageColors(base64String, borderWidth = 5) {
           }
 
           // 提取区域并计算统计信息
-          const stats = await sharp(await sharp(buffer).extract(rect).toBuffer()).stats();
+          const stats = await baseImage
+            .clone()
+            .extract(rect)
+            .stats();
 
           // 获取 RGB 通道平均值
           const [r, g, b] = stats.channels

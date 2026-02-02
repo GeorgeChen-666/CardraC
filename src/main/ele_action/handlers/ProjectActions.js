@@ -2,7 +2,7 @@ import { dialog, ipcMain } from 'electron';
 import { eleActions } from '../../../shared/constants';
 import { getConfigStore, saveDataToFile } from '../functions';
 import fs from 'fs';
-import { defaultImageStorage, ImageStorage, OverviewStorage } from './file_render/Utils';
+import { defaultImageStorage, ImageStorage, OverviewStorage } from './file_render/utils';
 
 
 const refreshCardStorage = (CardList, globalBackground) => {
@@ -20,8 +20,13 @@ const refreshCardStorage = (CardList, globalBackground) => {
     usedImagePath.add(globalBackPathKey);
   }
 
-  Object.keys(OverviewStorage).filter(key=> !usedImagePath.has(key)).forEach(key => delete OverviewStorage[key]);
-  Object.keys(ImageStorage).filter(key=> !usedImagePath.has(key)).forEach(key => delete ImageStorage[key]);
+  OverviewStorage.keys().filter(key => !usedImagePath.has(key)).forEach(key => {
+    delete OverviewStorage[key];
+  });
+
+  ImageStorage.keys().filter(key => !usedImagePath.has(key)).forEach(key => {
+    delete ImageStorage[key];
+  });
 }
 const loadCpnpFile = (filePath, { onProgress, onFinish, onError }) => {
   const { size } = fs.statSync(filePath);
@@ -42,15 +47,12 @@ const loadCpnpFile = (filePath, { onProgress, onFinish, onError }) => {
       }
       (async () => {
         const imageStorageJson = JSON.parse(`{${imageStorageString}}`);
-        Object.keys(ImageStorage).forEach(key => {
-          if(!Object.keys(imageStorageJson.ImageStorage).includes(key)) {
-            delete ImageStorage[key];
-          }
-        });
+        ImageStorage.clear();
         Object.keys(imageStorageJson.ImageStorage).forEach(key => {
           ImageStorage[key] = imageStorageJson.ImageStorage[key];
         });
-        if(!Object.keys(ImageStorage).includes('_emptyImg')) {
+
+        if (!ImageStorage['_emptyImg']) {
           ImageStorage['_emptyImg'] = defaultImageStorage['_emptyImg'];
         }
       })()
@@ -61,14 +63,11 @@ const loadCpnpFile = (filePath, { onProgress, onFinish, onError }) => {
         projectJson.Config.globalBackground = null;
       }
 
-      Object.keys(OverviewStorage).forEach(key => {
-        if(!Object.keys(projectJson.OverviewStorage).includes(key)) {
-          delete OverviewStorage[key];
-        }
-      });
+      OverviewStorage.clear();
       Object.keys(projectJson.OverviewStorage).forEach(key => {
         OverviewStorage[key] = projectJson.OverviewStorage[key];
       });
+
       projectJson.CardList.forEach(c => {
         if(c.face?.path === '_emptyImg') {
           c.face = null;
@@ -129,15 +128,25 @@ export default (mainWindow) => {
       Config.globalBackground = globalBackground;
       const projectData = { Config, CardList };
 
-      const imageStorageKeys = Object.keys(ImageStorage);
+      const imageStorageKeys = ImageStorage.keys();
+      const overviewStorageKeys = OverviewStorage.keys();
+
       imageStorageKeys.forEach(key => {
-        if(!Object.keys(OverviewStorage).includes(key) && key !== '_emptyImg') {
+        if (!overviewStorageKeys.includes(key) && key !== '_emptyImg') {
           delete ImageStorage[key];
         }
-      })
+      });
+
       refreshCardStorage(CardList, globalBackground);
       try {
-        await saveDataToFile({ ...projectData, ImageStorage, OverviewStorage }, projectPath);
+        const imageStorageObj = ImageStorage.toPlainObject();
+        const overviewStorageObj = OverviewStorage.toPlainObject();
+
+        await saveDataToFile({
+          ...projectData,
+          ImageStorage: imageStorageObj,
+          OverviewStorage: overviewStorageObj
+        }, projectPath);
       }
       catch (e) {
         mainWindow.webContents.send('notification', {

@@ -14,11 +14,10 @@ import {
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import Paper from '@mui/material/Paper';
 import { eleActions } from '../../../../../shared/constants';
 import { NumberInput } from '../../../../componments/NumberInput';
-import { fixFloat } from '../../../../../main/ele_action/handlers/file_render/Utils';
 import { useTranslation } from 'react-i18next';
+import { fixFloat } from '../../../../../shared/functions';
 
 
 

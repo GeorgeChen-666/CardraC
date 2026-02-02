@@ -1,14 +1,27 @@
-import { layoutSides } from '../../../../shared/constants';
+import { emptyImg, layoutSides } from '../../../../shared/constants';
 import { SVGAdapter } from './adapter/SVGAdapter';
+import { SmartStorage } from '../../../utils';
+import { fixFloat } from '../../../../shared/functions';
 
 export const defaultImageStorage = {
-  '_emptyImg': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
-    '12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg==',
+  '_emptyImg': emptyImg.path,
 };
-export const ImageStorage = { ...defaultImageStorage };
-export const OverviewStorage = { ...defaultImageStorage };
 
-export const fixFloat = num => parseFloat(num.toFixed(2));
+export const ImageStorage = new SmartStorage('ImageStorage', {
+  maxMemorySize: 50,  // 内存中最多保留 50 张高质量图片
+  useDiskCache: true   // 启用磁盘缓存
+});
+
+export const OverviewStorage = new SmartStorage('OverviewStorage', {
+  maxMemorySize: 200,  // 内存中最多保留 200 张缩略图
+  useDiskCache: false  // 缩略图不使用磁盘缓存（已经很小了）
+});
+
+// 初始化默认图片
+ImageStorage['_emptyImg'] = defaultImageStorage['_emptyImg'];
+OverviewStorage['_emptyImg'] = defaultImageStorage['_emptyImg'];
+
+
 
 export const getCutRectangleList = (Config, { maxWidth, maxHeight }, ignoreBleed = true, isBack = false) => {
   const {

@@ -8,4 +8,6 @@ export const waitCondition = async ({ Condition = () => true, timeout = 500, tot
       resolve();
     }
   }, timeout);
-})
+});
+
+export const fixFloat = num => parseFloat(num.toFixed(2));

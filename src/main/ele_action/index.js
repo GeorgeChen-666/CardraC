@@ -1,4 +1,4 @@
-import './handlers/file_render/Utils';
+import './handlers/file_render/utils';
 import ProjectActions from './handlers/ProjectActions';
 import ConfigActions from './handlers/ConfigActions';
 import ImageActions from './handlers/ImageActions';

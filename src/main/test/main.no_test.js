@@ -11,7 +11,7 @@ vi.mock('./ele_action/functions', () => ({
   })
 }));
 
-import { getCutRectangleList, getPagedImageListByCardList, adjustBackPageImageOrder, isNeedRotation, ImageStorage  } from '../ele_action/handlers/file_render/Utils';
+import { getCutRectangleList, getPagedImageListByCardList, adjustBackPageImageOrder, isNeedRotation, ImageStorage  } from '../ele_action/handlers/file_render/utils';
 import { layoutSides, initialState } from '../../shared/constants';
 import { ShadowAdapter } from '../ele_action/handlers/file_render/adapter/ShadowAdapter';
 import { exportFile } from '../ele_action/handlers/file_render';
