@@ -477,17 +477,19 @@ export const isNeedRotation = (Config, isBack) => {
 };
 
 // 在文件顶部添加缓存
-const previewCache = new Map(); // 存储已完成的预览
+export const PreviewStorage = new SmartStorage('PreviewStorage', {
+  maxMemorySize: 10,
+});
 const previewTasks = new Map(); // 存储进行中的任务
 
 
 // 预渲染函数
 export async function prerenderPage(pageIndex, state, Config, renderFunc, renderFuncId, quality = 'low') {
   const cacheKey = `${renderFuncId}-${pageIndex}`;
-
-  if (previewCache.has(cacheKey)) {
+  const cachedResult = PreviewStorage[cacheKey];
+  if (cachedResult) {
     console.log(`📦 Page ${pageIndex + 1}: Loaded from cache`);
-    return previewCache.get(cacheKey);
+    return cachedResult;
   }
 
   if (previewTasks.has(cacheKey)) {
@@ -511,7 +513,7 @@ export async function prerenderPage(pageIndex, state, Config, renderFunc, render
       const duration = (endTime - startTime).toFixed(2);
       console.log(`Page ${pageIndex + 1}: Rendered in ${duration}ms`);
 
-      previewCache.set(cacheKey, result);
+      PreviewStorage[cacheKey] = result;
       return result;
     } catch (error) {
       //错误也记录时间
@@ -528,6 +530,6 @@ export async function prerenderPage(pageIndex, state, Config, renderFunc, render
   return task;
 }
 export const clearPrerenderCache = () => {
-  previewCache.clear();
+  PreviewStorage.clear();
   previewTasks.clear();
 }

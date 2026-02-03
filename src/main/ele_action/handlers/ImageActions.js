@@ -36,7 +36,6 @@ const pathToImageData = async (path, cb) => {
   const { mtime } = fs.statSync(path);
   const returnObj = { path, mtime: mtime.getTime() };
 
-  //使用 in 操作符代替 Object.keys().includes()
   if (!(imagePathKey in ImageStorage) && !pendingList.has(imagePathKey)) {
     pendingList.add(imagePathKey);
     ImageStorageLoadingJobs[path] = async () => {

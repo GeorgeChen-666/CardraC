@@ -3,6 +3,8 @@ import { eleActions } from '../../../shared/constants';
 import { getConfigStore, saveDataToFile } from '../functions';
 import fs from 'fs';
 import { defaultImageStorage, ImageStorage, OverviewStorage } from './file_render/utils';
+import { parser } from 'stream-json';
+import { streamObject } from 'stream-json/streamers/StreamObject';
 
 
 const refreshCardStorage = (CardList, globalBackground) => {
@@ -32,75 +34,99 @@ const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
   try {
     const { size } = fs.statSync(filePath);
     const readStream = fs.createReadStream(filePath);
-    let resultString = '';
 
-    //使用 Promise 包装流式读取
-    await new Promise((resolve, reject) => {
-      readStream.on('data', (chunk) => {
-        resultString += chunk;
-        onProgress && onProgress(resultString.length / size);
-      });
-
-      readStream.on('end', () => resolve());
-      readStream.on('error', (err) => reject(err));
-    });
-
-    //解析 JSON
-    const projectJson = JSON.parse(resultString);
-
-    //清空现有存储
+    // ✅ 清空现有存储
     ImageStorage.clear();
     OverviewStorage.clear();
 
-    //加载 ImageStorage（过滤空对象）
-    if (projectJson.ImageStorage) {
-      Object.entries(projectJson.ImageStorage).forEach(([key, value]) => {
-        //检查值是否有效
-        if (value && typeof value === 'string' && value.length > 0) {
-          ImageStorage[key] = value;
-        } else if (value && typeof value === 'object' && Object.keys(value).length === 0) {
-          console.warn(`⚠️ Skipping empty object for key: ${key}`);
-        } else {
-          console.warn(`⚠️ Invalid value for key: ${key}`, value);
-        }
-      });
+    // ✅ 用于存储非图片数据
+    const projectData = {};
+    let processedBytes = 0;
+    let imageCount = 0;
+    let overviewCount = 0;
 
-      // 确保默认图片存在
-      if (!ImageStorage['_emptyImg']) {
-        ImageStorage['_emptyImg'] = defaultImageStorage['_emptyImg'];
+    // ✅ 创建流式 JSON 解析器
+    const pipeline = readStream
+      .pipe(parser())
+      .pipe(streamObject());
+
+    // ✅ 监听每个 key-value 对
+    pipeline.on('data', ({ key, value }) => {
+      // 更新进度（基于已处理的数据量估算）
+      processedBytes += JSON.stringify(value).length;
+      onProgress && onProgress(Math.min(processedBytes / size, 0.95));
+
+      if (key === 'ImageStorage') {
+        // ✅ 流式处理 ImageStorage
+        if (value && typeof value === 'object') {
+          Object.entries(value).forEach(([imgKey, imgValue]) => {
+            if (imgValue && typeof imgValue === 'string' && imgValue.length > 0) {
+              ImageStorage[imgKey] = imgValue;
+              imageCount++;
+
+              // 每处理 10 张图片输出一次日志
+              if (imageCount % 10 === 0) {
+                console.log(`📦 Loaded ${imageCount} images...`);
+              }
+            } else if (imgValue && typeof imgValue === 'object' && Object.keys(imgValue).length === 0) {
+              console.warn(`⚠️ Skipping empty object for key: ${imgKey}`);
+            } else {
+              console.warn(`⚠️ Invalid value for key: ${imgKey}`, imgValue);
+            }
+          });
+        }
+
+        // 确保默认图片存在
+        if (!ImageStorage['_emptyImg']) {
+          ImageStorage['_emptyImg'] = defaultImageStorage['_emptyImg'];
+        }
+
+        console.log(`✅ Loaded ${imageCount} images from ImageStorage`);
       }
-    }
-
-    //加载 OverviewStorage
-    if (projectJson.OverviewStorage) {
-      Object.entries(projectJson.OverviewStorage).forEach(([key, value]) => {
-        if (value && typeof value === 'string' && value.length > 0) {
-          OverviewStorage[key] = value;
-        } else {
-          console.warn(`⚠️ Invalid overview value for key: ${key}`);
+      else if (key === 'OverviewStorage') {
+        // ✅ 流式处理 OverviewStorage
+        if (value && typeof value === 'object') {
+          Object.entries(value).forEach(([ovKey, ovValue]) => {
+            if (ovValue && typeof ovValue === 'string' && ovValue.length > 0) {
+              OverviewStorage[ovKey] = ovValue;
+              overviewCount++;
+            } else {
+              console.warn(`⚠️ Invalid overview value for key: ${ovKey}`);
+            }
+          });
         }
-      });
+
+        console.log(`✅ Loaded ${overviewCount} overviews from OverviewStorage`);
+      }
+      else {
+        // ✅ 其他数据直接存储
+        projectData[key] = value;
+      }
+    });
+
+    // ✅ 流处理完成
+    await new Promise((resolve, reject) => {
+      pipeline.on('end', resolve);
+      pipeline.on('error', reject);
+    });
+
+    // ✅ 处理特殊值
+    if (projectData.Config?.globalBackground?.path === '_emptyImg') {
+      projectData.Config.globalBackground = null;
     }
 
-    //处理特殊值
-    if (projectJson.Config?.globalBackground?.path === '_emptyImg') {
-      projectJson.Config.globalBackground = null;
-    }
-
-    projectJson.CardList?.forEach(c => {
+    projectData.CardList?.forEach(c => {
       if (c.face?.path === '_emptyImg') c.face = null;
       if (c.back?.path === '_emptyImg') c.back = null;
     });
 
-    //清理临时数据
-    delete projectJson.ImageStorage;
-    delete projectJson.OverviewStorage;
-
-    //现在才调用 onFinish
-    onFinish && onFinish(projectJson);
+    // ✅ 完成
+    onProgress && onProgress(1);
+    console.log(`✅ Project loaded: ${imageCount} images, ${overviewCount} overviews`);
+    onFinish && onFinish(projectData);
 
   } catch (e) {
-    console.error('Failed to load project:', e);
+    console.error('❌ Failed to load project:', e);
     onError && onError();
   }
 };
