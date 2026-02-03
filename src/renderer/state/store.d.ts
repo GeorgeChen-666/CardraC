@@ -19,7 +19,8 @@ export interface GlobalState {
   selections: any[];
   currentView: 'edit'|'preview';
   exportPageCount: number,
-  exportPreviewIndex: number
+  exportPreviewIndex: number,
+  imageVersion: number
 }
 
 export type LayoutSides = string; // Could be a union of allowed string values

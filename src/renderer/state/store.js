@@ -156,7 +156,15 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList };
       const stateData = await callMain(eleActions.reloadLocalImage, param);
       if (stateData && !stateData.isAborted) {
-        get().mergeState({CardList: stateData.CardList, Config: stateData.Config});
+        const imageVersion = Date.now();
+        get().mergeState({
+          CardList: stateData.CardList,
+          Config: stateData.Config,
+          Global: {
+            ...get().Global,
+            imageVersion
+          }
+        });
       }
     });
   },

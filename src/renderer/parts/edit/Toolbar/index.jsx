@@ -59,6 +59,7 @@ export function EditToolbar() {
   const globalBackground = Config.globalBackground()
   const isBackEditing = Global.isBackEditing();
   const isShowOverView = Global.isShowOverView();
+  const imageVersion = Global.imageVersion();
   return (
     <Box
       sx={{
@@ -84,7 +85,7 @@ export function EditToolbar() {
       {Config.sides() === layoutSides.doubleSides && (
         <GeneralIconButton
           label={t('toolbar.btnGlobalBackground')}
-          icon={<img src={getImageSrc(globalBackground)} width={'30px'} height={'30px'} alt='' />}
+          icon={<img src={getImageSrc(globalBackground, { version : imageVersion})} width={'30px'} height={'30px'} alt='' />}
           onClick={async () => {
             const filePath = await openImage('setGlobalBack');
             mergeConfig({ globalBackground: filePath });

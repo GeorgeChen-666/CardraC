@@ -174,7 +174,6 @@ export default (mainWindow) => {
     Config.globalBackground = globalBackground;
 
     const reloadImageJobs = [];
-    const newOverviewStorage = {};
     colorCache.clear();
     let isTerminated = false;
 
@@ -205,12 +204,11 @@ export default (mainWindow) => {
             if (isTerminated) return;
 
             delete ImageStorage[imagePathKey];
-            const { overviewData } = await pathToImageData(path);
+            delete OverviewStorage[imagePathKey];
+            await pathToImageData(path);
 
             if (isTerminated) return;
 
-            newOverviewStorage[imagePathKey] = overviewData;
-            OverviewStorage[imagePathKey] = overviewData;
             currentCount++;
             mainWindow.webContents.send(progressChannel, currentCount / totalCount);
           })());
@@ -219,7 +217,6 @@ export default (mainWindow) => {
           throw new Error();
         }
       } catch (e) {
-        newOverviewStorage[imagePathKey] = OverviewStorage[imagePathKey];
       }
       return false;
     };

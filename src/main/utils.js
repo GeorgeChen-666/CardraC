@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { app } from 'electron';
+import Database from 'better-sqlite3';
 
 /**
  * LRU 缓存
@@ -57,62 +58,69 @@ class LRUCache {
 }
 
 /**
- * 磁盘缓存（优化版）
+ * SQLite 磁盘缓存
  */
 class DiskCache {
   constructor(cacheDir) {
     const processId = process.pid;
-    this.cacheDir = path.join(cacheDir, `pid-${processId}`);
     this.baseCacheDir = cacheDir;
 
-    if (!fs.existsSync(this.cacheDir)) {
-      fs.mkdirSync(this.cacheDir, { recursive: true });
+    if (!fs.existsSync(cacheDir)) {
+      fs.mkdirSync(cacheDir, { recursive: true });
     }
 
-    // 写入队列
+    // ✅ SQLite 数据库文件名为进程 ID
+    this.dbPath = path.join(cacheDir, `pid-${processId}.db`);
+    this.db = new Database(this.dbPath);
+
+    // ✅ 创建表
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS cache (
+        key TEXT PRIMARY KEY,
+        value BLOB NOT NULL,
+        created_at INTEGER DEFAULT (strftime('%s', 'now'))
+      )
+    `);
+
+    // ✅ 预编译语句
+    this.insertStmt = this.db.prepare('INSERT OR REPLACE INTO cache (key, value) VALUES (?, ?)');
+    this.selectStmt = this.db.prepare('SELECT value FROM cache WHERE key = ?');
+    this.deleteStmt = this.db.prepare('DELETE FROM cache WHERE key = ?');
+    this.clearStmt = this.db.prepare('DELETE FROM cache');
+    this.keysStmt = this.db.prepare('SELECT key FROM cache');
+
+    // ✅ 写入队列
     this.writeQueue = [];
     this.isWriting = false;
     this.maxBatchSize = 20;
 
-    console.log(`📁 DiskCache initialized at: ${this.cacheDir}`);
+    console.log(`📁 DiskCache (SQLite) initialized at: ${this.dbPath}`);
 
     this.cleanupOldCaches();
     this.registerCleanupOnExit();
   }
 
-  getCachePath(key) {
-    const hash = Buffer.from(key).toString('base64')
-      .replace(/\//g, '_')
-      .replace(/\+/g, '-')
-      .replace(/=/g, '');
-    return path.join(this.cacheDir, `${hash}.cache`);
-  }
-
   get(key) {
-    const cachePath = this.getCachePath(key);
     try {
-      if (fs.existsSync(cachePath)) {
-        const buffer = fs.readFileSync(cachePath);
+      const row = this.selectStmt.get(key);
+      if (!row) return undefined;
 
-        // 检查是否是原始 Buffer（优化后的格式）
-        if (buffer[0] === 0xFF && buffer[1] === 0xD8) {
-          // JPEG magic number
-          return `data:image/jpeg;base64,${buffer.toString('base64')}`;
-        } else if (buffer[0] === 0x89 && buffer[1] === 0x50) {
-          // PNG magic number
-          return `data:image/png;base64,${buffer.toString('base64')}`;
-        } else if (buffer[0] === 0x52 && buffer[1] === 0x49) {
-          // WEBP magic number
-          return `data:image/webp;base64,${buffer.toString('base64')}`;
-        } else {
-          // 旧格式（UTF-8 字符串）
-          return buffer.toString('utf-8');
-        }
+      const buffer = row.value;
+
+      // ✅ 检查图片类型
+      if (buffer[0] === 0xFF && buffer[1] === 0xD8) {
+        return `data:image/jpeg;base64,${buffer.toString('base64')}`;
+      } else if (buffer[0] === 0x89 && buffer[1] === 0x50) {
+        return `data:image/png;base64,${buffer.toString('base64')}`;
+      } else if (buffer[0] === 0x52 && buffer[1] === 0x49) {
+        return `data:image/webp;base64,${buffer.toString('base64')}`;
+      } else {
+        return buffer.toString('utf-8');
       }
     } catch (error) {
-      console.error(`Failed to read disk cache for ${key}:`, error);
+      console.error(`Failed to read cache for ${key}:`, error);
+      return undefined;
     }
-    return undefined;
   }
 
   set(key, value) {
@@ -133,11 +141,10 @@ class DiskCache {
       while (this.writeQueue.length > 0) {
         const batch = this.writeQueue.splice(0, this.maxBatchSize);
 
-        await Promise.all(
-          batch.map(async ({ key, value, resolve, reject }) => {
+        // ✅ 使用事务批量写入
+        const insert = this.db.transaction((items) => {
+          for (const { key, value, resolve, reject } of items) {
             try {
-              const cachePath = this.getCachePath(key);
-
               let buffer;
               if (value.startsWith('data:image/')) {
                 const base64Data = value.split(',')[1];
@@ -146,15 +153,16 @@ class DiskCache {
                 buffer = Buffer.from(value, 'utf-8');
               }
 
-              await fs.promises.writeFile(cachePath, buffer);
+              this.insertStmt.run(key, buffer);
               resolve();
-
             } catch (error) {
-              console.error(`Failed to write disk cache for ${key}:`, error);
+              console.error(`Failed to write cache for ${key}:`, error);
               reject(error);
             }
-          })
-        );
+          }
+        });
+
+        insert(batch);
 
         await new Promise(r => setImmediate(r));
       }
@@ -168,26 +176,18 @@ class DiskCache {
   }
 
   delete(key) {
-    const cachePath = this.getCachePath(key);
     try {
-      if (fs.existsSync(cachePath)) {
-        fs.unlinkSync(cachePath);
-      }
+      this.deleteStmt.run(key);
     } catch (error) {
-      console.error(`Failed to delete disk cache for ${key}:`, error);
+      console.error(`Failed to delete cache for ${key}:`, error);
     }
   }
 
   clear() {
     try {
-      if (fs.existsSync(this.cacheDir)) {
-        const files = fs.readdirSync(this.cacheDir);
-        files.forEach(file => {
-          fs.unlinkSync(path.join(this.cacheDir, file));
-        });
-      }
+      this.clearStmt.run();
     } catch (error) {
-      console.error('Failed to clear disk cache:', error);
+      console.error('Failed to clear cache:', error);
     }
   }
 
@@ -195,24 +195,27 @@ class DiskCache {
     try {
       if (!fs.existsSync(this.baseCacheDir)) return;
 
-      const entries = fs.readdirSync(this.baseCacheDir, { withFileTypes: true });
+      const files = fs.readdirSync(this.baseCacheDir);
       const currentPid = process.pid;
 
-      entries.forEach(entry => {
-        if (!entry.isDirectory()) return;
-
-        const match = entry.name.match(/^pid-(\d+)$/);
+      files.forEach(file => {
+        const match = file.match(/^pid-(\d+)\.db$/);
         if (!match) return;
 
         const pid = parseInt(match[1], 10);
         if (pid === currentPid) return;
 
         if (!this.isProcessRunning(pid)) {
-          const oldCacheDir = path.join(this.baseCacheDir, entry.name);
+          const oldDbPath = path.join(this.baseCacheDir, file);
           console.log(`🗑️ Cleaning up old cache from PID ${pid}`);
 
           try {
-            this.removeDirectory(oldCacheDir);
+            fs.unlinkSync(oldDbPath);
+            // 删除 WAL 和 SHM 文件
+            const walPath = `${oldDbPath}-wal`;
+            const shmPath = `${oldDbPath}-shm`;
+            if (fs.existsSync(walPath)) fs.unlinkSync(walPath);
+            if (fs.existsSync(shmPath)) fs.unlinkSync(shmPath);
           } catch (error) {
             console.error(`Failed to cleanup old cache for PID ${pid}:`, error);
           }
@@ -232,30 +235,17 @@ class DiskCache {
     }
   }
 
-  removeDirectory(dirPath) {
-    if (!fs.existsSync(dirPath)) return;
-
-    const files = fs.readdirSync(dirPath);
-
-    files.forEach(file => {
-      const filePath = path.join(dirPath, file);
-      const stat = fs.statSync(filePath);
-
-      if (stat.isDirectory()) {
-        this.removeDirectory(filePath);
-      } else {
-        fs.unlinkSync(filePath);
-      }
-    });
-
-    fs.rmdirSync(dirPath);
-  }
-
   registerCleanupOnExit() {
     const cleanup = () => {
       console.log(`🗑️ Cleaning up cache on exit`);
       try {
-        this.removeDirectory(this.cacheDir);
+        this.db.close();
+        fs.unlinkSync(this.dbPath);
+        // 删除 WAL 和 SHM 文件
+        const walPath = `${this.dbPath}-wal`;
+        const shmPath = `${this.dbPath}-shm`;
+        if (fs.existsSync(walPath)) fs.unlinkSync(walPath);
+        if (fs.existsSync(shmPath)) fs.unlinkSync(shmPath);
       } catch (error) {
         console.error('Failed to cleanup cache on exit:', error);
       }
@@ -275,18 +265,9 @@ class DiskCache {
 
   getCacheSize() {
     try {
-      if (!fs.existsSync(this.cacheDir)) return 0;
-
-      const files = fs.readdirSync(this.cacheDir);
-      let totalSize = 0;
-
-      files.forEach(file => {
-        const filePath = path.join(this.cacheDir, file);
-        const stats = fs.statSync(filePath);
-        totalSize += stats.size;
-      });
-
-      return totalSize;
+      if (!fs.existsSync(this.dbPath)) return 0;
+      const stats = fs.statSync(this.dbPath);
+      return stats.size;
     } catch (error) {
       console.error('Failed to get cache size:', error);
       return 0;

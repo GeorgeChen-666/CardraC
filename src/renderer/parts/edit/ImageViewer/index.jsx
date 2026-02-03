@@ -4,10 +4,12 @@ import { useGlobalStore } from '../../../state/store';
 import Card from '@mui/material/Card';
 import { CardMedia } from '@mui/material';
 import Box from '@mui/material/Box';
+import { getImageSrc } from '../../../functions';
 
 export const ImageViewer = forwardRef((props, ref) => {
   const { Global } = useGlobalStore.selectors;
   const isShowOverView = Global.isShowOverView();
+  const imageVersion = Global.imageVersion();
   const [frame, setFrame] = useState(0);
   const framePlus1 = useRef(() => {});
   framePlus1.current = useCallback(() => setFrame(frame + 1), [frame, setFrame]);
@@ -70,8 +72,8 @@ export const ImageViewer = forwardRef((props, ref) => {
         <CardMedia
           component="img"
           className={'CardImage'}
-          style={{ maxWidth: '346px', maxHeight: '346px', minWidth: '346px', minHeight: '346px'}}
-          image={`cardrac://image/${imageKey}?quality=high`}
+          style={{ maxWidth: '446px', maxHeight: '446px', minWidth: '446px', minHeight: '446px'}}
+          image={getImageSrc({path:imageKey} , {version: imageVersion, quality: 'high'})}
         />
       </Card>
     </Box>);

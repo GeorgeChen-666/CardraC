@@ -34,7 +34,7 @@ const loadImageAverageColor = async () => {
 
 
 export const exportFile = async (doc, state, pagesToRender = null) => {
-  await waitCondition(() => getPendingList().size() === 0);
+  await waitCondition(() => getPendingList()?.size?.() === 0);
   const { Config } = getConfigStore();
 
   const {avoidDislocation, scale, sides, lineWeight, cutlineColor, foldLineType, offsetX, offsetY, marginX, marginY, bleedX, bleedY, pageNumber, columns, rows, printOffsetX = 0, printOffsetY = 0} = Config;

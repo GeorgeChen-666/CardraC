@@ -17,9 +17,9 @@ export const getResourcesPath = (path) => (isDev ? '' : '..') + path;
 
 export const isObject = data => typeof data === 'object' && data?.constructor === Object;
 
-export const getImageSrc = (imageData, quality = 'low') =>
+export const getImageSrc = (imageData, {quality = 'low', version = 1}) =>
   imageData?.path
-    ? `cardrac://image/${imageData.path.replaceAll('\\', '')}?quality=${quality}`
+    ? `cardrac://image/${imageData.path.replaceAll('\\', '')}?quality=${quality}&version=${version}`
     : emptyImg.path;
 
 export const fillByObjectValue = (source, value) => {

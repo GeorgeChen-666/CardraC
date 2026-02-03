@@ -72,7 +72,6 @@ app.whenReady().then(() => {
       if (imagePath.startsWith('/')) {
         imagePath = imagePath.substring(1);
       }
-
       const storage = quality === 'low' ? OverviewStorage : ImageStorage;
 
       //尝试多种路径格式

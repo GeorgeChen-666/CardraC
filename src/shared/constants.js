@@ -53,7 +53,8 @@ export const initialState = Object.freeze({
     selections: [],
     currentView: 'edit',
     exportPageCount: 0,
-    exportPreviewIndex: 1
+    exportPreviewIndex: 1,
+    imageVersion: 1
   },
   Config: {
     pageSize: 'A4:210,297',

@@ -52,13 +52,14 @@ export default memo(({ data, dialogCardSettingRef, index }) => {
   const { t } = useTranslation();
   const {
     cardEditById, cardRemoveByIds, cardSelect,
-    cardShiftSelect, cardCtrlSelect, dragHoverMove, dragCardsMove
+    cardShiftSelect, cardCtrlSelect, dragHoverMove, dragCardsMove, dragHoverCancel
   } = useGlobalStore.getState();
 
   const { Config, Global, CardList } = useGlobalStore.selectors;
   const sides = Config.sides();
   const selected = CardList[index].selected() || false;
   const isBackEditing = Global.isBackEditing();
+  const imageVersion = Global.imageVersion();
   const bleedConfig = data?.config?.bleed;
 
   const handleSwap = useEvent((e) => {
@@ -145,8 +146,8 @@ export default memo(({ data, dialogCardSettingRef, index }) => {
   const { onOpen, MenuElement } = useMenuState(menuItems);
 
   //缓存图片 URL
-  const faceUrl = useMemo(() => getImageSrc(data?.face), [data?.face?.path, data?.face?.mtime]);
-  const backUrl = useMemo(() => getImageSrc(data?.back), [data?.back?.path, data?.back?.mtime]);
+  const faceUrl = useMemo(() => getImageSrc(data?.face, { version: imageVersion }), [data?.face?.path, data?.face?.mtime]);
+  const backUrl = useMemo(() => getImageSrc(data?.back, { version: imageVersion }), [data?.back?.path, data?.back?.mtime]);
 
   //缓存计算结果
   const isShowBack = useMemo(() =>
@@ -169,6 +170,13 @@ export default memo(({ data, dialogCardSettingRef, index }) => {
     isDragging: (monitor) => selected || monitor.getItem().id === data.id,
     type: 'Card',
     collect: (monitor) => ({ isDragging: monitor.isDragging() }),
+    end: (item, monitor) => {
+      // 如果没有成功放置（didDrop 返回 false）
+      if (!monitor.didDrop()) {
+        console.log('🔧 Drag ended without drop, cleaning up dragTarget');
+        dragHoverCancel();
+      }
+    },
   });
 
   return (

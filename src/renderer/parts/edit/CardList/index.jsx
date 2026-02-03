@@ -1,4 +1,6 @@
-import React, { useRef, useMemo } from 'react';
+// src/renderer/parts/edit/CardList/index.jsx
+
+import React, { useRef, useMemo, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -16,9 +18,9 @@ export const CardList = () => {
   const dragHoverCancel = useGlobalStore(state => state.dragHoverCancel);
 
   const [containerWidth, setContainerWidth] = React.useState(0);
-  const cardWidth = 225; // 单个卡牌宽度（根据实际调整）
-  const cardHeight = 282; // 单个卡牌高度（根据实际调整）
-  const gap = 12; // 卡牌间距
+  const cardWidth = 225;
+  const cardHeight = 282;
+  const gap = 12;
 
   const cardsPerRow = Math.max(1, Math.floor((containerWidth + gap) / (cardWidth + gap)));
 
@@ -34,9 +36,23 @@ export const CardList = () => {
     return () => resizeObserver.disconnect();
   }, []);
 
-  const itemsWithAddCard = useMemo(() => {
-    return [...CardList, { id: '__addCard__', type: 'addCard' }];
+  const isDragging = useMemo(() => {
+    return CardList.some(c => c.id === 'dragTarget');
   }, [CardList]);
+
+  const itemsWithAddCard = useMemo(() => {
+    let displayList = CardList;
+
+    if (isDragging) {
+      displayList = CardList.filter(c => {
+        if (c.id === 'dragTarget') return true;
+        if (c.selected) return false;
+        return true;
+      });
+    }
+
+    return [...displayList, { id: '__addCard__', type: 'addCard' }];
+  }, [CardList, isDragging]);
 
   const rows = useMemo(() => {
     const result = [];
@@ -49,9 +65,18 @@ export const CardList = () => {
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => cardHeight + gap, // 每行高度
-    overscan: 4, // 预渲染上下2行
+    estimateSize: () => cardHeight + gap,
+    overscan: 4,
   });
+
+  // ✅ 修复：等待 DOM 更新后再调用 measure
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        rowVirtualizer.measure();
+      });
+    });
+  }, [isDragging, rows.length, rowVirtualizer]);
 
   return (
     <div className={'CardListContainer'}>
