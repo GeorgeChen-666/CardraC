@@ -61,7 +61,10 @@ export const CardList = () => {
     }
     return result;
   }, [itemsWithAddCard, cardsPerRow]);
-
+  console.log(Math.random() * 20, rows)
+  const rowsKey = useMemo(() => {
+    return itemsWithAddCard.map(item => item.id).join('-');
+  }, [itemsWithAddCard]);
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
