@@ -11,3 +11,24 @@ export const waitCondition = async (Condition = () => true, timeout = 500, total
 });
 
 export const fixFloat = num => parseFloat(num.toFixed(2));
+
+export const decodeSvg = (data) => {
+  if (!data) return '';
+  try {
+    let decoded = '';
+    if (data.startsWith('<svg')) {
+      decoded = data;
+    } else if (data.startsWith('data:image/svg+xml;charset=utf-8,')) {
+      decoded = decodeURIComponent(data.replace('data:image/svg+xml;charset=utf-8,', ''));
+    } else if (data.startsWith('data:image/svg+xml,')) {
+      decoded = decodeURIComponent(data.replace('data:image/svg+xml,', ''));
+    } else if (data.startsWith('data:image/svg+xml;base64,')) {
+      const base64Data = data.replace('data:image/svg+xml;base64,', '');
+      decoded = atob(base64Data);
+    }
+    return decoded;
+  } catch (e) {
+    console.error('Failed to decode SVG:', e);
+  }
+  return '';
+};

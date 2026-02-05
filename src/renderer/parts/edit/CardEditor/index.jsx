@@ -183,7 +183,6 @@ export default memo(({ data, dialogCardSettingRef, index }) => {
     <Card
       ref={node => previewRef(dropRef(node))}
       sx={{ display: isDragging ? 'none' : 'unset' }}
-      className={'Card'}
       onClick={handleSelect}
     >
       <CardToolbar

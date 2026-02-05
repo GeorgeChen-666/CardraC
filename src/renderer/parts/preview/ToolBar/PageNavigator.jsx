@@ -133,7 +133,7 @@ export const PageNavigator = ({ currentPage, totalPages, onPageChange }) => {
           onFocus={() => setIsDropdownOpen(true)}
           onWheel={handleWheel}
           style={{
-            width: '20px',
+            width: '22px',
             textAlign: 'center',
             padding: '6px 8px',
             border: '1px solid #ccc',

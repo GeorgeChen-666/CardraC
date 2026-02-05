@@ -153,12 +153,17 @@ export const getCutRectangleList = (Config, { maxWidth, maxHeight }, ignoreBleed
     for (let j = 0; j < rows; j++) {
       for (let i = 0; i < columns; i++) {
         list.push(...centerRects([
-          { x: 0, y: 0, width: scaledWidth + brochureBleedX, height: scaledHeight + brochureBleedY * 2 },
           {
-            x: scaledWidth + brochureBleedX,
+            x: -brochureBleedX,                        // 向左偏移，左侧出血
             y: 0,
-            width: scaledWidth + brochureBleedX,
-            height: scaledHeight + brochureBleedY * 2,
+            width: scaledWidth + brochureBleedX,       // 宽度包含左侧出血
+            height: scaledHeight + brochureBleedY * 2  // 上下出血
+          },
+          {
+            x: scaledWidth,                            // 紧贴左卡（无间隙）
+            y: 0,
+            width: scaledWidth + brochureBleedX,       // 宽度包含右侧出血
+            height: scaledHeight + brochureBleedY * 2  // 上下出血
           },
         ], brochurePageWidth, brochurePageHeight, i * brochurePageWidth, j * brochurePageHeight));
       }
@@ -197,6 +202,44 @@ function centerRects(rects, pageWidth, pageHeight, offsetX = 0, offsetY = 0) {
 
 
 export const getPagedImageListByCardList = (state, Config) => {
+  if (!state.CardList || state.CardList.length === 0) {
+    const { sides, rows, columns } = Config;
+    const isFoldInHalf = sides === layoutSides.foldInHalf;
+    const isBrochure = sides === layoutSides.brochure;
+
+    const pagedImageList = [];
+
+    if (isBrochure) {
+      const slotCount = rows * columns;
+      pagedImageList.push({
+        imageList: new Array(slotCount).fill(emptyImg),
+        config: new Array(slotCount).fill(undefined),
+        type: 'face',
+      });
+      pagedImageList.push({
+        imageList: new Array(slotCount).fill(emptyImg),
+        config: new Array(slotCount).fill(undefined),
+        type: 'back',
+      });
+    } else {
+      const slotCount = rows * columns / (isFoldInHalf ? 2 : 1);
+      pagedImageList.push({
+        imageList: new Array(slotCount).fill(emptyImg),
+        config: new Array(slotCount).fill(undefined),
+        type: 'face',
+      });
+
+      if ([layoutSides.doubleSides, layoutSides.foldInHalf].includes(sides)) {
+        pagedImageList.push({
+          imageList: new Array(slotCount).fill(emptyImg),
+          config: new Array(slotCount).fill(undefined),
+          type: 'back',
+        });
+      }
+    }
+
+    return pagedImageList;
+  }
   if ([layoutSides.oneSide, layoutSides.doubleSides, layoutSides.foldInHalf].includes(Config.sides)) {
     return getNormalPagedImageListByCardList(state, Config);
   } else if (Config.sides === layoutSides.brochure) {
@@ -240,7 +283,11 @@ const getBrochurePagedImageListByCardList = (state, Config) => {
   const size = Config.rows * Config.columns * 2;
 
   const repeatEmpty = (4 - repeatCardList.length % 4) % 4;
-  repeatCardList = repeatCardList.concat(new Array(repeatEmpty));
+  const emptyCard = {
+    face: emptyImg,
+    config: undefined
+  };
+  repeatCardList = repeatCardList.concat(new Array(repeatEmpty).fill(emptyCard));
   const tempPairList = [];
   for (let i = 0; i < repeatCardList.length / 2; i++) {
     tempPairList.push([repeatCardList[i * 2], repeatCardList[i * 2 + 1]]);
@@ -506,7 +553,8 @@ export async function prerenderPage(pageIndex, state, Config, renderFunc, render
       const doc = new SVGAdapter(Config, quality, true);
       const svgString = await renderFunc(doc, state, [pageIndex]);
 
-      const result = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
+      const base64Svg = Buffer.from(svgString, 'utf-8').toString('base64');
+      const result = `data:image/svg+xml;base64,${base64Svg}`;
 
       //结束计时
       const endTime = performance.now();

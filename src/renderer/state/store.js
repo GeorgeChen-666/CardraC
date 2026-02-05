@@ -318,8 +318,9 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       const dragTargetId = 'dragTarget';
       const targetIndex = state.CardList.findIndex(c => c.id === dragTargetId);
       if (targetIndex !== -1) {
-        state.CardList.splice(targetIndex, 1);
-        state.CardList = [...state.CardList];
+        const newCardList = [...state.CardList];
+        newCardList.splice(targetIndex, 1);
+        return { ...state, CardList: newCardList };
       }
       return state;
     });

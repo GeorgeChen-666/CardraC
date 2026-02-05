@@ -1,3 +1,11 @@
+* {
+    user-select: none;
+}
+
+input, textarea, [contenteditable="true"] {
+    user-select: text;
+}
+
 body {
     margin: 0;
     background: #2E2E2E;

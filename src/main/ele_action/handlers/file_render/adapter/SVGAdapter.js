@@ -1,6 +1,6 @@
 // SVGAdapter.js
 import { IAdapter } from './IAdapter';
-import { OverviewStorage, ImageStorage } from '../utils';
+import { ImageStorage, OverviewStorage } from '../utils';
 
 const displayScale = 10;
 
@@ -228,9 +228,18 @@ export class SVGAdapter extends IAdapter {
 
   finalize() {
     const validPages = this.pages.filter(page => page.elements.length > 0);
-
     if (validPages.length === 0) {
-      throw new Error('No pages to export');
+      return `<svg 
+      width="${this.pageWidth * 10}" 
+      height="${this.pageHeight * 10}" 
+      viewBox="0 0 ${this.pageWidth * 10} ${this.pageHeight * 10}"
+      xmlns="http://www.w3.org/2000/svg">
+      <rect width="${this.pageWidth * 10}" height="${this.pageHeight * 10}" fill="white"/>
+      <text x="${this.pageWidth * 5}" y="${this.pageHeight * 5}" 
+            text-anchor="middle" font-size="48" fill="#999">
+        No content to display
+      </text>
+    </svg>`;
     }
 
     if (validPages.length === 1) {

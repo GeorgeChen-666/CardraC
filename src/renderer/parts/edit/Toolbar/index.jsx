@@ -24,7 +24,6 @@ import { ImageViewer } from '../ImageViewer';
 
 const ExportIcon = ({ label = 'PDF' }) => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-    {/*保留文档外框和背景 */}
     <path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
     <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6z"/>
     <text
@@ -145,11 +144,11 @@ export function EditToolbar() {
       <BulkOperationButton />
       <div style={{ float: 'right' }}>
         <FormControlLabel
-          control={<Switch checked={isShowOverView} onChange={() => mergeGlobal({ isShowOverView: !isShowOverView })} />}
+          control={<Switch checked={isShowOverView ?? false} onChange={() => mergeGlobal({ isShowOverView: !isShowOverView })} />}
           label={t('toolbar.lblShowOverviewWindow')} />
         {Config.sides() === layoutSides.doubleSides && (
           <FormControlLabel
-            control={<Switch checked={isBackEditing} onChange={() => mergeGlobal({ isBackEditing: !isBackEditing })} />}
+            control={<Switch checked={isBackEditing ?? false} onChange={() => mergeGlobal({ isBackEditing: !isBackEditing })} />}
             label={t('toolbar.lblSwitchView')} />
         )}
       </div>

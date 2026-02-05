@@ -1,7 +1,4 @@
-// src/renderer/parts/edit/CardList/index.jsx
-
-import React, { useRef, useMemo, useEffect } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import Card from '../CardEditor';
@@ -10,146 +7,185 @@ import AddCard from './AddCard';
 import { CardSettingDialog } from '../CardEditor/CardSettingDialog';
 import { useGlobalStore } from '../../../state/store';
 
+const CardWrapper = ({ card, index, dialogCardSettingRef, isAddCard, isDragTarget, realIndex }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const cardRef = useRef(null);
+  const timeoutRef = useRef(null);
+
+  useEffect(() => {
+    if (!cardRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+          }
+          timeoutRef.current = setTimeout(() => {
+            setIsVisible(entry.isIntersecting);
+          }, 50);
+        });
+      },
+      {
+        root: null,
+        rootMargin: '200px',
+        threshold: 0,
+      },
+    );
+
+    observer.observe(cardRef.current);
+
+    return () => {
+      if (cardRef.current) {
+        observer.unobserve(cardRef.current);
+      }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  if (!isVisible) {
+    return (
+      <div
+        ref={cardRef}
+        className={'Card'}
+        style={{
+          backgroundColor: 'rgba(115,115,115,.6)',
+          borderRadius: '8px',
+        }}
+      />
+    );
+  }
+  return (
+    <div ref={cardRef} className={'Card'}>
+      {isAddCard ? (
+        <AddCard />
+      ) : isDragTarget ? (
+        <CardDropTarget index={realIndex} />
+        ) : (
+        <Card
+        dialogCardSettingRef={dialogCardSettingRef}
+         index={realIndex}
+         data={card}
+    />
+  )}
+</div>
+);};
+
 export const CardList = () => {
   const dialogCardSettingRef = useRef(null);
   const parentRef = useRef(null);
+  const scrollIntervalRef = useRef(null);
 
   const CardList = useGlobalStore(state => state.CardList);
   const dragHoverCancel = useGlobalStore(state => state.dragHoverCancel);
 
-  const [containerWidth, setContainerWidth] = React.useState(0);
-  const cardWidth = 225;
-  const cardHeight = 282;
-  const gap = 12;
+  const isDragging = CardList.some(c => c.id === 'dragTarget');
 
-  const cardsPerRow = Math.max(1, Math.floor((containerWidth + gap) / (cardWidth + gap)));
+  const handleAutoScroll = useCallback((e) => {
+    if (!parentRef.current || !isDragging) return;
 
-  React.useEffect(() => {
-    if (!parentRef.current) return;
+    const container = parentRef.current;
+    const rect = container.getBoundingClientRect();
+    const mouseY = e.clientY;
 
-    const resizeObserver = new ResizeObserver((entries) => {
-      const width = entries[0].contentRect.width;
-      setContainerWidth(width);
-    });
+    const SCROLL_ZONE = 100;
+    const SCROLL_SPEED = 10;
 
-    resizeObserver.observe(parentRef.current);
-    return () => resizeObserver.disconnect();
+    if (scrollIntervalRef.current) {
+      cancelAnimationFrame(scrollIntervalRef.current);
+      scrollIntervalRef.current = null;
+    }
+
+    // 检查是否在上边界
+    if (mouseY < rect.top + SCROLL_ZONE) {
+      const scroll = () => {
+        if (container.scrollTop > 0) {
+          container.scrollTop -= SCROLL_SPEED;
+          scrollIntervalRef.current = requestAnimationFrame(scroll);
+        }
+      };
+      scrollIntervalRef.current = requestAnimationFrame(scroll);
+    }
+    // 检查是否在下边界
+    else if (mouseY > rect.bottom - SCROLL_ZONE) {
+      const scroll = () => {
+        const maxScroll = container.scrollHeight - container.clientHeight;
+        if (container.scrollTop < maxScroll) {
+          container.scrollTop += SCROLL_SPEED;
+          scrollIntervalRef.current = requestAnimationFrame(scroll);
+        }
+      };
+      scrollIntervalRef.current = requestAnimationFrame(scroll);
+    }
+  }, [isDragging]);
+
+  const stopAutoScroll = useCallback(() => {
+    if (scrollIntervalRef.current) {
+      cancelAnimationFrame(scrollIntervalRef.current);
+      scrollIntervalRef.current = null;
+    }
   }, []);
 
-  const isDragging = useMemo(() => {
-    return CardList.some(c => c.id === 'dragTarget');
-  }, [CardList]);
-
-  const itemsWithAddCard = useMemo(() => {
-    let displayList = CardList;
-
-    if (isDragging) {
-      displayList = CardList.filter(c => {
-        if (c.id === 'dragTarget') return true;
-        if (c.selected) return false;
-        return true;
-      });
-    }
-
-    return [...displayList, { id: '__addCard__', type: 'addCard' }];
-  }, [CardList, isDragging]);
-
-  const rows = useMemo(() => {
-    const result = [];
-    for (let i = 0; i < itemsWithAddCard.length; i += cardsPerRow) {
-      result.push(itemsWithAddCard.slice(i, i + cardsPerRow));
-    }
-    return result;
-  }, [itemsWithAddCard, cardsPerRow]);
-  console.log(Math.random() * 20, rows)
-  const rowsKey = useMemo(() => {
-    return itemsWithAddCard.map(item => item.id).join('-');
-  }, [itemsWithAddCard]);
-  const rowVirtualizer = useVirtualizer({
-    count: rows.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => cardHeight + gap,
-    overscan: 4,
-  });
-
-  // ✅ 修复：等待 DOM 更新后再调用 measure
   useEffect(() => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        rowVirtualizer.measure();
-      });
+    return () => {
+      stopAutoScroll();
+    };
+  }, [stopAutoScroll]);
+
+  let displayList = CardList;
+  if (isDragging) {
+    displayList = CardList.filter(c => {
+      if (c.id === 'dragTarget') return true;
+      if (c.selected) return false;
+      return true;
     });
-  }, [isDragging, rows.length, rowVirtualizer]);
+  }
+
+  const itemsWithAddCard = [...displayList, { id: '__addCard__', type: 'addCard' }];
 
   return (
-    <div className={'CardListContainer'}>
-      <div
-        ref={parentRef}
-        className={'CardList'}
-        onDragEnd={dragHoverCancel}
-        style={{
-          height: '100%',
-          overflowY: 'auto',
-          overflowX: 'hidden'
-        }}
-      >
-        <DndProvider backend={HTML5Backend}>
-          <div
-            style={{
-              height: `${rowVirtualizer.getTotalSize()}px`,
-              width: '100%',
-              position: 'relative',
-            }}
-          >
-            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-              const rowCards = rows[virtualRow.index];
+    <div
+      ref={parentRef}
+      className={'CardListContainer'}
+      onDragEnd={() => {
+        dragHoverCancel();
+        stopAutoScroll();
+      }}
+      onDragOver={handleAutoScroll}
+      onDragLeave={stopAutoScroll}
+    >
+      <DndProvider backend={HTML5Backend}>
+        <div
+          className={'CardList'}
+          style={{
+            padding: '8px',
+            gap: '12px',
+            justifyContent: 'flex-start',
+          }}
+        >
+          {itemsWithAddCard.map((card, displayIndex) => {
+            const realIndex = card.id === '__addCard__'
+              ? CardList.length
+              : CardList.findIndex(c => c.id === card.id);
 
-              return (
-                <div
-                  key={virtualRow.index}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: `${virtualRow.size}px`,
-                    transform: `translateY(${virtualRow.start}px)`,
-                    display: 'flex',
-                    gap: `${gap}px`,
-                    flexWrap: 'wrap',
-                    justifyContent: 'flex-start',
-                    paddingLeft: '8px'
-                  }}
-                >
-                  {rowCards.map((card, indexInRow) => {
-                    const globalIndex = virtualRow.index * cardsPerRow + indexInRow;
-                    if (card.type === 'addCard') {
-                      return <AddCard key={card.id} />;
-                    }
-                    if (card.id === 'dragTarget') {
-                      return (
-                        <CardDropTarget
-                          key={card.id}
-                          index={globalIndex}
-                        />
-                      );
-                    }
-                    return (
-                      <Card
-                        key={card.id}
-                        dialogCardSettingRef={dialogCardSettingRef}
-                        index={globalIndex}
-                        data={card}
-                      />
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
-        </DndProvider>
-      </div>
+            return (
+              <CardWrapper
+                key={card.id}
+                card={card}
+                index={displayIndex}
+                realIndex={realIndex}
+                dialogCardSettingRef={dialogCardSettingRef}
+                isAddCard={card.type === 'addCard'}
+                isDragTarget={card.id === 'dragTarget'}
+              />
+            );
+          })}
+        </div>
+      </DndProvider>
       <CardSettingDialog ref={dialogCardSettingRef} />
     </div>
   );
 };
+

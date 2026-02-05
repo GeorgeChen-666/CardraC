@@ -13,6 +13,7 @@ import { CardForm } from './CardForm';
 import { MarkFrom } from './MarkFrom';
 import useAutoCalc from './useAutoCalc';
 import { TemplateMenu } from './TemplateMenu';
+import { ConfigOverviewNew } from './ConfigOverviewNew';
 
 const CustomTabPanel = ({ children, value, index }) => (
   <div
@@ -53,7 +54,8 @@ export const SetupDialog = forwardRef(({},ref) => {
       <TemplateMenu />
     </DialogTitle>
     <DialogContent sx={{height: '450px'}}>
-      <ConfigOverview />
+      {/*<ConfigOverview />*/}
+      <ConfigOverviewNew />
       <Box
         sx={{ flexGrow: 1, display: 'flex' }}
       >
