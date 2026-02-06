@@ -3,8 +3,10 @@ import Dialog from '@mui/material/Dialog';
 import { version } from '../../../../functions';
 import { DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
 import Button from '@mui/material/Button';
+import { useTranslation } from 'react-i18next';
 
 export const AboutDialog = forwardRef(({},ref) => {
+  const { t } = useTranslation();
   const [open, setOpen] = React.useState(false);
   const cancelRef = React.useRef()
   useImperativeHandle(ref, () => ({
@@ -34,7 +36,7 @@ export const AboutDialog = forwardRef(({},ref) => {
     </DialogContent>
     <DialogActions>
       <Button ref={cancelRef} onClick={() => setOpen(false)}>
-        OK
+        {t('button.ok')}
       </Button>
     </DialogActions>
   </Dialog>);

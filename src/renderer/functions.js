@@ -7,7 +7,7 @@ import { useGlobalStore } from './state/store';
 
 
 
-export const isDev = 'ELECTRON_IS_DEV' in process?.env;
+export const isDev = process?.env?.NODE_ENV === 'development';
 
 function isPromise(obj) {
   return !!obj && typeof obj.then === 'function' && typeof obj.catch === 'function';
@@ -37,7 +37,6 @@ export const fillByObjectValue = (source, value) => {
     });
   }
 };
-
 
 ipcRenderer.on('notification', (ev, args) => {
   return triggerNotification({...args, description: i18nInstance.t(args.description)})

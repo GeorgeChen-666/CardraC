@@ -7,7 +7,7 @@ import {
   callMain,
   immutableMerge,
   fillByObjectValue,
-  onOpenProjectFile,
+  onOpenProjectFile, isDev,
 } from '../functions';
 import _ from 'lodash';
 import { i18nInstance, initI18n } from '../i18n';
@@ -15,6 +15,10 @@ import { actionLogger } from './logger';
 import { notificationFailed, notificationSuccess, triggerNotification } from '../parts/Notification';
 import { shallow } from 'zustand/shallow';
 import { ipcRenderer } from 'electron';
+import LZString from 'lz-string';
+import { subscribeWithSelector } from 'zustand/middleware';
+import { middlewares } from './middlewares';
+
 
 const stateSchema = yup.object({
   Global: yup.object({
@@ -69,19 +73,6 @@ const stateSchema = yup.object({
   CardList: yup.array().of(yup.object()).notRequired(),
 });
 
-const middlewares = (args) => actionLogger(args, ({ action, params, prev, next }) => {
-  if (typeof window !== 'undefined' && window.console) {
-    console.groupCollapsed(`[Zustand Action] ${action}`, ...params);
-    console.log('Prev state:', prev);
-    console.log('Next state:', next);
-    console.groupEnd();
-    const newStateData = _.pick(next, ['Config', 'Global']);
-    if (['mergeState', 'mergeConfig', 'mergeGlobal'].includes(action)) {
-      callMain(eleActions.saveConfig, { state: newStateData });
-    }
-  }
-});
-
 const mergeStateFn = (state, newState, path = '') => {
   if (path) {
     const [first, ...rest] = path.split('.');
@@ -119,6 +110,10 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       get().mergeGlobal({ isInProgress: false });
     }
   },
+  newProject: () => {
+    get().mergeState({ Config: initialState.Config, CardList: [] });
+    get().historyReset();
+  },
   openProject: () => {
     get().loading(async () => {
       const projectData = await callMain(eleActions.openProject);
@@ -127,6 +122,7 @@ export const useGlobalStore = create(middlewares((set, get) => ({
           ...projectData,
           Config: {...initialState.Config, ...projectData.Config}
         });
+        get().historyReset();
       }
     });
   },
@@ -193,7 +189,7 @@ export const useGlobalStore = create(middlewares((set, get) => ({
     });
   },
   cardAdd: (images) => {
-    set(state => ({
+    get().setWithHistory(state => ({
       ...state,
       CardList: state.CardList.concat(images.map(p => ({
         id: crypto.randomUUID(),
@@ -204,7 +200,7 @@ export const useGlobalStore = create(middlewares((set, get) => ({
     }));
   },
   cardEditById: (newState) =>
-    set(state => {
+    get().setWithHistory(state => {
       const { id, ...restNewState } = newState;
       const card = state.CardList.find(c => c.id === id);
       if (card) {
@@ -219,7 +215,7 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       return state;
     }),
   cardRemoveByIds: (ids) =>
-    set(state => ({
+    get().setWithHistory(state => ({
       ...state,
       CardList: state.CardList.filter(c => !ids.includes(c.id))
     })),
@@ -326,7 +322,7 @@ export const useGlobalStore = create(middlewares((set, get) => ({
     });
   },
   dragCardsMove: () => {
-    set(state => {
+    get().setWithHistory(state => {
       const dragTargetId = 'dragTarget';
       const selection = state.CardList.filter(c => c.selected);
       const orderedSelection = selection.toSorted((a, b) => {
@@ -348,13 +344,13 @@ export const useGlobalStore = create(middlewares((set, get) => ({
     });
   },
   selectedCardsRemove: () => {
-    set(state => ({
+    get().setWithHistory(state => ({
       ...state,
       CardList: state.CardList.filter(c => !c.selected)
     }));
   },
   selectedCardsDuplicate: () => {
-    set(state => {
+    get().setWithHistory(state => {
       const selection = state.CardList.filter(c => c.selected);
       const orderedSelection = selection.toSorted((a, b) => {
         return state.CardList.findIndex(c => c.id === b.id) - state.CardList.findIndex(c => c.id === a.id);
@@ -369,7 +365,7 @@ export const useGlobalStore = create(middlewares((set, get) => ({
     });
   },
   selectedCardsEdit: (newState) => {
-    set(state => {
+    get().setWithHistory(state => {
       const selection = state.CardList.filter(c => c.selected);
       selection.forEach(c => {
         fillByObjectValue(c, newState);
@@ -379,7 +375,7 @@ export const useGlobalStore = create(middlewares((set, get) => ({
     });
   },
   selectedCardsFillBackWithEach: (backImageList) => {
-    set(state => {
+    get().setWithHistory(state => {
       const selection = state.CardList.filter(c => c.selected);
       selection.forEach((c, index) => {
         c.back = backImageList?.[index];
@@ -389,7 +385,7 @@ export const useGlobalStore = create(middlewares((set, get) => ({
     });
   },
   selectedCardsSwap: () => {
-    set(state => {
+    get().setWithHistory(state => {
       const selection = state.CardList.filter(c => c.selected);
       selection.forEach(c => ([c.face, c.back] = [c.back, c.face]));
       state.CardList = state.CardList.map(c => selection.includes(c) ? { ...c } : c);
@@ -397,7 +393,7 @@ export const useGlobalStore = create(middlewares((set, get) => ({
     });
   },
   editCardsConfig: (ids, config) => {
-    set(state => {
+    get().setWithHistory(state => {
       const editedCards = state.CardList.filter(c => ids.includes(c.id));
       editedCards.forEach(c => {
         if(Object.values(config?.bleed || {}).filter(e => !!e).length > 0) {
@@ -441,7 +437,15 @@ function createSelectors(storeHook) {
 }
 
 useGlobalStore.selectors = createSelectors(useGlobalStore);
-
+useGlobalStore.subscribe(
+  (state) => ({ Config: state.Config, Global: state.Global }),
+  (newState, prevState) => {
+    if (newState.Config !== prevState.Config || newState.Global !== prevState.Global) {
+      callMain(eleActions.saveConfig, { state: newState });
+    }
+  },
+  { equalityFn: shallow }
+);
 const state = useGlobalStore.getState();
 onOpenProjectFile((data) => {
   state.fillState(data);

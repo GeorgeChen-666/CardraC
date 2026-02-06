@@ -7,6 +7,8 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import ChatIcon from '@mui/icons-material/Chat';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import InfoIcon from '@mui/icons-material/Info';
+import UndoIcon from '@mui/icons-material/Undo';
+import RedoIcon from '@mui/icons-material/Redo';
 import {GeneralIconButton} from '../../../componments/GeneralIconButton'
 import { useTranslation } from 'react-i18next';
 import { useGlobalStore } from '../../../state/store';
@@ -51,8 +53,10 @@ export function EditToolbar() {
   window.imageViewerRef = imageViewerRef;
   const { t } = useTranslation();
   const {
-    saveProject, mergeState,openProject, mergeConfig, mergeGlobal, exportFile
+    saveProject, newProject, openProject, mergeConfig, mergeGlobal, exportFile,
+    historyCanUndo, historyCanRedo, historyUndo, historyRedo
   } = useGlobalStore.getState();
+
   const {Config, Global, CardList } = useGlobalStore.selectors;
   const cardListLength = CardList().length;
   const globalBackground = Config.globalBackground()
@@ -68,7 +72,7 @@ export function EditToolbar() {
       <GeneralIconButton
         label={t('toolbar.btnAdd')}
         icon={<NoteAddIcon />}
-        onClick={() => mergeState({ Config: initialState.Config, CardList: [] })}
+        onClick={() => newProject()}
       />
       <GeneralIconButton
         label={t('toolbar.btnOpen')}
@@ -79,6 +83,18 @@ export function EditToolbar() {
         label={t('toolbar.btnSave')}
         icon={<SaveIcon />}
         onClick={() => saveProject()}
+      />
+      <GeneralIconButton
+        disabled={!historyCanUndo()}
+        label={t('toolbar.btnUndo')}
+        icon={<UndoIcon />}
+        onClick={() => historyUndo()}
+      />
+      <GeneralIconButton
+        disabled={!historyCanRedo()}
+        label={t('toolbar.btnRedo')}
+        icon={<RedoIcon />}
+        onClick={() => historyRedo()}
       />
       <span style={{ color: '#666', padding: '4px' }}>|</span>
       {Config.sides() === layoutSides.doubleSides && (

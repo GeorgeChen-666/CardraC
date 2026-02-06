@@ -1,51 +1,38 @@
-import { StoreApi } from 'zustand';
+import type { StoreApi } from 'zustand';
 
-type Selectorize<T> = {
-  [K in keyof T]: T[K] extends object
-    ? Selectorize<T[K]> & ((...args: any[]) => T[K])
-    : ((...args: any[]) => T[K]);
-};
-
-export interface GlobalState {
-  availableLangs: string[];
+interface GlobalState {
   currentLang: string;
-  isLoading: boolean;
-  loadingText: string;
-  isInProgress: boolean;
-  progress: number;
-  lastSelection: any;
-  isBackEditing: boolean;
   isShowOverView: boolean;
-  selections: any[];
-  currentView: 'edit'|'preview';
-  exportPageCount: number,
-  exportPreviewIndex: number,
-  imageVersion: number
+  availableLangs?: string[];
+  isLoading?: boolean;
+  loadingText?: string;
+  isInProgress?: boolean;
+  progress?: number;
+  lastSelection?: any;
+  isBackEditing?: boolean;
+  selections?: any[];
+  imageVersion?: number;
+  exportPageCount?: number;
+  exportPreviewIndex?: number;
+  currentView?: string;
 }
 
-export type LayoutSides = string; // Could be a union of allowed string values
-export type FlipWay = string;    // Could be a union of allowed string values
-
-export interface ConfigState {
+interface ConfigState {
   pageSize: string;
   pageWidth: number;
   pageHeight: number;
-  scale: number;
   offsetX: number;
   offsetY: number;
-  printOffsetX: number;
-  printOffsetY: number;
   landscape: boolean;
-  sides: LayoutSides;
+  sides: string;
   autoConfigFlip: boolean;
-  flip: FlipWay;
+  flip: string;
   cardWidth: number;
   cardHeight: number;
   compressLevel: number;
   marginX: number;
   marginY: number;
   foldInHalfMargin: number;
-  foldLineType: '0'|'1';
   bleedX: number;
   bleedY: number;
   columns: number;
@@ -55,34 +42,95 @@ export interface ConfigState {
   bCutLine: string;
   lineWeight: number;
   cutlineColor: string;
-  globalBackground: any;
-  marginFilling: boolean;
-  avoidDislocation: boolean;
-  brochureRepeatPerPage: boolean;
+  foldLineType: string;
+  globalBackground?: any;
+  marginFilling?: boolean;
+  avoidDislocation?: boolean;
+  brochureRepeatPerPage?: boolean;
+  scale?: number;
 }
 
-export interface StoreState {
+interface Card {
+  id: string;
+  face: any;
+  back: any;
+  repeat: number;
+  selected?: boolean;
+  config?: any;
+}
+
+interface StoreState {
   Global: GlobalState;
   Config: ConfigState;
-  CardList: any[];
-  fillState: (newState: Partial<Omit<StoreState, 'fillState' | 'mergeState' | 'mergeGlobal' | 'mergeConfig' | 'loading' | 'progress' | 'openProject' | 'selectors'>>) => void;
-  mergeState: (newState: any, path?: string) => void;
-  mergeGlobal: (newState: any) => void;
-  mergeConfig: (newState: any) => void;
-  loading: (cb: () => Promise<void>, text?: string) => Promise<void>;
+  CardList: Card[];
+
+  // Core methods
+  fillState: (state: Partial<StoreState>) => void;
+  mergeState: (newState: Partial<StoreState>, path?: string) => void;
+  mergeGlobal: (newState: Partial<GlobalState>) => void;
+  mergeConfig: (newState: Partial<ConfigState>) => void;
+
+  // Utility methods
+  loading: (cb?: () => Promise<void>, text?: string) => Promise<void>;
   progress: (v: number) => void;
-  openProject: () => Promise<void>;
+
+  // Project methods
+  openProject: () => void;
+  saveProject: () => void;
+  exportFile: (targetFileType: string) => void;
+  printPages: (params: { pageList: any[]; printConfig: any }) => void;
+  reloadLocalImage: () => void;
+  getExportPageCount: (targetFileType: string) => void;
+  getExportPreview: (pageIndex: number) => Promise<any>;
+
+  // Card methods
+  cardAdd: (images: any[]) => void;
+  cardEditById: (newState: Partial<Card> & { id: string }) => void;
+  cardRemoveByIds: (ids: string[]) => void;
+  cardSelect: (selectedId: string) => void;
+  cardCtrlSelect: (selectedId: string) => void;
+  cardShiftSelect: (selectedId: string) => void;
+
+  // Drag methods
+  dragHoverMove: (to: number) => void;
+  dragHoverCancel: () => void;
+  dragCardsMove: () => void;
+
+  // Selected cards methods
+  selectedCardsRemove: () => void;
+  selectedCardsDuplicate: () => void;
+  selectedCardsEdit: (newState: Partial<Card>) => void;
+  selectedCardsFillBackWithEach: (backImageList: any[]) => void;
+  selectedCardsSwap: () => void;
+  editCardsConfig: (ids: string[], config: any) => void;
+
+  // History methods
+  historyUndo: () => void;
+  historyRedo: () => void;
+  historyCanUndo: () => boolean;
+  historyCanRedo: () => boolean;
+  historyReset: () => void;
 }
 
-// For Zustand hook
+type Selectorize<S> = {
+  [K in keyof S]: () => S[K];
+};
+
 export declare const useGlobalStore: {
-  (selectors?: (state: Partial<StoreState>) => void): StoreState;
+  (): StoreState;
+  <U>(selector: (state: StoreState) => U): U;
   getState: () => StoreState;
-  setState: (state: Partial<StoreState>, replace?: boolean) => void;
-  subscribe: StoreApi<StoreState>['subscribe'];
-  destroy: StoreApi<StoreState>['destroy'];
+  setState: (state: Partial<StoreState> | ((state: StoreState) => Partial<StoreState>), replace?: boolean) => void;
+  subscribe: {
+    (listener: (state: StoreState, prevState: StoreState) => void): () => void;
+    <U>(
+      selector: (state: StoreState) => U,
+      listener: (selectedState: U, previousSelectedState: U) => void,
+      options?: { equalityFn?: (a: U, b: U) => boolean; fireImmediately?: boolean }
+    ): () => void;
+  };
+  destroy: () => void;
   selectors: Selectorize<Pick<StoreState, 'Global' | 'Config' | 'CardList'>>;
 };
 
-// For initialState
-export declare const initialState: Readonly<Pick<StoreState, 'Global' | 'Config' | 'CardList'>>;
+export type { StoreState, GlobalState, ConfigState, Card };

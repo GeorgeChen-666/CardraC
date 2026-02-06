@@ -1,4 +1,4 @@
-import React, { forwardRef, useImperativeHandle } from 'react';
+import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import Dialog from '@mui/material/Dialog';
 import { DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import Tabs from '@mui/material/Tabs';
@@ -14,6 +14,7 @@ import { MarkFrom } from './MarkFrom';
 import useAutoCalc from './useAutoCalc';
 import { TemplateMenu } from './TemplateMenu';
 import { ConfigOverviewNew } from './ConfigOverviewNew';
+import { useGlobalStore } from '../../../../state/store';
 
 const CustomTabPanel = ({ children, value, index }) => (
   <div
@@ -28,12 +29,28 @@ export const SetupDialog = forwardRef(({},ref) => {
   const { t } = useTranslation();
   const [open, setOpen] = React.useState(false);
   const [value, setValue] = React.useState(0);
+  const originalConfigRef = useRef(null);
+  // ✅ 订阅 Config 变化
+  const currentConfig = useGlobalStore(state => state.Config);
+  const { mergeConfig } = useGlobalStore.getState();
+  // ✅ 检查是否有变化
+  const hasChanges = originalConfigRef.current
+    ? JSON.stringify(currentConfig) !== JSON.stringify(originalConfigRef.current)
+    : false;
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };
-
+  const handleOpen = () => {
+    originalConfigRef.current = JSON.parse(JSON.stringify(currentConfig));
+    setOpen(true);
+  };
+  const handleReset = () => {
+    if (originalConfigRef.current) {
+      mergeConfig(originalConfigRef.current);
+    }
+  };
   useImperativeHandle(ref, () => ({
-    openDialog: () => setOpen(true),
+    openDialog: handleOpen,
   }));
 
   useAutoCalc();
@@ -78,8 +95,11 @@ export const SetupDialog = forwardRef(({},ref) => {
       </Box>
     </DialogContent>
     <DialogActions>
+      <Button onClick={handleReset} disabled={!hasChanges}>
+        {t('button.reset')}
+      </Button>
       <Button onClick={() => setOpen(false)}>
-        OK
+        {t('button.ok')}
       </Button>
     </DialogActions>
   </Dialog>);

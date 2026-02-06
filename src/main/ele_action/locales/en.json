@@ -13,8 +13,9 @@
     "next": "Next",
     "prev": "Previous",
     "close": "Close",
-    "OK": "OK",
+    "ok": "OK",
     "cancel": "Cancel",
+    "reset": "Reset",
     "yes": "Yes",
     "no": "No",
     "print": "Print"

@@ -12,6 +12,7 @@ import {
   prerenderPage,
 } from './file_render/utils';
 import { colorCache, exportFile } from './file_render';
+import { invokeRenderer } from '../../utils';
 
 log.transports.file.level = 'debug';
 log.transports.console.level = 'debug';
@@ -126,12 +127,18 @@ export default (mainWindow) => {
 
   ipcMain.on(eleActions.openImage, async (event, args) => {
     const { properties = [], returnChannel, progressChannel } = args;
-    const result = await dialog.showOpenDialog(mainWindow, {
-      filters: [
-        { name: 'Image File', extensions: ['jpg', 'png', 'gif'] }
-      ],
-      properties: ['openFile', ...properties],
+
+    const result = await invokeRenderer(mainWindow, 'show-file-dialog', {
+      filters: ['jpg', 'png', 'gif'],
+      multiple: properties.includes('multiSelections')
     });
+
+    // const result = await dialog.showOpenDialog(mainWindow, {
+    //   filters: [
+    //     { name: 'Image File', extensions: ['jpg', 'png', 'gif'] }
+    //   ],
+    //   properties: ['openFile', ...properties],
+    // });
 
     if (result.canceled) {
       mainWindow.webContents.send(returnChannel, []);
