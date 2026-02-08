@@ -10,7 +10,7 @@ export const waitCondition = async (Condition = () => true, timeout = 500, total
   }, timeout);
 });
 
-export const fixFloat = num => parseFloat(num.toFixed(2));
+export const fixFloat = num => num ?? parseFloat(num?.toFixed?.(2));
 
 export const decodeSvg = (data) => {
   if (!data) return '';

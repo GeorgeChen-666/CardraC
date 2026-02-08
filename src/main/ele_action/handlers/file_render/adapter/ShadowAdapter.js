@@ -9,21 +9,12 @@ export class ShadowAdapter extends IAdapter {
     this.currentPageIndex = -1;
     this.currentPage = null;
 
-    const [width, height] = this.parsePageSize(config.pageSize);
+    const [width, height] = [config.pageWidth, config.pageHeight];
     this.pageWidth = Math.ceil(config.landscape ? height : width);
     this.pageHeight = Math.ceil(config.landscape ? width : height);
 
     // 创建第一页
     this.createNewPage();
-  }
-
-  parsePageSize(pageSize) {
-    const parts = pageSize.split(':');
-    if (parts.length === 2) {
-      const [width, height] = parts[1].split(',').map(Number);
-      return [width, height];
-    }
-    return [595, 842];
   }
 
   createNewPage() {

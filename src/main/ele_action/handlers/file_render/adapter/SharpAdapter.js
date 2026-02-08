@@ -37,7 +37,7 @@ export class SharpAdapter extends IAdapter {
     this.compressionLevel = settings.compressionLevel;
     this.effort = settings.effort;
 
-    const [width, height] = this.parsePageSize(config.pageSize);
+    const [width, height] = [config.pageWidth, config.pageHeight];
 
     this.pageWidth = Math.ceil(config.landscape ? height : width);
     this.pageHeight = Math.ceil(config.landscape ? width : height);

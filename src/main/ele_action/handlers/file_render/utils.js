@@ -22,7 +22,6 @@ OverviewStorage['_emptyImg'] = defaultImageStorage['_emptyImg'];
 export const getCutRectangleList = (Config, { maxWidth, maxHeight }, ignoreBleed = true, isBack = false) => {
   const {
     sides,
-    scale,
     cardWidth,
     cardHeight,
     marginX,
@@ -39,13 +38,13 @@ export const getCutRectangleList = (Config, { maxWidth, maxHeight }, ignoreBleed
   } = Config;
 
   // 计算缩放后的尺寸
-  const scaledWidth = fixFloat(cardWidth * scale / 100);
-  const scaledHeight = fixFloat(cardHeight * scale / 100);
-  const scaledMarginX = fixFloat(marginX * scale / 100);
-  const scaledMarginY = fixFloat(marginY * scale / 100);
-  const scaledBleedX = fixFloat(bleedX * scale / 100);
-  const scaledBleedY = fixFloat(bleedY * scale / 100);
-  const scaledFoldMargin = fixFloat(foldInHalfMargin * scale / 100);
+  const scaledWidth = fixFloat(cardWidth);
+  const scaledHeight = fixFloat(cardHeight);
+  const scaledMarginX = fixFloat(marginX);
+  const scaledMarginY = fixFloat(marginY);
+  const scaledBleedX = fixFloat(bleedX);
+  const scaledBleedY = fixFloat(bleedY);
+  const scaledFoldMargin = fixFloat(foldInHalfMargin);
   const halfMarginX = scaledMarginX / 2;
   const halfMarginY = scaledMarginY / 2;
   const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
@@ -210,7 +209,7 @@ export const getPagedImageListByCardList = (state, Config) => {
     const pagedImageList = [];
 
     if (isBrochure) {
-      const slotCount = rows * columns;
+      const slotCount = rows * columns * 2;
       pagedImageList.push({
         imageList: new Array(slotCount).fill(emptyImg),
         config: new Array(slotCount).fill(undefined),

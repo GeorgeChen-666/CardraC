@@ -1,46 +1,71 @@
+// src/renderer/state/middlewares.js
 import { isDev } from '../functions';
 import { actionLogger } from './logger';
 import { subscribeWithSelector } from 'zustand/middleware';
 import LZString from 'lz-string';
 
 const historyMiddleware = (config) => (set, get, api) => {
-  const history = {
-    recent: [],
-    recentIndex: -1,
-    compressed: [],
-    isUndoRedo: false,
-    recordNext: false,  // ✅ 添加标志
-    reset() {
-      this.recent = [];
-      this.recentIndex = -1;
-      this.compressed = [];
-    }
-  };
-
   const wrappedSet = (partial, replace) => {
     const prevCardList = get().CardList;
+    const prevHistory = get().History;
+
     set(partial, replace);
+
     const nextCardList = get().CardList;
+    const nextHistory = get().History;
 
-    if (prevCardList !== nextCardList && !history.isUndoRedo && history.recordNext) {
-      // ✅ 如果是第一次记录，先保存当前状态
-      if (history.recent.length === 0) {
-        history.recent.push([...prevCardList]);
-        history.recentIndex = 0;
+    // ✅ 只有在需要记录且不是撤销/重做操作时才记录
+    if (prevCardList !== nextCardList &&
+      !prevHistory.isUndoRedo &&
+      prevHistory.recordNext) {
+
+      let newRecent = [...prevHistory.recent];
+      let newCompressed = [...prevHistory.compressed];
+      let newRecentIndex = prevHistory.recentIndex;
+
+      // ✅ 清除当前位置之后的历史
+      if (newRecentIndex < newRecent.length - 1) {
+        newRecent = newRecent.slice(0, newRecentIndex + 1);
       }
 
-      if (history.recent.length >= 10) {
-        const oldest = history.recent.shift();
-        history.compressed.push(LZString.compressToUTF16(JSON.stringify(oldest)));
-        history.recentIndex--;
-        if (history.compressed.length > 40) history.compressed.shift();
+      // ✅ 添加新状态
+      newRecent.push([...nextCardList]);
+      newRecentIndex = newRecent.length - 1;
+
+      // ✅ 压缩旧历史
+      while (newRecent.length > 10) {
+        const oldest = newRecent.shift();
+        newCompressed.push(LZString.compressToUTF16(JSON.stringify(oldest)));
+        newRecentIndex--;
+
+        if (newCompressed.length > 40) {
+          newCompressed.shift();
+        }
       }
-      history.recent = history.recent.slice(0, history.recentIndex + 1);
-      history.recent.push([...nextCardList]);
-      history.recentIndex++;
+
+      // ✅ 更新历史状态
+      set((state) => ({
+        ...state,
+        History: {
+          recent: newRecent,
+          recentIndex: newRecentIndex,
+          compressed: newCompressed,
+          isUndoRedo: false,
+          recordNext: false,
+          canUndo: newRecentIndex > 0 || newCompressed.length > 0,
+          canRedo: false
+        }
+      }));
+    } else if (prevHistory.recordNext && !prevHistory.isUndoRedo) {
+      // 重置 recordNext 标志
+      set((state) => ({
+        ...state,
+        History: {
+          ...state.History,
+          recordNext: false
+        }
+      }));
     }
-
-    history.recordNext = false;
   };
 
   const store = config(wrappedSet, get, api);
@@ -48,36 +73,145 @@ const historyMiddleware = (config) => (set, get, api) => {
   return {
     ...store,
 
-    // ✅ 添加辅助方法：需要记录历史时用这个
+    // ✅ 初始化历史状态
+    History: {
+      recent: [],
+      recentIndex: -1,
+      compressed: [],
+      isUndoRedo: false,
+      recordNext: false,
+      canUndo: false,
+      canRedo: false
+    },
+
+    // ✅ 简化：只设置 recordNext 标志
     setWithHistory: (partial, replace) => {
-      history.recordNext = true;
+      set((state) => ({
+        ...state,
+        History: {
+          ...state.History,
+          recordNext: true
+        }
+      }));
+
       wrappedSet(partial, replace);
     },
 
+    // ✅ 撤销
     historyUndo: () => {
+      const history = get().History;
+
       if (history.recentIndex > 0) {
-        history.isUndoRedo = true;
-        wrappedSet({ CardList: history.recent[--history.recentIndex] });
-        history.isUndoRedo = false;
+        const newIndex = history.recentIndex - 1;
+
+        set((state) => ({
+          ...state,
+          History: {
+            ...state.History,
+            isUndoRedo: true
+          }
+        }));
+
+        set((state) => ({
+          ...state,
+          CardList: [...history.recent[newIndex]]
+        }));
+
+        set((state) => ({
+          ...state,
+          History: {
+            ...state.History,
+            recentIndex: newIndex,
+            isUndoRedo: false,
+            canUndo: newIndex > 0 || history.compressed.length > 0,
+            canRedo: true
+          }
+        }));
+
       } else if (history.compressed.length > 0) {
-        history.isUndoRedo = true;
-        const data = JSON.parse(LZString.decompressFromUTF16(history.compressed.pop()));
-        history.recent.unshift(data);
-        history.recentIndex = 0;
-        wrappedSet({ CardList: data });
-        history.isUndoRedo = false;
+        const newCompressed = [...history.compressed];
+        const compressedData = newCompressed.pop();
+        const data = JSON.parse(LZString.decompressFromUTF16(compressedData));
+        const newRecent = [data, ...history.recent];
+
+        set((state) => ({
+          ...state,
+          History: {
+            ...state.History,
+            isUndoRedo: true
+          }
+        }));
+
+        set((state) => ({
+          ...state,
+          CardList: [...data]
+        }));
+
+        set((state) => ({
+          ...state,
+          History: {
+            ...state.History,
+            recent: newRecent,
+            recentIndex: 0,
+            compressed: newCompressed,
+            isUndoRedo: false,
+            canUndo: newCompressed.length > 0,
+            canRedo: true
+          }
+        }));
       }
     },
+
+    // ✅ 重做
     historyRedo: () => {
+      const history = get().History;
+
       if (history.recentIndex < history.recent.length - 1) {
-        history.isUndoRedo = true;
-        wrappedSet({ CardList: history.recent[++history.recentIndex] });
-        history.isUndoRedo = false;
+        const newIndex = history.recentIndex + 1;
+
+        set((state) => ({
+          ...state,
+          History: {
+            ...state.History,
+            isUndoRedo: true
+          }
+        }));
+
+        set((state) => ({
+          ...state,
+          CardList: [...history.recent[newIndex]]
+        }));
+
+        set((state) => ({
+          ...state,
+          History: {
+            ...state.History,
+            recentIndex: newIndex,
+            isUndoRedo: false,
+            canUndo: true,
+            canRedo: newIndex < history.recent.length - 1
+          }
+        }));
       }
     },
-    historyCanUndo: () => history.recentIndex > 0 || history.compressed.length > 0,
-    historyCanRedo: () => history.recentIndex < history.recent.length - 1,
-    historyReset: () => history.reset(),
+
+    // ✅ 重置历史 - 记录初始状态
+    historyReset: () => {
+      const currentCardList = get().CardList;
+
+      set((state) => ({
+        ...state,
+        History: {
+          recent: currentCardList.length > 0 ? [[...currentCardList]] : [],
+          recentIndex: currentCardList.length > 0 ? 0 : -1,
+          compressed: [],
+          isUndoRedo: false,
+          recordNext: false,
+          canUndo: false,
+          canRedo: false
+        }
+      }));
+    }
   };
 };
 

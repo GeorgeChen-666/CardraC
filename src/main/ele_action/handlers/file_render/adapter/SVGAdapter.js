@@ -17,7 +17,7 @@ export class SVGAdapter extends IAdapter {
     this.transformStack = [];
     this.currentTransform = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
 
-    const [width, height] = this.parsePageSize(config.pageSize);
+    const [width, height] = [config.pageWidth, config.pageHeight];
 
     if (config.landscape) {
       this.pageWidth = height;
@@ -34,15 +34,6 @@ export class SVGAdapter extends IAdapter {
     });
 
     this.createNewPage();
-  }
-
-  parsePageSize(pageSize) {
-    const parts = pageSize.split(':');
-    if (parts.length === 2) {
-      const [width, height] = parts[1].split(',').map(Number);
-      return [width, height];
-    }
-    return [595, 842];
   }
 
   createNewPage() {
@@ -93,7 +84,7 @@ export class SVGAdapter extends IAdapter {
   }
 
   drawImage({ data, x, y, width, height, rotation = 0 }) {
-    const imagePathKey = data.path.replaceAll('\\', '');
+    const imagePathKey = encodeURIComponent(data.path.replaceAll('\\', ''));
 
     let imageSource;
     if (this.useAppLinks) {

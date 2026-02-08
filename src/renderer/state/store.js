@@ -32,46 +32,91 @@ const stateSchema = yup.object({
     lastSelection: yup.object().notRequired(),
     isBackEditing: yup.boolean().notRequired(),
     selections: yup.array().of(yup.object()).notRequired(),
-  }).required(),
+    locales: yup.object().notRequired()
+  }).notRequired(),
   Config: yup.object({
-    pageSize: yup.string().required(), //'A4:210,297',
-    pageWidth: yup.number().min(1).required(), //210,
-    pageHeight: yup.number().min(1).required(), //297,
-    offsetX: yup.number().required(), //0,
-    offsetY: yup.number().required(), //0,
-    landscape: yup.boolean().required(), //true,
+    pageSize: yup.string().required(),
+    pageWidth: yup.number().min(1).required(),
+    pageHeight: yup.number().min(1).required(),
+    offsetX: yup.number().required(),
+    offsetY: yup.number().required(),
+    landscape: yup.boolean().required(),
     sides: yup.string().oneOf([
       layoutSides.oneSide,
       layoutSides.doubleSides,
       layoutSides.foldInHalf,
-      layoutSides.brochure]).required(), //layoutSides.doubleSides,
-    autoConfigFlip: yup.boolean().required(), //true,
+      layoutSides.brochure]).required(),
+    autoConfigFlip: yup.boolean().required(),
     flip: yup.string().oneOf([
       flipWay.longEdgeBinding,
-      flipWay.shortEdgeBinding]).required(), //flipWay.longEdgeBinding,
-    cardWidth: yup.number().min(1).required(), //63,
-    cardHeight: yup.number().min(1).required(), //88,
-    compressLevel: yup.number().min(0).max(4).required(), //2,
-    marginX: yup.number().min(0).required(), //3,
-    marginY: yup.number().min(0).required(), //3,
-    foldInHalfMargin: yup.number().min(0).required(), //0,
-    bleedX: yup.number().min(0).required(), //1,
-    bleedY: yup.number().min(0).required(), //1,
-    columns: yup.number().min(1).required(), //4,
-    rows: yup.number().min(1).required(), //2,
-    autoColumnsRows: yup.boolean().required(), //true,
-    fCutLine: yup.string().oneOf(['1', '2', '3']).required(), //'1',
-    bCutLine: yup.string().oneOf(['1', '2', '3']).required(), //'1',
-    lineWeight: yup.number().min(0).required(), //0.5,
-    cutlineColor: yup.string().required(), //'#000000',
+      flipWay.shortEdgeBinding]).required(),
+    cardWidth: yup.number().min(1).required(),
+    cardHeight: yup.number().min(1).required(),
+    compressLevel: yup.number().min(0).max(4).required(),
+    marginX: yup.number().min(0).required(),
+    marginY: yup.number().min(0).required(),
+    foldInHalfMargin: yup.number().min(0).required(),
+    bleedX: yup.number().min(0).required(),
+    bleedY: yup.number().min(0).required(),
+    columns: yup.number().min(1).required(),
+    rows: yup.number().min(1).required(),
+    autoColumnsRows: yup.boolean().required(),
+    fCutLine: yup.string().oneOf(['1', '2', '3']).required(),
+    bCutLine: yup.string().oneOf(['1', '2', '3']).required(),
+    lineWeight: yup.number().min(0).required(),
+    cutlineColor: yup.string().required(),
     foldLineType: yup.string().oneOf(['0', '1']).required(),
-    globalBackground: yup.object().notRequired(), //null,
-    marginFilling: yup.boolean().notRequired(), //false,
-    avoidDislocation: yup.boolean().notRequired(), //false,
-    brochureRepeatPerPage: yup.boolean().notRequired(), //false,
-  }).required(),
+    globalBackground: yup.object().notRequired(),
+    marginFilling: yup.boolean().notRequired(),
+    avoidDislocation: yup.boolean().notRequired(),
+    brochureRepeatPerPage: yup.boolean().notRequired(),
+    pageNumber: yup.boolean().notRequired(),
+  }).required().noUnknown(),
   CardList: yup.array().of(yup.object()).notRequired(),
-});
+}).noUnknown();
+
+// ✅ 提取验证逻辑为可复用函数
+const validateAndFixConfig = async (config) => {
+  try {
+    await stateSchema.validate(config, { abortEarly: false, strict: true });
+    return { isValid: true, config };
+  } catch (e) {
+    if (e.inner && e.inner.length > 0) {
+      e.inner.forEach(err => {
+        if (err.type === 'noUnknown' && err.params?.unknown) {
+          const parentPath = err.path;
+          const parentObj = _.get(config, parentPath);
+
+          if (parentObj && typeof parentObj === 'object') {
+            const unknownKeys = err.params.unknown
+              .split(',')
+              .map(key => key.trim())
+              .filter(key => key);
+
+            unknownKeys.forEach(key => {
+              const fullPath = parentPath ? `${parentPath}.${key}` : key;
+              console.warn(`Removing unknown field: ${fullPath}`);
+              delete parentObj[key];
+            });
+          }
+        } else {
+          console.warn(`Fixing invalid field: ${err.path}`);
+          const defaultValue = _.get(initialState, err.path);
+          if (defaultValue !== undefined) {
+            _.set(config, err.path, defaultValue);
+          } else {
+            _.unset(config, err.path);
+          }
+        }
+      });
+
+      console.log('Validation errors fixed');
+      return { isValid: false, config, errors: e.inner };
+    }
+  }
+
+  return { isValid: true, config };
+};
 
 const mergeStateFn = (state, newState, path = '') => {
   if (path) {
@@ -118,10 +163,11 @@ export const useGlobalStore = create(middlewares((set, get) => ({
     get().loading(async () => {
       const projectData = await callMain(eleActions.openProject);
       if (projectData) {
-        get().mergeState({
+        const { isValid, config: validatedData } = await validateAndFixConfig({
           ...projectData,
           Config: {...initialState.Config, ...projectData.Config}
         });
+        get().mergeState(validatedData);
         get().historyReset();
       }
     });
@@ -161,6 +207,13 @@ export const useGlobalStore = create(middlewares((set, get) => ({
             imageVersion
           }
         });
+        if (!isValid) {
+          triggerNotification({
+            msgKey: 'util.invalidConfigOptions',
+            variant: 'warning',
+          });
+        }
+        get().mergeState(validatedData);
       }
     });
   },
@@ -171,16 +224,31 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       get().mergeGlobal({exportPageCount})
     });
   },
-  getExportPreview: (pageIndex) => {
+  getExportPreview: (pageIndex, isSilence = false) => {
+    const callMainGetExportPreview = async () => {
+      const param = {
+        globalBackground: get().Config.globalBackground,
+        CardList: get().CardList,
+        pageIndex
+      };
+      const content = await ipcRenderer.invoke(eleActions.getExportPreview, param);
+      return content;
+    }
+    if(isSilence) {
+      return new Promise((resolve, reject) => {
+        try {
+          callMainGetExportPreview().then(content => {
+            resolve(content);
+          })
+        } catch (error) {
+          reject(error);
+        }
+      })
+    }
     return new Promise((resolve, reject) => {
       get().loading(async () => {
         try {
-          const param = {
-            globalBackground: get().Config.globalBackground,
-            CardList: get().CardList,
-            pageIndex
-          };
-          const content = await ipcRenderer.invoke(eleActions.getExportPreview, param);
+          const content = await callMainGetExportPreview();
           resolve(content);
         } catch (error) {
           reject(error);
@@ -450,26 +518,21 @@ const state = useGlobalStore.getState();
 onOpenProjectFile((data) => {
   state.fillState(data);
 });
+
 let config = await loadConfig();
 await initI18n(config.Global);
 
-try {
-  await stateSchema.validate(config, { abortEarly: false });
-} catch (e) {
-  e.inner.forEach(err => {
-    _.set(config, err.path, _.get(initialState, err.path));
-  });
-  console.log('Error!', e.inner)
+// ✅ 使用提取的验证函数
+const { isValid, config: validatedConfig } = await validateAndFixConfig(config);
+
+if (!isValid) {
   triggerNotification({
     msgKey: 'util.invalidConfigOptions',
     variant: 'warning',
   });
-} finally {
-  const newStateData = _.pick(config, ['Global', 'Config']);
-  delete newStateData.Config.printOffsetX
-  delete newStateData.Config.printOffsetY
-  newStateData.Config.scale = 100;
-  state.fillState(newStateData);
-  callMain(eleActions.saveConfig, { state: newStateData });
-  regUpdateProgress(state.progress);
 }
+
+const newStateData = _.pick(validatedConfig, ['Global', 'Config']);
+state.fillState(newStateData);
+callMain(eleActions.saveConfig, { state: newStateData });
+regUpdateProgress(state.progress);

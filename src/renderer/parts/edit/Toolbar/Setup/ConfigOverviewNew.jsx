@@ -38,16 +38,12 @@ export const ConfigOverviewNew = () => {
     images.forEach(img => {
       const href = img.getAttribute('href') || img.getAttribute('xlink:href');
 
-      // ✅ 检查是否是需要替换的 URL（cardrac://image/data:image/png;base64 开头）
-      if (href && href.startsWith('cardrac://image/data:image/png;base64')) {
-        // 获取图片的属性
+      if (href && decodeURIComponent(href).startsWith('cardrac://image/data:image/png;base64')) {
         const x = img.getAttribute('x');
         const y = img.getAttribute('y');
         const width = img.getAttribute('width');
         const height = img.getAttribute('height');
         const transform = img.getAttribute('transform');
-
-        // ✅ 创建纯色矩形替代图片
         const rect = doc.createElementNS('http://www.w3.org/2000/svg', 'rect');
         rect.setAttribute('x', x);
         rect.setAttribute('y', y);
@@ -78,7 +74,7 @@ export const ConfigOverviewNew = () => {
   useEffect(() => {
     (async () => {
       await clearPreviewCache();
-      const data = await getExportPreview(1);
+      const data = await getExportPreview(1, true);
       setImageData(data);
 
       if (data && data.includes('svg')) {

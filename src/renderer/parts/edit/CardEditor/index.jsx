@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import Card from '@mui/material/Card';
 import '../CardList/styles.css';
 import { useDrag, useDrop } from 'react-dnd';
@@ -13,6 +13,7 @@ import { CardImage } from './CardImage';
 import { CardToolbar } from './CardToolbar';
 import { CardFooter } from './CardFooter';
 import { useEvent } from './useEvent';
+import { webUtils } from 'electron';
 
 const useMenuState = (items) => {
   const [anchorEl, setAnchorEl] = React.useState(null);
@@ -61,6 +62,73 @@ export default memo(({ data, dialogCardSettingRef, index }) => {
   const isBackEditing = Global.isBackEditing();
   const imageVersion = Global.imageVersion();
   const bleedConfig = data?.config?.bleed;
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // ✅ 获取拖拽的项目
+    const items = Array.from(e.dataTransfer.items);
+
+    // ✅ 过滤出文件类型的项目
+    const fileItems = items.filter(item => item.kind === 'file');
+
+    // ✅ 检查是否都是图片
+    const imageItems = fileItems.filter(item =>
+      item.type.startsWith('image/')
+    );
+
+    // ✅ 获取文件数量
+    const fileCount = fileItems.length;
+    const imageCount = imageItems.length;
+
+    console.log('拖拽的文件数量:', fileCount);
+    console.log('图片数量:', imageCount);
+    console.log('文件类型:', fileItems.map(item => item.type));
+
+    // ✅ 只有当全部是图片时才高亮
+    if (imageCount > 0 && imageCount === fileCount) {
+      setIsDragOver(true);
+      e.dataTransfer.dropEffect = 'copy'; // 显示复制图标
+    } else {
+      setIsDragOver(false);
+      e.dataTransfer.dropEffect = 'none'; // 显示禁止图标
+    }
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    // ✅ 获取拖拽的文件
+    const files = Array.from(e.dataTransfer.files);
+
+    // ✅ 在 Electron 中，file.path 包含完整路径
+    files.forEach(file => {
+      console.log('文件名:', file.name);
+      console.log('文件路径:', file.path);  // ✅ 完整路径
+      console.log('文件大小:', file.size);
+      console.log('文件类型:', file.type);
+      const path = webUtils.getPathForFile(file);
+      console.log('aaa', path)
+    });
+
+    // ✅ 过滤图片并获取路径
+    const imagePaths = files
+      .filter(f => /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(f.name))
+      .map(f => f.path);
+
+    console.log('图片路径列表:', imagePaths);
+    // ['C:\\Users\\xxx\\image1.jpg', 'C:\\Users\\xxx\\image2.png']
+  };
 
   const handleSwap = useEvent((e) => {
     e.stopPropagation();
@@ -184,6 +252,13 @@ export default memo(({ data, dialogCardSettingRef, index }) => {
       ref={node => previewRef(dropRef(node))}
       sx={{ display: isDragging ? 'none' : 'unset' }}
       onClick={handleSelect}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      style={{
+        border: isDragOver ? '2px solid #2196F3' : 'none',
+        backgroundColor: isDragOver ? '#e3f2fd' : 'revert-layer'
+      }}
     >
       <CardToolbar
         index={index}

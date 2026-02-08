@@ -54,9 +54,11 @@ export function EditToolbar() {
   const { t } = useTranslation();
   const {
     saveProject, newProject, openProject, mergeConfig, mergeGlobal, exportFile,
-    historyCanUndo, historyCanRedo, historyUndo, historyRedo
   } = useGlobalStore.getState();
-
+  const canUndo = useGlobalStore(state => state.History.canUndo);
+  const canRedo = useGlobalStore(state => state.History.canRedo);
+  const historyUndo = useGlobalStore(state => state.historyUndo);
+  const historyRedo = useGlobalStore(state => state.historyRedo);
   const {Config, Global, CardList } = useGlobalStore.selectors;
   const cardListLength = CardList().length;
   const globalBackground = Config.globalBackground()
@@ -85,13 +87,13 @@ export function EditToolbar() {
         onClick={() => saveProject()}
       />
       <GeneralIconButton
-        disabled={!historyCanUndo()}
+        disabled={!canUndo}
         label={t('toolbar.btnUndo')}
         icon={<UndoIcon />}
         onClick={() => historyUndo()}
       />
       <GeneralIconButton
-        disabled={!historyCanRedo()}
+        disabled={!canRedo}
         label={t('toolbar.btnRedo')}
         icon={<RedoIcon />}
         onClick={() => historyRedo()}

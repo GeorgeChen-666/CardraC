@@ -16,7 +16,7 @@ export const LayoutForm = () => {
   return (<div className={'FormPanel'}>
     <FormControl label={t('configDialog.size')} width={'260px'} attrKey={'pageSize'} type={ControlType.Select}
                  items={[
-                   { label: t('configDialog.custom'), value: '' },
+                   { label: t('configDialog.custom'), value: 'custom' },
                    { label: 'A5', value: 'A5:148,210' },
                    { label: 'A4', value: 'A4:210,297' },
                    { label: 'A3', value: 'A3:297,420' },
@@ -34,9 +34,9 @@ export const LayoutForm = () => {
       <FormControl label={t('configDialog.landscape')} attrKey={'landscape'} type={ControlType.Checkbox}></FormControl>
     </FormControl>
     <FormControl label={t('configDialog.pageWidthHeight')} width={'145px'} attrKey={'pageWidth'} min={0}
-                 type={ControlType.NumberInput} onChange={(e, v) => mergeConfig({ ['pageWidth']: v, pageSize: '' })}>
+                 type={ControlType.NumberInput} onChange={(e, v) => mergeConfig({ ['pageWidth']: v, pageSize: 'custom' })}>
       <FormControl width={'145px'} attrKey={'pageHeight'} type={ControlType.NumberInput} min={0}
-                   onChange={(e, v) => mergeConfig({ ['pageHeight']: v, pageSize: '' })}
+                   onChange={(e, v) => mergeConfig({ ['pageHeight']: v, pageSize: 'custom' })}
       >
         mm
       </FormControl>
