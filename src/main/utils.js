@@ -3,6 +3,10 @@ import path from 'path';
 import { app } from 'electron';
 import Database from 'better-sqlite3';
 import { ipcMain } from 'electron';
+import { eleActions, layoutSides } from '../shared/constants';
+import { getConfigStore } from './ele_action/functions';
+import { getPagedImageListByCardList } from './ele_action/handlers/file_render/utils';
+import os from 'os';
 
 /**
  * LRU 缓存
@@ -70,11 +74,11 @@ class DiskCache {
       fs.mkdirSync(cacheDir, { recursive: true });
     }
 
-    // ✅ SQLite 数据库文件名为进程 ID
+    //SQLite 数据库文件名为进程 ID
     this.dbPath = path.join(cacheDir, `pid-${processId}.db`);
     this.db = new Database(this.dbPath);
 
-    // ✅ 创建表
+    //创建表
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS cache (
         key TEXT PRIMARY KEY,
@@ -83,14 +87,14 @@ class DiskCache {
       )
     `);
 
-    // ✅ 预编译语句
+    //预编译语句
     this.insertStmt = this.db.prepare('INSERT OR REPLACE INTO cache (key, value) VALUES (?, ?)');
     this.selectStmt = this.db.prepare('SELECT value FROM cache WHERE key = ?');
     this.deleteStmt = this.db.prepare('DELETE FROM cache WHERE key = ?');
     this.clearStmt = this.db.prepare('DELETE FROM cache');
     this.keysStmt = this.db.prepare('SELECT key FROM cache');
 
-    // ✅ 写入队列
+    //写入队列
     this.writeQueue = [];
     this.isWriting = false;
     this.maxBatchSize = 20;
@@ -108,7 +112,7 @@ class DiskCache {
 
       const buffer = row.value;
 
-      // ✅ 检查图片类型
+      //检查图片类型
       if (buffer[0] === 0xFF && buffer[1] === 0xD8) {
         return `data:image/jpeg;base64,${buffer.toString('base64')}`;
       } else if (buffer[0] === 0x89 && buffer[1] === 0x50) {
@@ -142,7 +146,7 @@ class DiskCache {
       while (this.writeQueue.length > 0) {
         const batch = this.writeQueue.splice(0, this.maxBatchSize);
 
-        // ✅ 使用事务批量写入
+        //使用事务批量写入
         const insert = this.db.transaction((items) => {
           for (const { key, value, resolve, reject } of items) {
             try {
@@ -368,7 +372,7 @@ export class SmartStorage {
   set(key, value) {
     this.allKeys.add(key);
     this.memoryCache.set(key, value);
-    // ✅ 不需要 this.keysOnDisk.delete(key)
+    //不需要 this.keysOnDisk.delete(key)
     this.checkAndStartCompaction();
   }
 
@@ -571,4 +575,36 @@ export const invokeRenderer = (window, channel, data = {}, timeout = 30000) => {
       ...data
     });
   });
+};
+
+/**
+ * 将绝对路径压缩为使用 ~ 的相对路径
+ */
+export const fixPath = (filePath) => {
+  if (!filePath || typeof filePath !== 'string') return filePath;
+
+  const homeDir = os.homedir();
+  const normalizedPath = path.normalize(filePath);
+  const normalizedHome = path.normalize(homeDir);
+
+  if (normalizedPath.toLowerCase().startsWith(normalizedHome.toLowerCase())) {
+    const relativePath = normalizedPath.substring(normalizedHome.length);
+    return '~' + relativePath;
+  }
+
+  return filePath;
+};
+
+/**
+ * 展开 ~ 为实际的用户目录路径
+ */
+export const expandPath = (filePath) => {
+  if (!filePath || typeof filePath !== 'string') return filePath;
+
+  if (filePath.startsWith('~')) {
+    const homeDir = os.homedir();
+    return path.join(homeDir, filePath.substring(1));
+  }
+
+  return filePath;
 };

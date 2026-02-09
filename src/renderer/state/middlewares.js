@@ -14,7 +14,7 @@ const historyMiddleware = (config) => (set, get, api) => {
     const nextCardList = get().CardList;
     const nextHistory = get().History;
 
-    // ✅ 只有在需要记录且不是撤销/重做操作时才记录
+    //只有在需要记录且不是撤销/重做操作时才记录
     if (prevCardList !== nextCardList &&
       !prevHistory.isUndoRedo &&
       prevHistory.recordNext) {
@@ -23,16 +23,16 @@ const historyMiddleware = (config) => (set, get, api) => {
       let newCompressed = [...prevHistory.compressed];
       let newRecentIndex = prevHistory.recentIndex;
 
-      // ✅ 清除当前位置之后的历史
+      //清除当前位置之后的历史
       if (newRecentIndex < newRecent.length - 1) {
         newRecent = newRecent.slice(0, newRecentIndex + 1);
       }
 
-      // ✅ 添加新状态
+      //添加新状态
       newRecent.push([...nextCardList]);
       newRecentIndex = newRecent.length - 1;
 
-      // ✅ 压缩旧历史
+      //压缩旧历史
       while (newRecent.length > 10) {
         const oldest = newRecent.shift();
         newCompressed.push(LZString.compressToUTF16(JSON.stringify(oldest)));
@@ -43,7 +43,7 @@ const historyMiddleware = (config) => (set, get, api) => {
         }
       }
 
-      // ✅ 更新历史状态
+      //更新历史状态
       set((state) => ({
         ...state,
         History: {
@@ -73,7 +73,7 @@ const historyMiddleware = (config) => (set, get, api) => {
   return {
     ...store,
 
-    // ✅ 初始化历史状态
+    //初始化历史状态
     History: {
       recent: [],
       recentIndex: -1,
@@ -84,7 +84,7 @@ const historyMiddleware = (config) => (set, get, api) => {
       canRedo: false
     },
 
-    // ✅ 简化：只设置 recordNext 标志
+    //简化：只设置 recordNext 标志
     setWithHistory: (partial, replace) => {
       set((state) => ({
         ...state,
@@ -97,7 +97,7 @@ const historyMiddleware = (config) => (set, get, api) => {
       wrappedSet(partial, replace);
     },
 
-    // ✅ 撤销
+    //撤销
     historyUndo: () => {
       const history = get().History;
 
@@ -162,7 +162,7 @@ const historyMiddleware = (config) => (set, get, api) => {
       }
     },
 
-    // ✅ 重做
+    //重做
     historyRedo: () => {
       const history = get().History;
 
@@ -195,7 +195,7 @@ const historyMiddleware = (config) => (set, get, api) => {
       }
     },
 
-    // ✅ 重置历史 - 记录初始状态
+    //重置历史 - 记录初始状态
     historyReset: () => {
       const currentCardList = get().CardList;
 

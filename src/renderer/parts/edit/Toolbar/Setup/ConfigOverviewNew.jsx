@@ -24,7 +24,7 @@ export const ConfigOverviewNew = () => {
     setScale(newScale);
   };
 
-  // ✅ 处理 SVG 中的特定图片 URL
+  //处理 SVG 中的特定图片 URL
   const processSvgImages = (svgString) => {
     if (!svgString) return svgString;
 
@@ -58,7 +58,7 @@ export const ConfigOverviewNew = () => {
         // 在原图片位置插入矩形
         img.parentNode.insertBefore(rect, img);
 
-        // ✅ 替换图片 URL 为空白 URL（避免报错）
+        //替换图片 URL 为空白 URL（避免报错）
         img.setAttribute('href', 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
 
         // 隐藏原图片
@@ -90,7 +90,7 @@ export const ConfigOverviewNew = () => {
             });
           }
 
-          // ✅ 处理 SVG 图片
+          //处理 SVG 图片
           const processedSvg = processSvgImages(decoded);
           setSvgContent(processedSvg);
         }

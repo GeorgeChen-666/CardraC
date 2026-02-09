@@ -12,7 +12,7 @@ import {
   prerenderPage,
 } from './file_render/utils';
 import { colorCache, exportFile } from './file_render';
-import { invokeRenderer } from '../../utils';
+import { expandPath, fixPath, invokeRenderer } from '../../utils';
 
 log.transports.file.level = 'debug';
 log.transports.console.level = 'debug';
@@ -33,14 +33,14 @@ const pathToImageData = async (path, cb) => {
   ];
 
   const ext = path.split('.').pop();
-  const imagePathKey = path.replaceAll('\\', '');
-  const { mtime } = fs.statSync(path);
-  const returnObj = { path, mtime: mtime.getTime() };
+  const imagePathKey = fixPath(path).replaceAll('\\', '');
+  const { mtime } = fs.statSync(expandPath(path));
+  const returnObj = { path: fixPath(path), mtime: mtime.getTime() };
 
   if (!(imagePathKey in ImageStorage) && !pendingList.has(imagePathKey)) {
     pendingList.add(imagePathKey);
     ImageStorageLoadingJobs[path] = async () => {
-      ImageStorage[imagePathKey] = await readCompressedImage(path, {
+      ImageStorage[imagePathKey] = await readCompressedImage(expandPath(path), {
         format: ext,
         ...compressParamsList[compressLevel - 1]
       });
@@ -50,7 +50,7 @@ const pathToImageData = async (path, cb) => {
     ImageStorageLoadingJobs[path]();
   }
 
-  OverviewStorage[imagePathKey] = await readCompressedImage(path, { maxWidth: 100 });
+  OverviewStorage[imagePathKey] = await readCompressedImage(expandPath(path), { maxWidth: 100 });
   colorCache.delete(imagePathKey);
   cb && cb();
   return returnObj;
@@ -128,17 +128,12 @@ export default (mainWindow) => {
   ipcMain.on(eleActions.openImage, async (event, args) => {
     const { properties = [], returnChannel, progressChannel } = args;
 
-    const result = await invokeRenderer(mainWindow, 'show-file-dialog', {
-      filters: ['jpg', 'png', 'gif'],
-      multiple: properties.includes('multiSelections')
+    const result = await dialog.showOpenDialog(mainWindow, {
+      filters: [
+        { name: 'Image File', extensions: ['jpg', 'png', 'gif'] }
+      ],
+      properties: ['openFile', ...properties],
     });
-
-    // const result = await dialog.showOpenDialog(mainWindow, {
-    //   filters: [
-    //     { name: 'Image File', extensions: ['jpg', 'png', 'gif'] }
-    //   ],
-    //   properties: ['openFile', ...properties],
-    // });
 
     if (result.canceled) {
       mainWindow.webContents.send(returnChannel, []);
@@ -168,7 +163,7 @@ export default (mainWindow) => {
     };
 
     pathList.forEach(path => {
-      checkImagePath(path);
+      checkImagePath(expandPath(path));
     });
 
     mainWindow.webContents.send(args.returnChannel, invalidImages);
@@ -197,9 +192,8 @@ export default (mainWindow) => {
       const imagePathKey = path.replaceAll('\\', '');
 
       try {
-        const { mtime } = fs.statSync(path);
+        const { mtime } = fs.statSync(expandPath(path));
 
-        //使用 in 操作符代替 Object.keys().includes()
         if (cardMtime !== mtime.getTime() || !(imagePathKey in ImageStorage)) {
           totalCount++;
           reloadImageJobs.push((async () => {

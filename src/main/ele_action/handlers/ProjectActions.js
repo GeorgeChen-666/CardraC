@@ -35,36 +35,34 @@ const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
     const { size } = fs.statSync(filePath);
     const readStream = fs.createReadStream(filePath);
 
-    // ✅ 清空现有存储
+    //清空现有存储
     ImageStorage.clear();
     OverviewStorage.clear();
 
-    // ✅ 用于存储非图片数据
+    //用于存储非图片数据
     const projectData = {};
     let processedBytes = 0;
     let imageCount = 0;
     let overviewCount = 0;
 
-    // ✅ 创建流式 JSON 解析器
+    //创建流式 JSON 解析器
     const pipeline = readStream
       .pipe(parser())
       .pipe(streamObject());
 
-    // ✅ 监听每个 key-value 对
+    //监听每个 key-value 对
     pipeline.on('data', ({ key, value }) => {
       // 更新进度（基于已处理的数据量估算）
       processedBytes += JSON.stringify(value).length;
       onProgress && onProgress(Math.min(processedBytes / size, 0.95));
 
       if (key === 'ImageStorage') {
-        // ✅ 流式处理 ImageStorage
         if (value && typeof value === 'object') {
           Object.entries(value).forEach(([imgKey, imgValue]) => {
             if (imgValue && typeof imgValue === 'string' && imgValue.length > 0) {
               ImageStorage[imgKey] = imgValue;
               imageCount++;
-
-              // 每处理 10 张图片输出一次日志
+              
               if (imageCount % 10 === 0) {
                 console.log(`📦 Loaded ${imageCount} images...`);
               }
@@ -75,8 +73,7 @@ const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
             }
           });
         }
-
-        // 确保默认图片存在
+        
         if (!ImageStorage['_emptyImg']) {
           ImageStorage['_emptyImg'] = defaultImageStorage['_emptyImg'];
         }
@@ -84,7 +81,6 @@ const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
         console.log(`✅ Loaded ${imageCount} images from ImageStorage`);
       }
       else if (key === 'OverviewStorage') {
-        // ✅ 流式处理 OverviewStorage
         if (value && typeof value === 'object') {
           Object.entries(value).forEach(([ovKey, ovValue]) => {
             if (ovValue && typeof ovValue === 'string' && ovValue.length > 0) {
@@ -95,22 +91,20 @@ const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
             }
           });
         }
-
         console.log(`✅ Loaded ${overviewCount} overviews from OverviewStorage`);
       }
       else {
-        // ✅ 其他数据直接存储
         projectData[key] = value;
       }
     });
 
-    // ✅ 流处理完成
+    //流处理完成
     await new Promise((resolve, reject) => {
       pipeline.on('end', resolve);
       pipeline.on('error', reject);
     });
 
-    // ✅ 处理特殊值
+    //处理特殊值
     if (projectData.Config?.globalBackground?.path === '_emptyImg') {
       projectData.Config.globalBackground = null;
     }
@@ -120,7 +114,7 @@ const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
       if (c.back?.path === '_emptyImg') c.back = null;
     });
 
-    // ✅ 完成
+    //完成
     onProgress && onProgress(1);
     console.log(`✅ Project loaded: ${imageCount} images, ${overviewCount} overviews`);
     onFinish && onFinish(projectData);

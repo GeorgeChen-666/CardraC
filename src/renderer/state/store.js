@@ -75,7 +75,7 @@ const stateSchema = yup.object({
   CardList: yup.array().of(yup.object()).notRequired(),
 }).noUnknown();
 
-// ✅ 提取验证逻辑为可复用函数
+//提取验证逻辑为可复用函数
 const validateAndFixConfig = async (config) => {
   try {
     await stateSchema.validate(config, { abortEarly: false, strict: true });
@@ -213,7 +213,6 @@ export const useGlobalStore = create(middlewares((set, get) => ({
             variant: 'warning',
           });
         }
-        get().mergeState(validatedData);
       }
     });
   },
@@ -522,7 +521,7 @@ onOpenProjectFile((data) => {
 let config = await loadConfig();
 await initI18n(config.Global);
 
-// ✅ 使用提取的验证函数
+//使用提取的验证函数
 const { isValid, config: validatedConfig } = await validateAndFixConfig(config);
 
 if (!isValid) {

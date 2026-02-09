@@ -463,17 +463,17 @@ describe('切割线测试', () => {
       const result1 = getCutRectangleList(config1, pageSize, false, false);
       const result2 = getCutRectangleList(config2, pageSize, false, false);
 
-      // ✅ 检查返回 2 张卡（左右各一张）
+      //检查返回 2 张卡（左右各一张）
       expect(result1.length).toBe(2);
       expect(result2.length).toBe(2);
 
-      // ✅ 检查宽度（左右卡都应该包含出血）
+      //检查宽度（左右卡都应该包含出血）
       expect(result1[0].width).toBe(63 + 1);  // 左卡：左侧出血
       expect(result1[1].width).toBe(63 + 1);  // 右卡：右侧出血
       expect(result2[0].width).toBe(63 + 3);
       expect(result2[1].width).toBe(63 + 3);
 
-      // ✅ 检查高度（上下都出血）
+      //检查高度（上下都出血）
       expect(result1[0].height).toBe(88 + 1 * 2);
       expect(result1[1].height).toBe(88 + 1 * 2);
       expect(result2[0].height).toBe(88 + 3 * 2);
@@ -493,18 +493,18 @@ describe('切割线测试', () => {
 
       const result = getCutRectangleList(config, pageSize, false, false);
 
-      // ✅ 检查两张卡的相对位置
+      //检查两张卡的相对位置
       const leftCard = result[0];
       const rightCard = result[1];
 
-      // ✅ 左卡的右边界应该等于右卡的左边界（中间无间隙）
+      //左卡的右边界应该等于右卡的左边界（中间无间隙）
       const leftCardRight = leftCard.x + leftCard.width;
       expect(leftCardRight).toBeCloseTo(rightCard.x, 1);
 
-      // ✅ 两张卡的宽度差应该为 0（都包含相同的出血）
+      //两张卡的宽度差应该为 0（都包含相同的出血）
       expect(leftCard.width).toBe(rightCard.width);
 
-      // ✅ 右卡的 X 坐标应该比左卡大约 63（卡片宽度）
+      //右卡的 X 坐标应该比左卡大约 63（卡片宽度）
       expect(rightCard.x - leftCard.x).toBeCloseTo(65, 1);
     });
 
@@ -530,15 +530,15 @@ describe('切割线测试', () => {
       const resultNoBleed = getCutRectangleList(configNoBleed, pageSize, false, false);
       const resultWithBleed = getCutRectangleList(configWithBleed, pageSize, false, false);
 
-      // ✅ 无出血时：两张卡总宽度 = 2 * 63
+      //无出血时：两张卡总宽度 = 2 * 63
       const totalWidthNoBleed = resultNoBleed[0].width + resultNoBleed[1].width;
       expect(totalWidthNoBleed).toBe(63 * 2);
 
-      // ✅ 有出血时：两张卡总宽度 = 2 * (63 + 3)
+      //有出血时：两张卡总宽度 = 2 * (63 + 3)
       const totalWidthWithBleed = resultWithBleed[0].width + resultWithBleed[1].width;
       expect(totalWidthWithBleed).toBe((63 + 3) * 2);
 
-      // ✅ 两张卡之间的间距应该相同（都是 0，紧贴）
+      //两张卡之间的间距应该相同（都是 0，紧贴）
       const gapNoBleed = resultNoBleed[1].x - (resultNoBleed[0].x + resultNoBleed[0].width);
       const gapWithBleed = resultWithBleed[1].x - (resultWithBleed[0].x + resultWithBleed[0].width);
 
@@ -559,18 +559,18 @@ describe('切割线测试', () => {
 
       const result = getCutRectangleList(config, pageSize, false, false);
 
-      // ✅ 应该有 2x2 个格子，每个格子 2 张卡 = 8 张卡
+      //应该有 2x2 个格子，每个格子 2 张卡 = 8 张卡
       expect(result.length).toBe(8);
 
-      // ✅ 检查第一个格子的两张卡（索引 0, 1）
+      //检查第一个格子的两张卡（索引 0, 1）
       const gap1 = result[1].x - (result[0].x + result[0].width);
       expect(gap1).toBeCloseTo(0, 1);
 
-      // ✅ 检查第二个格子的两张卡（索引 2, 3）
+      //检查第二个格子的两张卡（索引 2, 3）
       const gap2 = result[3].x - (result[2].x + result[2].width);
       expect(gap2).toBeCloseTo(0, 1);
 
-      // ✅ 所有卡片宽度应该相同
+      //所有卡片宽度应该相同
       expect(result[0].width).toBe(63 + 2);
       expect(result[1].width).toBe(63 + 2);
       expect(result[2].width).toBe(63 + 2);
@@ -590,13 +590,13 @@ describe('切割线测试', () => {
 
       const result = getCutRectangleList(config, pageSize, true, false);
 
-      // ✅ ignoreBleed 时不应该有出血
+      //ignoreBleed 时不应该有出血
       expect(result[0].width).toBe(63);
       expect(result[1].width).toBe(63);
       expect(result[0].height).toBe(88);
       expect(result[1].height).toBe(88);
 
-      // ✅ 两张卡之间无间隙
+      //两张卡之间无间隙
       const gap = result[1].x - (result[0].x + result[0].width);
       expect(gap).toBeCloseTo(0, 1);
     });
@@ -614,13 +614,13 @@ describe('切割线测试', () => {
 
       const result = getCutRectangleList(config, pageSize, false, false);
 
-      // ✅ 关键：左卡右边界 = 右卡左边界（证明中间无间隙）
+      //关键：左卡右边界 = 右卡左边界（证明中间无间隙）
       const leftCardRight = result[0].x + result[0].width;
       const rightCardLeft = result[1].x;
 
       expect(leftCardRight).toBeCloseTo(rightCardLeft, 1);
 
-      // ✅ 两张卡的 X 坐标差 = 卡片宽度（不包含出血）
+      //两张卡的 X 坐标差 = 卡片宽度（不包含出血）
       const xDiff = result[1].x - result[0].x;
       expect(xDiff).toBeCloseTo(68, 1);
     });

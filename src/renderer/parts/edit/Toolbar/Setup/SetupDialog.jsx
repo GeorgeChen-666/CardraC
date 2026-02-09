@@ -30,10 +30,10 @@ export const SetupDialog = forwardRef(({},ref) => {
   const [open, setOpen] = React.useState(false);
   const [value, setValue] = React.useState(0);
   const originalConfigRef = useRef(null);
-  // ✅ 订阅 Config 变化
+  //订阅 Config 变化
   const currentConfig = useGlobalStore(state => state.Config);
   const { mergeConfig } = useGlobalStore.getState();
-  // ✅ 检查是否有变化
+  //检查是否有变化
   const hasChanges = originalConfigRef.current
     ? JSON.stringify(currentConfig) !== JSON.stringify(originalConfigRef.current)
     : false;

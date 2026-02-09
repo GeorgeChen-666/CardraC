@@ -4,6 +4,7 @@ import path from 'path';
 const { Buffer } = require('buffer');
 import fs from 'fs';
 import { app, BrowserWindow } from 'electron';
+import { expandPath, fixPath } from '../utils';
 
 export async function getBorderAverageColors(base64String, borderWidth = 5) {
   try {
@@ -62,7 +63,7 @@ export const readCompressedImage = async (path, options = {}) => {
     format= 'webp'
   } = options;
   try {
-    let image = sharp(path);
+    let image = sharp(expandPath(path));
     const metadata = await image.metadata();
 
     let rotateDegrees = 0;
