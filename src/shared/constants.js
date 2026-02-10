@@ -53,7 +53,8 @@ export const initialState = Object.freeze({
     selections: [],
     currentView: 'edit',
     exportPageCount: 0,
-    exportPreviewIndex: 1
+    exportPreviewIndex: 1,
+    imageVersion: 1
   },
   Config: {
     pageSize: 'A4:210,297',
@@ -88,3 +89,9 @@ export const initialState = Object.freeze({
   },
   CardList: [],
 })
+
+export const emptyImg = {
+  path: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
+    '12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg==',
+  ext: 'png',
+};

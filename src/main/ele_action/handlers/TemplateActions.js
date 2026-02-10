@@ -8,6 +8,7 @@ export default (mainWindow) => {
     const { templateName: TemplateName } = args;
 
     const { Config } = getConfigStore()
+    delete Config.globalBackground;
     const lastStore = templateStore.get();
     const newStore = { templates: [...(lastStore.templates || []).filter(t=> t.TemplateName !== TemplateName), {
         id: new Date().getTime(),

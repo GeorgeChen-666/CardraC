@@ -125,7 +125,7 @@ export const ReloadDialog = forwardRef(({},ref) => {
         mergeState({ Config, CardList: [...CardList] });
         reloadLocalImage();
       }}>
-        OK
+        {t('button.ok')}
       </Button>
     </DialogActions>
   </Dialog>)

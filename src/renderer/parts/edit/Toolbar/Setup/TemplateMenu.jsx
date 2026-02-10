@@ -105,7 +105,10 @@ export const TemplateMenu = props => {
           e.stopPropagation();
           if(e.target.classList.contains('listItem')) {
             handleClose();
-            mergeConfig({...initialState.Config, ...item.Config});
+            const initConfig = initialState.Config;
+            delete initConfig.globalBackground;
+            delete item.Config.globalBackground;
+            mergeConfig({...initConfig, ...item.Config});
           }
         }}>
           <ListItemText className={'listItem'} disableTypography={true}>{item.TemplateName}</ListItemText>

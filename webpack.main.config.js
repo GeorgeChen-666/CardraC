@@ -5,6 +5,7 @@ module.exports = {
    */
   entry: './src/main/index.js',
   // Put your normal webpack config below here
+  devtool: process.env.NODE_ENV === 'production' ? false : 'source-map',
   module: {
     rules: require('./webpack.rules'),
   },
@@ -13,5 +14,12 @@ module.exports = {
   },
   externals: {
     'sharp': 'commonjs sharp',
-  }
+  },
+  optimization: {
+    minimize: process.env.NODE_ENV === 'production',
+    // 移除未使用的代码
+    usedExports: true,
+    // 合并模块
+    concatenateModules: true,
+  },
 };

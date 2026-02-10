@@ -73,7 +73,7 @@ export const CardSettingDialog = forwardRef(({}, ref) => {
         setOpen(false);
         editCardsConfig(idList, { bleed });
       }}>
-        OK
+        {t('button.ok')}
       </Button>
     </DialogActions>
   </Dialog>);

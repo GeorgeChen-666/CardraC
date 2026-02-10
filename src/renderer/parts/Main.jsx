@@ -1,7 +1,7 @@
 import * as React from 'react';
 import Stack from '@mui/material/Stack';
 import { EditToolbar } from './edit/Toolbar';
-import { CardList } from './edit/Card/CardList';
+import { CardList } from './edit/CardList';
 import { Footer } from './Footer';
 import { LoadingModal } from './LoadingModal';
 import { Notification } from './Notification';

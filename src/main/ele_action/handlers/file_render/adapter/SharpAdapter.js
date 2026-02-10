@@ -37,7 +37,7 @@ export class SharpAdapter extends IAdapter {
     this.compressionLevel = settings.compressionLevel;
     this.effort = settings.effort;
 
-    const [width, height] = this.parsePageSize(config.pageSize);
+    const [width, height] = [config.pageWidth, config.pageHeight];
 
     this.pageWidth = Math.ceil(config.landscape ? height : width);
     this.pageHeight = Math.ceil(config.landscape ? width : height);
@@ -69,7 +69,7 @@ export class SharpAdapter extends IAdapter {
       width: this.renderWidth,
       height: this.renderHeight,
       background: null,
-      // ✅ 改为按顺序存储绘制命令
+      //改为按顺序存储绘制命令
       drawCommands: [],
       isRendering: false,
       renderPromise: null
@@ -95,7 +95,7 @@ export class SharpAdapter extends IAdapter {
     this.createNewPage();
   }
 
-  // ✅ 按绘制顺序渲染
+  //按绘制顺序渲染
   startPageRendering(page) {
     if (page.isRendering || page.renderPromise) {
       return;
@@ -111,7 +111,7 @@ export class SharpAdapter extends IAdapter {
 
         let composite = sharp(page.background);
 
-        // ✅ 按顺序处理每个绘制命令
+        //按顺序处理每个绘制命令
         const overlays = [];
         for (const command of page.drawCommands) {
           const overlay = await command();
@@ -320,7 +320,7 @@ export class SharpAdapter extends IAdapter {
     this.currentTransform = { a, b, c, d, e, f };
   }
 
-  // ✅ 添加绘制命令到队列
+  //添加绘制命令到队列
   drawText({ text, x, y, size = 12 }) {
     this.currentPage.drawCommands.push(() =>
       this.createTextLayer(text, x, y, size)

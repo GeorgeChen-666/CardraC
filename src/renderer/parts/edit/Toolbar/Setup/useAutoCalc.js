@@ -59,11 +59,13 @@ export default () => {
   ]);
 
   useEffect(() => {
-    if(bleedX > marginX / 2) {
-      mergeConfig({ bleedX: marginX / 2 })
-    }
-    if(bleedY > marginY / 2) {
-      mergeConfig({ bleedY: marginY / 2 })
+    if(!isBrochure) {
+      if(bleedX > marginX / 2) {
+        mergeConfig({ bleedX: marginX / 2 })
+      }
+      if(bleedY > marginY / 2) {
+        mergeConfig({ bleedY: marginY / 2 })
+      }
     }
   }, [marginX, marginY, bleedX, bleedY]);
 }

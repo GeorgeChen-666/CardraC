@@ -32,7 +32,7 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
   }, [exportPageCount]);
   useImperativeHandle(ref, () => ({
     openDrawer: async () => {
-      console.log('openDrawer called'); // ✅ 添加日志
+      console.log('openDrawer called'); //添加日志
       setOpen(true);
       onOpenChange?.(true);
       const rs = await callMain(eleActions.loadPrintConfig);
@@ -41,7 +41,7 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
       setPageFilter('all')
     },
     closeDrawer: async () => {
-      console.log('closeDrawer called'); // ✅ 添加日志
+      console.log('closeDrawer called'); //添加日志
       setOpen(false);
       onOpenChange?.(false);
     },
@@ -52,7 +52,7 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
   };
 
   const handleClose = () => {
-    console.log('handleClose called'); // ✅ 添加日志
+    console.log('handleClose called'); //添加日志
     setOpen(false);
     onOpenChange?.(false);
   };

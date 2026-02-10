@@ -1,7 +1,7 @@
 import electron, { app, BrowserWindow, shell, protocol } from 'electron';
 import { registerRendererActionHandlers } from './ele_action';
-import { OverviewStorage } from './ele_action/handlers/file_render/Utils';
-import { ImageStorage } from './ele_action/handlers/file_render/Utils';
+import { OverviewStorage } from './ele_action/handlers/file_render/utils';
+import { ImageStorage } from './ele_action/handlers/file_render/utils';
 
 if (typeof electron === 'string') {
   throw new TypeError('Not running in an Electron environment!');
@@ -57,19 +57,40 @@ app.whenReady().then(() => {
 
   //注册 cardrac:// 协议（使用 registerBufferProtocol）
   protocol.handle('cardrac', async (request) => {
+    //在 try 外部定义变量
+    let imagePath = '';
+    let pathVariants = [];
+
     try {
       const url = request.url;
       const urlObj = new URL(url);
-      const pathname = urlObj.pathname; // /image/C%3A...
+      const pathname = urlObj.pathname;
       const quality = urlObj.searchParams.get('quality') || 'high';
 
-      let imagePath = decodeURIComponent(pathname.replace('/image/', ''));
+      imagePath = decodeURIComponent(pathname.replace('/image/', ''));
       if (imagePath.startsWith('/')) {
         imagePath = imagePath.substring(1);
       }
-
       const storage = quality === 'low' ? OverviewStorage : ImageStorage;
-      const imageData = storage[imagePath];
+
+      //尝试多种路径格式
+      pathVariants = [
+        imagePath,
+        imagePath.replace(/\//g, '\\'),
+        imagePath.replace(/\\/g, '/'),
+        imagePath.replaceAll('\\', ''),
+      ];
+
+      let imageData = null;
+      let foundPath = null;
+
+      for (const variant of pathVariants) {
+        if (storage[variant]) {
+          imageData = storage[variant];
+          foundPath = variant;
+          break;
+        }
+      }
 
       if (imageData) {
         const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
@@ -85,31 +106,35 @@ app.whenReady().then(() => {
         };
         const mimeType = mimeTypes[ext] || 'image/png';
 
-        //返回 Response 对象
         return new Response(buffer, {
           headers: { 'Content-Type': mimeType }
         });
       } else {
-        console.error('Image not found in storage:', imagePath);
-        console.log('Available keys:', Object.keys(storage).slice(0, 5));
+        console.error('❌ Image not found:', imagePath);
+        console.log('Tried paths:', pathVariants);
+        console.log('Available keys sample:', Object.keys(storage).slice(0, 10));
 
-        //返回 404 错误
-        return new Response('Image not found', {
-          status: 404,
-          headers: { 'Content-Type': 'text/plain' }
+        const emptySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+  <rect width="100" height="100" fill="transparent"/>
+</svg>`;
+
+        return new Response(emptySvg, {
+          headers: { 'Content-Type': 'image/svg+xml' }
         });
       }
     } catch (error) {
       console.error('Protocol handler error:', error);
+      console.error('Failed path:', imagePath);
 
-      //返回 500 错误
-      return new Response('Internal server error', {
-        status: 500,
-        headers: { 'Content-Type': 'text/plain' }
+      const emptySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+  <rect width="100" height="100" fill="transparent"/>
+</svg>`;
+
+      return new Response(emptySvg, {
+        headers: { 'Content-Type': 'image/svg+xml' }
       });
     }
   });
-
 
   createWindow();
 

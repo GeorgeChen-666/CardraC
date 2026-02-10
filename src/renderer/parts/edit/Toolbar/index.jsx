@@ -7,6 +7,8 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import ChatIcon from '@mui/icons-material/Chat';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import InfoIcon from '@mui/icons-material/Info';
+import UndoIcon from '@mui/icons-material/Undo';
+import RedoIcon from '@mui/icons-material/Redo';
 import {GeneralIconButton} from '../../../componments/GeneralIconButton'
 import { useTranslation } from 'react-i18next';
 import { useGlobalStore } from '../../../state/store';
@@ -24,7 +26,6 @@ import { ImageViewer } from '../ImageViewer';
 
 const ExportIcon = ({ label = 'PDF' }) => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-    {/*保留文档外框和背景 */}
     <path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
     <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6z"/>
     <text
@@ -52,13 +53,18 @@ export function EditToolbar() {
   window.imageViewerRef = imageViewerRef;
   const { t } = useTranslation();
   const {
-    saveProject, mergeState,openProject, mergeConfig, mergeGlobal, exportFile
+    saveProject, newProject, openProject, mergeConfig, mergeGlobal, exportFile,
   } = useGlobalStore.getState();
+  const canUndo = useGlobalStore(state => state.History.canUndo);
+  const canRedo = useGlobalStore(state => state.History.canRedo);
+  const historyUndo = useGlobalStore(state => state.historyUndo);
+  const historyRedo = useGlobalStore(state => state.historyRedo);
   const {Config, Global, CardList } = useGlobalStore.selectors;
   const cardListLength = CardList().length;
   const globalBackground = Config.globalBackground()
   const isBackEditing = Global.isBackEditing();
   const isShowOverView = Global.isShowOverView();
+  const imageVersion = Global.imageVersion();
   return (
     <Box
       sx={{
@@ -68,7 +74,7 @@ export function EditToolbar() {
       <GeneralIconButton
         label={t('toolbar.btnAdd')}
         icon={<NoteAddIcon />}
-        onClick={() => mergeState({ Config: initialState.Config, CardList: [] })}
+        onClick={() => newProject()}
       />
       <GeneralIconButton
         label={t('toolbar.btnOpen')}
@@ -80,11 +86,23 @@ export function EditToolbar() {
         icon={<SaveIcon />}
         onClick={() => saveProject()}
       />
+      <GeneralIconButton
+        disabled={!canUndo}
+        label={t('toolbar.btnUndo')}
+        icon={<UndoIcon />}
+        onClick={() => historyUndo()}
+      />
+      <GeneralIconButton
+        disabled={!canRedo}
+        label={t('toolbar.btnRedo')}
+        icon={<RedoIcon />}
+        onClick={() => historyRedo()}
+      />
       <span style={{ color: '#666', padding: '4px' }}>|</span>
       {Config.sides() === layoutSides.doubleSides && (
         <GeneralIconButton
           label={t('toolbar.btnGlobalBackground')}
-          icon={<img src={getImageSrc(globalBackground)} width={'30px'} height={'30px'} alt='' />}
+          icon={<img src={getImageSrc(globalBackground, { version : imageVersion})} width={'30px'} height={'30px'} alt='' />}
           onClick={async () => {
             const filePath = await openImage('setGlobalBack');
             mergeConfig({ globalBackground: filePath });
@@ -144,11 +162,11 @@ export function EditToolbar() {
       <BulkOperationButton />
       <div style={{ float: 'right' }}>
         <FormControlLabel
-          control={<Switch checked={isShowOverView} onChange={() => mergeGlobal({ isShowOverView: !isShowOverView })} />}
+          control={<Switch checked={isShowOverView ?? false} onChange={() => mergeGlobal({ isShowOverView: !isShowOverView })} />}
           label={t('toolbar.lblShowOverviewWindow')} />
         {Config.sides() === layoutSides.doubleSides && (
           <FormControlLabel
-            control={<Switch checked={isBackEditing} onChange={() => mergeGlobal({ isBackEditing: !isBackEditing })} />}
+            control={<Switch checked={isBackEditing ?? false} onChange={() => mergeGlobal({ isBackEditing: !isBackEditing })} />}
             label={t('toolbar.lblSwitchView')} />
         )}
       </div>

@@ -1,6 +1,6 @@
 // SVGAdapter.js
 import { IAdapter } from './IAdapter';
-import { OverviewStorage, ImageStorage } from '../Utils';
+import { ImageStorage, OverviewStorage } from '../utils';
 
 const displayScale = 10;
 
@@ -17,7 +17,7 @@ export class SVGAdapter extends IAdapter {
     this.transformStack = [];
     this.currentTransform = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
 
-    const [width, height] = this.parsePageSize(config.pageSize);
+    const [width, height] = [config.pageWidth, config.pageHeight];
 
     if (config.landscape) {
       this.pageWidth = height;
@@ -34,15 +34,6 @@ export class SVGAdapter extends IAdapter {
     });
 
     this.createNewPage();
-  }
-
-  parsePageSize(pageSize) {
-    const parts = pageSize.split(':');
-    if (parts.length === 2) {
-      const [width, height] = parts[1].split(',').map(Number);
-      return [width, height];
-    }
-    return [595, 842];
   }
 
   createNewPage() {
@@ -93,7 +84,7 @@ export class SVGAdapter extends IAdapter {
   }
 
   drawImage({ data, x, y, width, height, rotation = 0 }) {
-    const imagePathKey = data.path.replaceAll('\\', '');
+    const imagePathKey = encodeURIComponent(data.path.replaceAll('\\', ''));
 
     let imageSource;
     if (this.useAppLinks) {
@@ -163,7 +154,7 @@ export class SVGAdapter extends IAdapter {
     });
   }
 
-  // ✅ 修改：按绘制顺序渲染，不分组
+  //修改：按绘制顺序渲染，不分组
   generatePageSVG(page) {
     const svg = `<svg 
     width="${this.pageWidth * displayScale}" 
@@ -228,9 +219,18 @@ export class SVGAdapter extends IAdapter {
 
   finalize() {
     const validPages = this.pages.filter(page => page.elements.length > 0);
-
     if (validPages.length === 0) {
-      throw new Error('No pages to export');
+      return `<svg 
+      width="${this.pageWidth * 10}" 
+      height="${this.pageHeight * 10}" 
+      viewBox="0 0 ${this.pageWidth * 10} ${this.pageHeight * 10}"
+      xmlns="http://www.w3.org/2000/svg">
+      <rect width="${this.pageWidth * 10}" height="${this.pageHeight * 10}" fill="white"/>
+      <text x="${this.pageWidth * 5}" y="${this.pageHeight * 5}" 
+            text-anchor="middle" font-size="48" fill="#999">
+        No content to display
+      </text>
+    </svg>`;
     }
 
     if (validPages.length === 1) {

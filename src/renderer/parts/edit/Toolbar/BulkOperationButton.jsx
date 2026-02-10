@@ -84,7 +84,7 @@ export const BulkOperationButton = () => {
           handleClose();
           selectedCardsEdit({ repeat });
           // mergeConfig({ autoConfigFlip: false });
-        }}>OK</Link>
+        }}>{t('button.ok')}</Link>
       </MenuItem>
       <MenuItem onClick={() => {
         handleClose();

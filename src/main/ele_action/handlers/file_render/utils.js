@@ -1,19 +1,27 @@
-import { layoutSides } from '../../../../shared/constants';
+import { emptyImg, layoutSides } from '../../../../shared/constants';
 import { SVGAdapter } from './adapter/SVGAdapter';
+import { SmartStorage } from '../../../utils';
+import { fixFloat } from '../../../../shared/functions';
 
 export const defaultImageStorage = {
-  '_emptyImg': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
-    '12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg==',
+  '_emptyImg': emptyImg.path,
 };
-export const ImageStorage = { ...defaultImageStorage };
-export const OverviewStorage = { ...defaultImageStorage };
 
-export const fixFloat = num => parseFloat(num.toFixed(2));
+export const ImageStorage = new SmartStorage('ImageStorage', {
+  maxMemorySize: 50,  // 内存中最多保留 50 张高质量图片
+});
+
+export const OverviewStorage = new SmartStorage('OverviewStorage');
+
+// 初始化默认图片
+ImageStorage['_emptyImg'] = defaultImageStorage['_emptyImg'];
+OverviewStorage['_emptyImg'] = defaultImageStorage['_emptyImg'];
+
+
 
 export const getCutRectangleList = (Config, { maxWidth, maxHeight }, ignoreBleed = true, isBack = false) => {
   const {
     sides,
-    scale,
     cardWidth,
     cardHeight,
     marginX,
@@ -30,13 +38,13 @@ export const getCutRectangleList = (Config, { maxWidth, maxHeight }, ignoreBleed
   } = Config;
 
   // 计算缩放后的尺寸
-  const scaledWidth = fixFloat(cardWidth * scale / 100);
-  const scaledHeight = fixFloat(cardHeight * scale / 100);
-  const scaledMarginX = fixFloat(marginX * scale / 100);
-  const scaledMarginY = fixFloat(marginY * scale / 100);
-  const scaledBleedX = fixFloat(bleedX * scale / 100);
-  const scaledBleedY = fixFloat(bleedY * scale / 100);
-  const scaledFoldMargin = fixFloat(foldInHalfMargin * scale / 100);
+  const scaledWidth = fixFloat(cardWidth);
+  const scaledHeight = fixFloat(cardHeight);
+  const scaledMarginX = fixFloat(marginX);
+  const scaledMarginY = fixFloat(marginY);
+  const scaledBleedX = fixFloat(bleedX);
+  const scaledBleedY = fixFloat(bleedY);
+  const scaledFoldMargin = fixFloat(foldInHalfMargin);
   const halfMarginX = scaledMarginX / 2;
   const halfMarginY = scaledMarginY / 2;
   const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
@@ -144,12 +152,17 @@ export const getCutRectangleList = (Config, { maxWidth, maxHeight }, ignoreBleed
     for (let j = 0; j < rows; j++) {
       for (let i = 0; i < columns; i++) {
         list.push(...centerRects([
-          { x: 0, y: 0, width: scaledWidth + brochureBleedX, height: scaledHeight + brochureBleedY * 2 },
           {
-            x: scaledWidth + brochureBleedX,
+            x: -brochureBleedX,                        // 向左偏移，左侧出血
             y: 0,
-            width: scaledWidth + brochureBleedX,
-            height: scaledHeight + brochureBleedY * 2,
+            width: scaledWidth + brochureBleedX,       // 宽度包含左侧出血
+            height: scaledHeight + brochureBleedY * 2  // 上下出血
+          },
+          {
+            x: scaledWidth,                            // 紧贴左卡（无间隙）
+            y: 0,
+            width: scaledWidth + brochureBleedX,       // 宽度包含右侧出血
+            height: scaledHeight + brochureBleedY * 2  // 上下出血
           },
         ], brochurePageWidth, brochurePageHeight, i * brochurePageWidth, j * brochurePageHeight));
       }
@@ -188,6 +201,44 @@ function centerRects(rects, pageWidth, pageHeight, offsetX = 0, offsetY = 0) {
 
 
 export const getPagedImageListByCardList = (state, Config) => {
+  if (!state.CardList || state.CardList.length === 0) {
+    const { sides, rows, columns } = Config;
+    const isFoldInHalf = sides === layoutSides.foldInHalf;
+    const isBrochure = sides === layoutSides.brochure;
+
+    const pagedImageList = [];
+
+    if (isBrochure) {
+      const slotCount = rows * columns * 2;
+      pagedImageList.push({
+        imageList: new Array(slotCount).fill(emptyImg),
+        config: new Array(slotCount).fill(undefined),
+        type: 'face',
+      });
+      pagedImageList.push({
+        imageList: new Array(slotCount).fill(emptyImg),
+        config: new Array(slotCount).fill(undefined),
+        type: 'back',
+      });
+    } else {
+      const slotCount = rows * columns / (isFoldInHalf ? 2 : 1);
+      pagedImageList.push({
+        imageList: new Array(slotCount).fill(emptyImg),
+        config: new Array(slotCount).fill(undefined),
+        type: 'face',
+      });
+
+      if ([layoutSides.doubleSides, layoutSides.foldInHalf].includes(sides)) {
+        pagedImageList.push({
+          imageList: new Array(slotCount).fill(emptyImg),
+          config: new Array(slotCount).fill(undefined),
+          type: 'back',
+        });
+      }
+    }
+
+    return pagedImageList;
+  }
   if ([layoutSides.oneSide, layoutSides.doubleSides, layoutSides.foldInHalf].includes(Config.sides)) {
     return getNormalPagedImageListByCardList(state, Config);
   } else if (Config.sides === layoutSides.brochure) {
@@ -231,7 +282,11 @@ const getBrochurePagedImageListByCardList = (state, Config) => {
   const size = Config.rows * Config.columns * 2;
 
   const repeatEmpty = (4 - repeatCardList.length % 4) % 4;
-  repeatCardList = repeatCardList.concat(new Array(repeatEmpty));
+  const emptyCard = {
+    face: emptyImg,
+    config: undefined
+  };
+  repeatCardList = repeatCardList.concat(new Array(repeatEmpty).fill(emptyCard));
   const tempPairList = [];
   for (let i = 0; i < repeatCardList.length / 2; i++) {
     tempPairList.push([repeatCardList[i * 2], repeatCardList[i * 2 + 1]]);
@@ -468,17 +523,19 @@ export const isNeedRotation = (Config, isBack) => {
 };
 
 // 在文件顶部添加缓存
-const previewCache = new Map(); // 存储已完成的预览
+export const PreviewStorage = new SmartStorage('PreviewStorage', {
+  maxMemorySize: 10,
+});
 const previewTasks = new Map(); // 存储进行中的任务
 
 
 // 预渲染函数
 export async function prerenderPage(pageIndex, state, Config, renderFunc, renderFuncId, quality = 'low') {
   const cacheKey = `${renderFuncId}-${pageIndex}`;
-
-  if (previewCache.has(cacheKey)) {
+  const cachedResult = PreviewStorage[cacheKey];
+  if (cachedResult) {
     console.log(`📦 Page ${pageIndex + 1}: Loaded from cache`);
-    return previewCache.get(cacheKey);
+    return cachedResult;
   }
 
   if (previewTasks.has(cacheKey)) {
@@ -495,14 +552,15 @@ export async function prerenderPage(pageIndex, state, Config, renderFunc, render
       const doc = new SVGAdapter(Config, quality, true);
       const svgString = await renderFunc(doc, state, [pageIndex]);
 
-      const result = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
+      const base64Svg = Buffer.from(svgString, 'utf-8').toString('base64');
+      const result = `data:image/svg+xml;base64,${base64Svg}`;
 
       //结束计时
       const endTime = performance.now();
       const duration = (endTime - startTime).toFixed(2);
       console.log(`Page ${pageIndex + 1}: Rendered in ${duration}ms`);
 
-      previewCache.set(cacheKey, result);
+      PreviewStorage[cacheKey] = result;
       return result;
     } catch (error) {
       //错误也记录时间
@@ -519,6 +577,6 @@ export async function prerenderPage(pageIndex, state, Config, renderFunc, render
   return task;
 }
 export const clearPrerenderCache = () => {
-  previewCache.clear();
+  PreviewStorage.clear();
   previewTasks.clear();
 }

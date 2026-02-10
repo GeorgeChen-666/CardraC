@@ -5,6 +5,7 @@ module.exports = {
   // Put your normal webpack config below here
   target: 'electron-renderer',
   entry: `./src/renderer/index.js`,
+  devtool: process.env.NODE_ENV === 'production' ? false : 'source-map',
   resolve:{
     extensions:['.js','.jsx','.json']
   },
@@ -43,5 +44,20 @@ module.exports = {
         }
       ],
     }),
-  ]
+  ],
+  optimization: {
+    minimize: process.env.NODE_ENV === 'production',
+    usedExports: true,
+    concatenateModules: true,
+    splitChunks: {
+      chunks: 'all',
+      cacheGroups: {
+        vendor: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'vendors',
+          priority: 10,
+        },
+      },
+    },
+  },
 };

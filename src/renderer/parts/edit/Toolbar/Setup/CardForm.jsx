@@ -53,9 +53,9 @@ export const CardForm = () => {
       </FormControl>)
     }
     <FormControl label={t('configDialog.bleed')} width={'145px'} attrKey={'bleedX'}
-                 type={ControlType.NumberInput} step={0.1} min={0} max={Config.marginX() / 2}>
+                 type={ControlType.NumberInput} step={0.1} min={0} max={isBrochure ? 999 :(Config.marginX() / 2)}>
       <FormControl width={'145px'} attrKey={'bleedY'} type={ControlType.NumberInput} step={0.1} min={0}
-                   max={Config.marginY() / 2}>
+                   max={isBrochure ? 999 : (Config.marginY() / 2)}>
         mm
       </FormControl>
     </FormControl>

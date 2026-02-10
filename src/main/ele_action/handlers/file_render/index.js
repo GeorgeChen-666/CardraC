@@ -1,9 +1,9 @@
-import { waitCondition } from '../../../../shared/functions';
+import { fixFloat, waitCondition } from '../../../../shared/functions';
 import { getPendingList } from '../ImageActions';
 import { getBorderAverageColors, getConfigStore } from '../../functions';
-import { adjustBackPageImageOrder, getCutRectangleList, getPagedImageListByCardList, isNeedRotation } from './Utils';
+import { adjustBackPageImageOrder, getCutRectangleList, getPagedImageListByCardList, isNeedRotation } from './utils';
 import { layoutSides } from '../../../../shared/constants';
-import { fixFloat, ImageStorage } from './Utils';
+import { ImageStorage } from './utils';
 
 export const colorCache = new Map();
 const imageAverageColorSet = new Map();
@@ -34,15 +34,15 @@ const loadImageAverageColor = async () => {
 
 
 export const exportFile = async (doc, state, pagesToRender = null) => {
-  await waitCondition(() => getPendingList().size() === 0);
+  await waitCondition(() => getPendingList?.()?.size === 0);
   const { Config } = getConfigStore();
 
-  const {avoidDislocation, scale, sides, lineWeight, cutlineColor, foldLineType, offsetX, offsetY, marginX, marginY, bleedX, bleedY, pageNumber, columns, rows, printOffsetX = 0, printOffsetY = 0} = Config;
+  const {avoidDislocation, sides, lineWeight, cutlineColor, foldLineType, offsetX, offsetY, marginX, marginY, bleedX, bleedY, pageNumber, columns, rows, printOffsetX = 0, printOffsetY = 0} = Config;
   const maxWidth = fixFloat(doc.getPageSize().width);
   const maxHeight = fixFloat(doc.getPageSize().height);
   const isFoldInHalf = sides === layoutSides.foldInHalf;
-  const scaledMarginX = fixFloat(marginX * scale / 100);
-  const scaledMarginY = fixFloat(marginY * scale / 100);
+  const scaledMarginX = fixFloat(marginX);
+  const scaledMarginY = fixFloat(marginY);
 
   if(Config.marginFilling) {
     await loadImageAverageColor();
@@ -205,8 +205,8 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
       if (image) {
         let rotation = 0;
         if(sides !== layoutSides.brochure && (cardConfig || type === 'back' && avoidDislocation)) {
-          let cardBleedX = Math.min(fixFloat(cardConfig?.bleed?.[`${type}BleedX`] * scale / 100), scaledMarginX / 2);
-          let cardBleedY = Math.min(fixFloat(cardConfig?.bleed?.[`${type}BleedY`] * scale / 100), scaledMarginY / 2);
+          let cardBleedX = Math.min(fixFloat(cardConfig?.bleed?.[`${type}BleedX`]), scaledMarginX / 2);
+          let cardBleedY = Math.min(fixFloat(cardConfig?.bleed?.[`${type}BleedY`]), scaledMarginY / 2);
 
           if(cardBleedX) {
             rect.x = rectCut.x - cardBleedX;
@@ -269,7 +269,7 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
       //cutline cross
       doc.setLineStyle({width: lineWeight * 0.3527, color: cutlineColor});
       const markRectList = getCutRectangleList(Config, {maxWidth, maxHeight}, true);
-      const crossLength = fixFloat(2 * scale / 100);
+      const crossLength = fixFloat(2);
 
       const { imageList } = adjustBackPageImageOrder(pageData, Config);
 

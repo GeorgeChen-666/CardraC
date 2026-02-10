@@ -1,6 +1,6 @@
 {
   "name": "cardrac",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "private": true,
   "author": {
     "name": "GeorgeChen"
@@ -45,6 +45,8 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.1.0",
     "@mui/material": "^7.1.0",
+    "@tanstack/react-virtual": "^3.13.18",
+    "better-sqlite3": "^12.6.2",
     "electron-log": "^5.4.1",
     "electron-squirrel-startup": "^1.0.0",
     "electron-store": "^8.2.0",
@@ -56,6 +58,7 @@
     "jspdf": "4.0.0",
     "jszip": "^3.10.1",
     "lodash": "^4.17.21",
+    "lz-string": "^1.5.0",
     "notistack": "^3.0.2",
     "react": "^18.3.0",
     "react-dnd": "^16.0.1",
@@ -66,6 +69,7 @@
     "react-redux": "^9.1.1",
     "react-spreadsheet-grid": "^2.3.1",
     "sharp": "^0.33.4",
+    "stream-json": "^1.9.1",
     "toastr": "^2.1.4",
     "web-vitals": "^2.1.4",
     "yup": "^1.6.1",

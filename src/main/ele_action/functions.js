@@ -4,76 +4,48 @@ import path from 'path';
 const { Buffer } = require('buffer');
 import fs from 'fs';
 import { app, BrowserWindow } from 'electron';
+import { expandPath, fixPath } from '../utils';
 
 export async function getBorderAverageColors(base64String, borderWidth = 5) {
   try {
     const buffer = Buffer.from(base64String.split(',')[1], 'base64');
-    // 读取图片元数据
-    const metadata = await sharp(buffer).metadata();
-    const { width, height } = metadata;
+    const baseImage = sharp(buffer);
+    const metadata = await baseImage.metadata();
+    const { width, height, channels } = metadata;
 
-    // 定义四边裁剪区域（自动处理小尺寸图片）
-    const regions = {
-      top: {
-        left: 0,
-        top: 0,
-        width: width,
-        height: Math.min(borderWidth, height)
-      },
-      bottom: {
-        left: 0,
-        top: Math.max(0, height - borderWidth),
-        width: width,
-        height: Math.min(borderWidth, height - Math.max(0, height - borderWidth))
-      },
-      left: {
-        left: 0,
-        top: 0,
-        width: Math.min(borderWidth, width),
-        height: height
-      },
-      right: {
-        left: Math.max(0, width - borderWidth),
-        top: 0,
-        width: Math.min(borderWidth, width - Math.max(0, width - borderWidth)),
-        height: height
-      }
-    };
+    //一次性获取所有像素数据
+    const { data } = await baseImage.raw().toBuffer({ resolveWithObject: true });
 
-    const colors = {};
+    const pixelsPerChannel = channels || 3;
+    const actualBorderWidth = Math.min(borderWidth, Math.floor(Math.min(width, height) / 2));
 
-    // 并行处理所有区域
-    await Promise.all(
-      Object.entries(regions).map(async ([name, rect]) => {
-        try {
-          // 跳过无效区域
-          if (rect.width <= 0 || rect.height <= 0) {
-            colors[name] = null;
-            return;
-          }
+    let totalR = 0, totalG = 0, totalB = 0;
+    let pixelCount = 0;
 
-          // 提取区域并计算统计信息
-          const stats = await sharp(await sharp(buffer).extract(rect).toBuffer()).stats();
+    //遍历所有像素，只统计边框区域
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        // 判断是否在边框区域
+        const isInBorder =
+          y < actualBorderWidth ||                    // 上边框
+          y >= height - actualBorderWidth ||          // 下边框
+          x < actualBorderWidth ||                    // 左边框
+          x >= width - actualBorderWidth;             // 右边框
 
-          // 获取 RGB 通道平均值
-          const [r, g, b] = stats.channels
-            .slice(0, 3)
-            .map(c => Math.round(c.mean));
-
-          colors.r = (colors.r || 0) + Math.round(r);
-          colors.g = (colors.g || 0) + Math.round(g);
-          colors.b = (colors.b || 0) + Math.round(b);
-        } catch (error) {
-          console.error(`Error processing ${name}:`, error.message);
-          //colors[name] = null;
+        if (isInBorder) {
+          const index = (y * width + x) * pixelsPerChannel;
+          totalR += data[index];
+          totalG += data[index + 1];
+          totalB += data[index + 2];
+          pixelCount++;
         }
-      })
-    );
+      }
+    }
 
     return {
-      r: Math.round(colors.r / 4),
-      g: Math.round(colors.g / 4),
-      b: Math.round(colors.b / 4),
+      r: Math.round(totalR / pixelCount),
+      g: Math.round(totalG / pixelCount),
+      b: Math.round(totalB / pixelCount),
       alpha: 1
     };
   } catch (error) {
@@ -81,6 +53,7 @@ export async function getBorderAverageColors(base64String, borderWidth = 5) {
     return null;
   }
 }
+
 
 export const readCompressedImage = async (path, options = {}) => {
   options.format = options.format === 'jpg' ? 'jpeg' : 'png';
@@ -90,7 +63,7 @@ export const readCompressedImage = async (path, options = {}) => {
     format= 'webp'
   } = options;
   try {
-    let image = sharp(path);
+    let image = sharp(expandPath(path));
     const metadata = await image.metadata();
 
     let rotateDegrees = 0;
@@ -216,6 +189,8 @@ export async function printPNGs(printerName, buffers, options = {}) {
   const actualWidth = landscape ? pageHeightMm : pageWidthMm;
   const actualHeight = landscape ? pageWidthMm : pageHeightMm;
 
+  const PRINT_SCALE = 3; // 3倍分辨率，相当于 288 DPI
+
   const decodeSvg = (data) => {
     if (!data) return '';
     try {
@@ -274,6 +249,9 @@ export async function printPNGs(printerName, buffers, options = {}) {
     body { 
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
+      /*提高渲染质量 */
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
     }
     .page { 
       width: ${actualWidth}mm;
@@ -285,7 +263,6 @@ export async function printPNGs(printerName, buffers, options = {}) {
     .page:last-child {
       page-break-after: auto;
     }
-    /* ✅ 让 SVG 填满容器 */
     .svg-container {
       overflow: hidden;
     }
@@ -293,6 +270,11 @@ export async function printPNGs(printerName, buffers, options = {}) {
       width: 100% !important;
       height: 100% !important;
       display: block;
+    }
+    /*提高 SVG 图片质量 */
+    .svg-container svg image {
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: high-quality;
     }
   </style>
 </head>
@@ -313,7 +295,11 @@ export async function printPNGs(printerName, buffers, options = {}) {
 
   const win = new BrowserWindow({
     show: false,
-    webPreferences: { offscreen: false }
+    webPreferences: {
+      offscreen: false,
+      enableWebGL: true,
+      zoomFactor: PRINT_SCALE
+    }
   });
 
   try {
@@ -381,7 +367,7 @@ export async function printPNGs(printerName, buffers, options = {}) {
       })
     `);
 
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 2000));
 
     const result = await new Promise((resolve, reject) => {
       const t = setTimeout(() => reject(new Error('Print timeout')), 30000);
@@ -397,6 +383,10 @@ export async function printPNGs(printerName, buffers, options = {}) {
         pageSize: {
           width: actualWidth * 1000,
           height: actualHeight * 1000
+        },
+        dpi: {
+          horizontal: 300,
+          vertical: 300
         }
       }, (ok, err) => {
         clearTimeout(t);
@@ -429,3 +419,4 @@ export async function printPNGs(printerName, buffers, options = {}) {
     }
   }
 }
+

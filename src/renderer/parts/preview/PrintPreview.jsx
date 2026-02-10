@@ -4,8 +4,8 @@ import { useGlobalStore } from '../../state/store';
 import { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import { clearPreviewCache } from '../../functions';
 import { PrintDrawer } from './ToolBar/Print/PrintDrawer';
+import { decodeSvg } from '../../../shared/functions';
 
-// ✅ 标尺组件 - 跟随 SVG 移动和缩放
 const Ruler = ({ orientation, length }) => {
   const pixelsPerMM = 10;
   const majorTickInterval = 10;
@@ -191,17 +191,6 @@ export const PrintPreview = forwardRef((props, ref) => {
     setScale(newScale);
   };
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    container.addEventListener('wheel', handleWheel, { passive: false });
-
-    return () => {
-      container.removeEventListener('wheel', handleWheel);
-    };
-  }, [scale, position, exportPreviewIndex, exportPageCount]);
-
   const handleMouseDown = (e) => {
     if (e.button !== 0) return;
     const drawerElement = drawerPrintRef.current;
@@ -271,37 +260,6 @@ export const PrintPreview = forwardRef((props, ref) => {
 
   const [svgContent, setSvgContent] = useState('');
 
-  const decodeSvg = (data) => {
-    if (!data) return '';
-    try {
-      let decoded = '';
-      if (data.startsWith('<svg')) {
-        decoded = data;
-      } else if (data.startsWith('data:image/svg+xml;charset=utf-8,')) {
-        decoded = decodeURIComponent(data.replace('data:image/svg+xml;charset=utf-8,', ''));
-      } else if (data.startsWith('data:image/svg+xml,')) {
-        decoded = decodeURIComponent(data.replace('data:image/svg+xml,', ''));
-      } else if (data.startsWith('data:image/svg+xml;base64,')) {
-        const base64Data = data.replace('data:image/svg+xml;base64,', '');
-        decoded = atob(base64Data);
-      }
-      if (decoded) {
-        const widthMatch = decoded.match(/width="(\d+)"/);
-        const heightMatch = decoded.match(/height="(\d+)"/);
-        if (widthMatch && heightMatch) {
-          setImageSize({
-            width: parseInt(widthMatch[1]),
-            height: parseInt(heightMatch[1])
-          });
-        }
-      }
-      return decoded;
-    } catch (e) {
-      console.error('Failed to decode SVG:', e);
-    }
-    return '';
-  };
-
   useEffect(() => {
     if (!isSvg || !svgRef.current) return;
 
@@ -337,7 +295,18 @@ export const PrintPreview = forwardRef((props, ref) => {
           setImageData(data);
 
           if (data && data.includes('svg')) {
-            setSvgContent(decodeSvg(data));
+            const decoded = decodeSvg(data)
+            if (decoded) {
+              const widthMatch = decoded.match(/width="(\d+)"/);
+              const heightMatch = decoded.match(/height="(\d+)"/);
+              if (widthMatch && heightMatch) {
+                setImageSize({
+                  width: parseInt(widthMatch[1]),
+                  height: parseInt(heightMatch[1])
+                });
+              }
+            }
+            setSvgContent(decoded);
           } else {
             setSvgContent('');
           }
@@ -361,6 +330,7 @@ export const PrintPreview = forwardRef((props, ref) => {
         ref={containerRef}
         onMouseDown={handleMouseDown}
         onDoubleClick={handleDoubleClick}
+        onWheel={handleWheel}
         style={{
           cursor: isDragging ? 'grabbing' : 'grab',
           overflow: 'hidden',

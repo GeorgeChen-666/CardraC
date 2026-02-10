@@ -57,7 +57,10 @@ export const FormControl = (({
       <NumberInput value={fieldValue} min={min} max={max}
                    step={step ?? ((fieldValue % 1 > 0) ? 0.1 : 1)}
                    width={width} label={label} disabled={disabled}
-                   onChange={onChange || ((e, v) => mergeConfig({ [attrKey]: v }))}
+                   onChange={onChange || ((e, v) => {
+
+                     mergeConfig({ [attrKey]: v })
+                   })}
                    {...restProps}
       />}
     {type === ControlType.Select &&

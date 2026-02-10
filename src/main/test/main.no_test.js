@@ -11,7 +11,7 @@ vi.mock('./ele_action/functions', () => ({
   })
 }));
 
-import { getCutRectangleList, getPagedImageListByCardList, adjustBackPageImageOrder, isNeedRotation, ImageStorage  } from '../ele_action/handlers/file_render/Utils';
+import { getCutRectangleList, getPagedImageListByCardList, adjustBackPageImageOrder, isNeedRotation, ImageStorage  } from '../ele_action/handlers/file_render/utils';
 import { layoutSides, initialState } from '../../shared/constants';
 import { ShadowAdapter } from '../ele_action/handlers/file_render/adapter/ShadowAdapter';
 import { exportFile } from '../ele_action/handlers/file_render';
@@ -1606,8 +1606,7 @@ describe('ExportFile - 默认配置测试', () => {
       maxHeight: result.pages[0].height
     };
 
-    const { scale } = mockConfigStore.Config;
-    const crossLength = 2 * scale / 100;
+    const crossLength = 2;
 
     // 验证十字线的辅助函数
     const validateCrossLines = (page, pageType, isBack) => {
