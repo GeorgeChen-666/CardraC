@@ -14,12 +14,12 @@ if (isProduction) {
   process.env.NODE_ENV = 'development';
 }
 
-// ✅ Electron 瘦身函数
+//Electron 瘦身函数
 function slimElectron(buildPath, platform) {
   console.log('🔧 开始 Electron 瘦身...');
   console.log('📂 应用路径:', buildPath);
 
-  // ✅ Electron 根目录在 buildPath 的上两级
+  //Electron 根目录在 buildPath 的上两级
   // buildPath = .../resources/app
   // electronRoot = .../
   const electronRoot = path.join(buildPath, '..', '..');
@@ -87,7 +87,7 @@ function slimElectron(buildPath, platform) {
         const size = stats.isDirectory() ? getFolderSize(p) : stats.size;
         fs.rmSync(p, { recursive: true, force: true });
         totalSaved += size;
-        console.log(`  ✅ 删除: ${path.basename(p)} (${(size / 1024 / 1024).toFixed(2)} MB)`);
+        console.log(` 删除: ${path.basename(p)} (${(size / 1024 / 1024).toFixed(2)} MB)`);
       } catch (error) {
         console.warn(`  ⚠️ 无法删除: ${p}`, error.message);
       }
@@ -114,7 +114,7 @@ function slimElectron(buildPath, platform) {
           fs.unlinkSync(filePath);
           totalSaved += size;
           deletedDllCount++;
-          console.log(`  ✅ 删除: ${file} (${(size / 1024 / 1024).toFixed(2)} MB)`);
+          console.log(` 删除: ${file} (${(size / 1024 / 1024).toFixed(2)} MB)`);
         } catch (error) {
           console.warn(`  ⚠️ 无法删除: ${file}`);
         }
@@ -139,7 +139,7 @@ function slimElectron(buildPath, platform) {
         fs.unlinkSync(licensePath);
         totalSaved += size;
         deletedLicenseCount++;
-        console.log(`  ✅ 删除: ${path.basename(licensePath)} (${(size / 1024).toFixed(2)} KB)`);
+        console.log(` 删除: ${path.basename(licensePath)} (${(size / 1024).toFixed(2)} KB)`);
       } catch (error) {
         console.warn(`  ⚠️ 无法删除: ${path.basename(licensePath)}`);
       }

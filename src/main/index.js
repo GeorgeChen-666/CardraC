@@ -2,7 +2,6 @@ import electron, { app, BrowserWindow, shell, protocol } from 'electron';
 import { registerRendererActionHandlers } from './ele_action';
 import { OverviewStorage } from './ele_action/handlers/file_render/utils';
 import { ImageStorage } from './ele_action/handlers/file_render/utils';
-import { emptyImg } from '../shared/constants';
 
 if (typeof electron === 'string') {
   throw new TypeError('Not running in an Electron environment!');
