@@ -7,40 +7,77 @@ import AddCard from './AddCard';
 import { CardSettingDialog } from '../CardEditor/CardSettingDialog';
 import { useGlobalStore } from '../../../state/store';
 
+const createSharedObserver = (() => {
+  let observer = null;
+  const callbacks = new Map();
+
+  return {
+    observe: (element, callback) => {
+      if (!observer) {
+        observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              const cb = callbacks.get(entry.target);
+              if (cb) cb(entry.isIntersecting);
+            });
+          },
+          {
+            root: null,
+            rootMargin: '200px',
+            threshold: 0,
+          }
+        );
+      }
+
+      callbacks.set(element, callback);
+      observer.observe(element);
+    },
+
+    unobserve: (element) => {
+      if (observer) {
+        observer.unobserve(element);
+        callbacks.delete(element);
+      }
+    },
+
+    disconnect: () => {
+      if (observer) {
+        observer.disconnect();
+        callbacks.clear();
+        observer = null;
+      }
+    }
+  };
+})();
+
 const CardWrapper = ({ card, index, dialogCardSettingRef, isAddCard, isDragTarget, realIndex }) => {
   const [isVisible, setIsVisible] = useState(false);
   const cardRef = useRef(null);
   const timeoutRef = useRef(null);
 
   useEffect(() => {
-    if (!cardRef.current) return;
+    const element = cardRef.current;
+    if (!element) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-          }
-          timeoutRef.current = setTimeout(() => {
-            setIsVisible(entry.isIntersecting);
-          }, 50);
-        });
-      },
-      {
-        root: null,
-        rootMargin: '200px',
-        threshold: 0,
-      },
-    );
-
-    observer.observe(cardRef.current);
-
-    return () => {
-      if (cardRef.current) {
-        observer.unobserve(cardRef.current);
-      }
+    const handleVisibilityChange = (isIntersecting) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+      }
+
+      timeoutRef.current = setTimeout(() => {
+        setIsVisible(isIntersecting);
+        timeoutRef.current = null;
+      }, 50);
+    };
+
+    createSharedObserver.observe(element, handleVisibilityChange);
+
+    return () => {
+      createSharedObserver.unobserve(element);
+
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
       }
     };
   }, []);
@@ -63,18 +100,20 @@ const CardWrapper = ({ card, index, dialogCardSettingRef, isAddCard, isDragTarge
         <AddCard />
       ) : isDragTarget ? (
         <CardDropTarget index={realIndex} />
-        ) : (
+      ) : (
         <Card
-        dialogCardSettingRef={dialogCardSettingRef}
-         index={realIndex}
-         data={card}
-    />
-  )}
-</div>
-);};
+          dialogCardSettingRef={dialogCardSettingRef}
+          index={realIndex}
+          data={card}
+        />
+      )}
+    </div>)
+};
+
 
 export const CardList = () => {
   const dialogCardSettingRef = useRef(null);
+  window.dialogCardSettingRef = dialogCardSettingRef;
   const parentRef = useRef(null);
   const scrollIntervalRef = useRef(null);
 

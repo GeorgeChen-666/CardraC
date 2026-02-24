@@ -14,6 +14,7 @@ import { CardToolbar } from './CardToolbar';
 import { CardFooter } from './CardFooter';
 import { useEvent } from './useEvent';
 import { webUtils } from 'electron';
+import { useProgressiveImage } from './useProgressiveImage';
 
 const useMenuState = (items) => {
   const [anchorEl, setAnchorEl] = React.useState(null);
@@ -213,9 +214,15 @@ export default memo(({ data, dialogCardSettingRef, index }) => {
 
   const { onOpen, MenuElement } = useMenuState(menuItems);
 
-  //缓存图片 URL
-  const faceUrl = useMemo(() => getImageSrc(data?.face, { version: imageVersion }), [data?.face?.path, data?.face?.mtime]);
-  const backUrl = useMemo(() => getImageSrc(data?.back, { version: imageVersion }), [data?.back?.path, data?.back?.mtime]);
+  const { src: faceUrl, isHighQuality: isFaceHQ } = useProgressiveImage(
+    data?.face,
+    imageVersion
+  );
+
+  const { src: backUrl, isHighQuality: isBackHQ } = useProgressiveImage(
+    data?.back,
+    imageVersion
+  );
 
   //缓存计算结果
   const isShowBack = useMemo(() =>
@@ -276,6 +283,7 @@ export default memo(({ data, dialogCardSettingRef, index }) => {
             path={data?.face?.path}
             isBackEditing={isBackEditing}
             isFace={true}
+            isHighQuality={isFaceHQ}
           />
           {isShowBack && (
             <CardImage
@@ -283,6 +291,7 @@ export default memo(({ data, dialogCardSettingRef, index }) => {
               path={data?.back?.path}
               isBackEditing={isBackEditing}
               isFace={false}
+              isHighQuality={isBackHQ}
             />
           )}
         </Stack>

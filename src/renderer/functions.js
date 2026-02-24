@@ -23,19 +23,22 @@ export const getImageSrc = (imageData, {quality = 'low', version = 1}) =>
     : emptyImg.path;
 
 export const fillByObjectValue = (source, value) => {
-  if (isObject(source) && isObject(value)) {
-    Object.keys(value).forEach(key => {
-      const newValue = value[key];
-      if (isObject(newValue)) {
-        if (!isObject(source[key])) {
-          source[key] = {};
-        }
-        fillByObjectValue(source[key], newValue);
-      } else {
-        source[key] = newValue;
-      }
-    });
+  if (!isObject(source) || !isObject(value)) {
+    return value;
   }
+  const result = { ...source };
+  Object.keys(value).forEach(key => {
+    const newValue = value[key];
+    if (newValue === null || newValue === undefined) {
+      result[key] = newValue;
+    } else if (isObject(newValue)) {
+      // 递归创建新对象
+      result[key] = fillByObjectValue(source[key] || {}, newValue);
+    } else {
+      result[key] = newValue;
+    }
+  });
+  return result;
 };
 
 ipcRenderer.on('notification', (ev, args) => {

@@ -433,46 +433,58 @@ export const useGlobalStore = create(middlewares((set, get) => ({
   },
   selectedCardsEdit: (newState) => {
     get().setWithHistory(state => {
-      const selection = state.CardList.filter(c => c.selected);
-      selection.forEach(c => {
-        fillByObjectValue(c, newState);
+      const newCardList = state.CardList.map(c => {
+        if (!c.selected) return c;
+        return fillByObjectValue(c, newState);
       });
-      state.CardList = state.CardList.map(c => selection.includes(c) ? { ...c } : c);
-      return {...state};
+      return { ...state, CardList: newCardList };
     });
   },
   selectedCardsFillBackWithEach: (backImageList) => {
     get().setWithHistory(state => {
-      const selection = state.CardList.filter(c => c.selected);
-      selection.forEach((c, index) => {
-        c.back = backImageList?.[index];
+      let imageIndex = 0;
+      const newCardList = state.CardList.map(c => {
+        if (!c.selected) return c;  // 未选中的保持原引用
+        const newBack = backImageList?.[imageIndex];
+        imageIndex++;
+        //创建新对象（不修改原对象）
+        return { ...c, back: newBack };
       });
-      state.CardList = state.CardList.map(c => selection.includes(c) ? { ...c } : c);
-      return {...state};
+
+      return { ...state, CardList: newCardList };
     });
   },
   selectedCardsSwap: () => {
     get().setWithHistory(state => {
-      const selection = state.CardList.filter(c => c.selected);
-      selection.forEach(c => ([c.face, c.back] = [c.back, c.face]));
-      state.CardList = state.CardList.map(c => selection.includes(c) ? { ...c } : c);
-      return {...state};
+      //直接在 map 中创建新对象
+      const newCardList = state.CardList.map(c => {
+        if (!c.selected) return c;
+        //创建新对象，交换 face 和 back
+        return {
+          ...c,
+          face: c.back,
+          back: c.face
+        };
+      });
+      return { ...state, CardList: newCardList };
     });
   },
   editCardsConfig: (ids, config) => {
     get().setWithHistory(state => {
-      const editedCards = state.CardList.filter(c => ids.includes(c.id));
-      editedCards.forEach(c => {
-        if(Object.values(config?.bleed || {}).filter(e => !!e).length > 0) {
-          c.config = config;
-        } else {
-          delete c.config;
-        }
+      const idsSet = new Set(ids);
+      const hasValidBleed = Object.values(config?.bleed || {}).some(e => !!e);
+
+      const newCardList = state.CardList.map(c => {
+        if (!idsSet.has(c.id)) return c;
+        return hasValidBleed
+          ? { ...c, config }
+          : { ...c, config: undefined };
       });
-      state.CardList = state.CardList.map(c => ids.includes(c.id) ? { ...c } : c);
-      return {...state};
+
+      return { ...state, CardList: newCardList };
     });
   }
+
 })));
 
 function createSelectors(storeHook) {

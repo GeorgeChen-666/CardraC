@@ -55,11 +55,20 @@ const createWindow = () => {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
 
-  //注册 cardrac:// 协议（使用 registerBufferProtocol）
   protocol.handle('cardrac', async (request) => {
-    //在 try 外部定义变量
-    let imagePath = '';
-    let pathVariants = [];
+    const createResponse = (data, mimeType, etag = null) => {
+      const emptySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+  <rect width="100" height="100" fill="transparent"/>
+</svg>`;
+      const headers = {
+        'Content-Type': mimeType,
+        'Cache-Control': etag ? 'public, max-age=31536000, immutable' : 'no-cache'
+      };
+      if (etag) {
+        headers['ETag'] = etag;
+      }
+      return new Response(data ?? emptySvg, { headers });
+    };
 
     try {
       const url = request.url;
@@ -67,14 +76,13 @@ app.whenReady().then(() => {
       const pathname = urlObj.pathname;
       const quality = urlObj.searchParams.get('quality') || 'high';
 
-      imagePath = decodeURIComponent(pathname.replace('/image/', ''));
+      let imagePath = decodeURIComponent(pathname.replace('/image/', ''));
       if (imagePath.startsWith('/')) {
         imagePath = imagePath.substring(1);
       }
       const storage = quality === 'low' ? OverviewStorage : ImageStorage;
 
-      //尝试多种路径格式
-      pathVariants = [
+      const pathVariants = [
         imagePath,
         imagePath.replace(/\//g, '\\'),
         imagePath.replace(/\\/g, '/'),
@@ -92,49 +100,30 @@ app.whenReady().then(() => {
         }
       }
 
-      if (imageData) {
-        const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
-        const buffer = Buffer.from(base64Data, 'base64');
-
-        const ext = imagePath.split('.').pop().toLowerCase();
-        const mimeTypes = {
-          'jpg': 'image/jpeg',
-          'jpeg': 'image/jpeg',
-          'png': 'image/png',
-          'gif': 'image/gif',
-          'webp': 'image/webp'
-        };
-        const mimeType = mimeTypes[ext] || 'image/png';
-
-        return new Response(buffer, {
-          headers: { 'Content-Type': mimeType }
-        });
-      } else {
-        console.error('❌ Image not found:', imagePath);
-        console.log('Tried paths:', pathVariants);
-        console.log('Available keys sample:', Object.keys(storage).slice(0, 10));
-
-        const emptySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
-  <rect width="100" height="100" fill="transparent"/>
-</svg>`;
-
-        return new Response(emptySvg, {
-          headers: { 'Content-Type': 'image/svg+xml' }
-        });
+      if (!imageData) {
+        return createResponse(null, 'image/svg+xml');
       }
+
+      const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+
+      const ext = imagePath.split('.').pop().toLowerCase();
+      const mimeTypes = {
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'webp': 'image/webp'
+      };
+      const mimeType = mimeTypes[ext] || 'image/png';
+
+      return createResponse(buffer, mimeType, `"${foundPath}-${buffer.length}"`);
+
     } catch (error) {
-      console.error('Protocol handler error:', error);
-      console.error('Failed path:', imagePath);
-
-      const emptySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
-  <rect width="100" height="100" fill="transparent"/>
-</svg>`;
-
-      return new Response(emptySvg, {
-        headers: { 'Content-Type': 'image/svg+xml' }
-      });
+      return createResponse(null, 'image/svg+xml');
     }
   });
+
 
   createWindow();
 

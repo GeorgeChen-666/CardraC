@@ -25,6 +25,10 @@ export const LayoutForm = () => {
                  ]}
                  onChange={(e) => {
                    const pageSize = e.target.value;
+                   if(pageSize === 'custom') {
+                     mergeConfig({ pageSize });
+                     return
+                   }
                    if (pageSize) {
                      const [width, height] = e.target.value.replace(/A\d:/, '').split(',');
                      mergeConfig({ pageSize, pageWidth: parseInt(width), pageHeight: parseInt(height) });
