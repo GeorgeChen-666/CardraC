@@ -4,9 +4,17 @@ import { IAdapter } from './IAdapter';
 export class JsPDFAdapter extends IAdapter {
   constructor(config) {
     super();
-    const format = config.pageSize.split(':')[0].toLowerCase();
-    const orientation = config.landscape ? 'landscape' : 'portrait';
-    this.doc = new jsPDF({ format, orientation, compress: true });
+    let width = config.pageWidth;
+    let height = config.pageHeight;
+    if (config.landscape) {
+      [width, height] = [height, width];
+    }
+    this.doc = new jsPDF({
+      orientation: config.landscape ? 'landscape' : 'portrait',
+      unit: 'mm',
+      format: [width, height],
+      compress: true
+    });
   }
 
   addPage() {

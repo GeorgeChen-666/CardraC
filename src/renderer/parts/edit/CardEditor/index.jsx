@@ -313,6 +313,8 @@ export default memo(({ data, dialogCardSettingRef, index }) => {
   return (
     prev.data.id === next.data.id &&
     prev.data.face?.path === next.data.face?.path &&
+    prev.data.back?.path === next.data.back?.path &&
+    prev.data.back?.mtime === next.data.back?.mtime &&
     prev.data.face?.mtime === next.data.face?.mtime &&
     prev.data.face === next.data.face &&
     prev.data.back === next.data.back &&

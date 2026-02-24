@@ -2,6 +2,7 @@ import electron, { app, BrowserWindow, shell, protocol } from 'electron';
 import { registerRendererActionHandlers } from './ele_action';
 import { OverviewStorage } from './ele_action/handlers/file_render/utils';
 import { ImageStorage } from './ele_action/handlers/file_render/utils';
+import crypto from 'crypto';
 
 if (typeof electron === 'string') {
   throw new TypeError('Not running in an Electron environment!');
@@ -116,8 +117,9 @@ app.whenReady().then(() => {
         'webp': 'image/webp'
       };
       const mimeType = mimeTypes[ext] || 'image/png';
-
-      return createResponse(buffer, mimeType, `"${foundPath}-${buffer.length}"`);
+      const hash = crypto.createHash('md5').update(foundPath).digest('hex');
+      const etag = `"${hash}-${buffer.length}"`;
+      return createResponse(buffer, mimeType, etag);
 
     } catch (error) {
       return createResponse(null, 'image/svg+xml');
