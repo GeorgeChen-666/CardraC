@@ -4,6 +4,7 @@ import { useGlobalStore } from '../state/store';
 import _ from 'lodash';
 import { useTranslation } from 'react-i18next';
 import { ChipToggleGroup } from '../componments/ChipToggleGroup';
+import { clearPreviewCache } from '../functions';
 
 export const Footer = () => {
   const { t } = useTranslation();
@@ -26,7 +27,8 @@ export const Footer = () => {
         <ChipToggleGroup
           options={options}
           value={currentView || 'edit'}
-          onChange={(view) => {
+          onChange={async (view) => {
+            await clearPreviewCache();
             mergeGlobal({currentView: view})
           }}
         />

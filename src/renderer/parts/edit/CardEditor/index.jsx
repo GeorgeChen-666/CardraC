@@ -241,7 +241,10 @@ export default memo(({ data, dialogCardSettingRef, index }) => {
   });
 
   const [{ isDragging }, dragRef, previewRef] = useDrag({
-    item: { id: data.id, originalIndex: index },
+    item: () => {
+      console.log('🚀 Drag started for card:', data.id);
+      return ({ id: data.id, originalIndex: index })
+    },
     isDragging: (monitor) => selected || monitor.getItem().id === data.id,
     type: 'Card',
     collect: (monitor) => ({ isDragging: monitor.isDragging() }),
