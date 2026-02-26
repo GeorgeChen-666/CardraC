@@ -50,7 +50,7 @@ const createSharedObserver = (() => {
   };
 })();
 
-const CardWrapper = ({ card, index, dialogCardSettingRef, isAddCard, isDragTarget, realIndex }) => {
+const CardWrapper = ({ card, index, dialogCardSettingRef, isAddCard, isDragTarget, realIndex, sharedPreviewRef, currentLang }) => {
   const [isVisible, setIsVisible] = useState(false);
   const cardRef = useRef(null);
   const timeoutRef = useRef(null);
@@ -105,6 +105,8 @@ const CardWrapper = ({ card, index, dialogCardSettingRef, isAddCard, isDragTarge
           dialogCardSettingRef={dialogCardSettingRef}
           index={realIndex}
           data={card}
+          sharedPreviewRef={sharedPreviewRef}
+          currentLang={currentLang}
         />
       )}
     </div>)
@@ -116,6 +118,8 @@ export const CardList = () => {
   window.dialogCardSettingRef = dialogCardSettingRef;
   const parentRef = useRef(null);
   const scrollIntervalRef = useRef(null);
+  const sharedPreviewRef = useRef(null);
+  const currentLang = useGlobalStore(state => state.Global.currentLang);
 
   const CardList = useGlobalStore(state => state.CardList);
   const dragHoverCancel = useGlobalStore(state => state.dragHoverCancel);
@@ -197,6 +201,16 @@ export const CardList = () => {
     >
       <DndProvider backend={HTML5Backend}>
         <div
+          ref={sharedPreviewRef}
+          style={{
+            position: 'absolute',
+            width: '1px',
+            height: '1px',
+            opacity: 0,
+            pointerEvents: 'none',
+          }}
+        />
+        <div
           className={'CardList'}
           style={{
             padding: '8px',
@@ -218,6 +232,8 @@ export const CardList = () => {
                 dialogCardSettingRef={dialogCardSettingRef}
                 isAddCard={card.type === 'addCard'}
                 isDragTarget={card.id === 'dragTarget'}
+                sharedPreviewRef={sharedPreviewRef}
+                currentLang={currentLang}
               />
             );
           })}

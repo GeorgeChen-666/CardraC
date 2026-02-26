@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useState } from 'react';
+import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import Card from '@mui/material/Card';
 import '../CardList/styles.css';
 import { useDrag, useDrop } from 'react-dnd';
@@ -50,13 +50,12 @@ const useMenuState = (items) => {
   };
 };
 
-export default memo(({ data, dialogCardSettingRef, index }) => {
+export default memo(({ data, dialogCardSettingRef, index, sharedPreviewRef, currentLang }) => {
   const { t } = useTranslation();
   const {
     cardEditById, cardRemoveByIds, cardSelect,
     cardShiftSelect, cardCtrlSelect, dragHoverMove, dragCardsMove, dragHoverCancel
   } = useGlobalStore.getState();
-
   const { Config, Global, CardList } = useGlobalStore.selectors;
   const sides = Config.sides();
   const selected = CardList[index].selected() || false;
@@ -83,10 +82,6 @@ export default memo(({ data, dialogCardSettingRef, index }) => {
     //获取文件数量
     const fileCount = fileItems.length;
     const imageCount = imageItems.length;
-
-    console.log('拖拽的文件数量:', fileCount);
-    console.log('图片数量:', imageCount);
-    console.log('文件类型:', fileItems.map(item => item.type));
 
     //只有当全部是图片时才高亮
     if (imageCount > 0 && imageCount === fileCount) {
@@ -242,7 +237,6 @@ export default memo(({ data, dialogCardSettingRef, index }) => {
 
   const [{ isDragging }, dragRef, previewRef] = useDrag({
     item: () => {
-      console.log('🚀 Drag started for card:', data.id);
       return ({ id: data.id, originalIndex: index })
     },
     isDragging: (monitor) => selected || monitor.getItem().id === data.id,
@@ -251,66 +245,75 @@ export default memo(({ data, dialogCardSettingRef, index }) => {
     end: (item, monitor) => {
       // 如果没有成功放置（didDrop 返回 false）
       if (!monitor.didDrop()) {
-        console.log('🔧 Drag ended without drop, cleaning up dragTarget');
         dragHoverCancel();
       }
     },
   });
 
+  useEffect(() => {
+    if (sharedPreviewRef.current) {
+      previewRef(sharedPreviewRef.current);
+    }
+  }, [previewRef]);
+
   return (
-    <Card
-      ref={node => previewRef(dropRef(node))}
-      sx={{ display: isDragging ? 'none' : 'unset' }}
-      onClick={handleSelect}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      style={{
-        border: isDragOver ? '2px solid #2196F3' : 'none',
-        backgroundColor: isDragOver ? '#e3f2fd' : 'revert-layer'
-      }}
-    >
-      <CardToolbar
-        index={index}
-        onSwap={handleSwap}
-        onMenuOpen={handleMenuOpen}
-        onDragStart={handleDragStart}
-        dragRef={dragRef}
-      />
-      {MenuElement}
+    <>
+      <Card
+        ref={dropRef}
+        sx={{
+          opacity: isDragging ? 0.1 : 1,
+        }}
+        onClick={handleSelect}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        style={{
+          border: isDragOver ? '2px solid #2196F3' : 'none',
+          backgroundColor: isDragOver ? '#e3f2fd' : 'revert-layer'
+        }}
+      >
+        <CardToolbar
+          index={index}
+          onSwap={handleSwap}
+          onMenuOpen={handleMenuOpen}
+          onDragStart={handleDragStart}
+          dragRef={dragRef}
+        />
+        {MenuElement}
 
-      <div className={'CardMain'}>
-        <Stack direction='row' justifyContent={'space-between'}>
-          <CardImage
-            imageSrc={faceUrl}
-            path={data?.face?.path}
-            isBackEditing={isBackEditing}
-            isFace={true}
-            isHighQuality={isFaceHQ}
-          />
-          {isShowBack && (
+        <div className={'CardMain'}>
+          <Stack direction='row' justifyContent={'space-between'}>
             <CardImage
-              imageSrc={backUrl}
-              path={data?.back?.path}
+              imageSrc={faceUrl}
+              path={data?.face?.path}
               isBackEditing={isBackEditing}
-              isFace={false}
-              isHighQuality={isBackHQ}
+              isFace={true}
+              isHighQuality={isFaceHQ}
             />
-          )}
-        </Stack>
-      </div>
+            {isShowBack && (
+              <CardImage
+                imageSrc={backUrl}
+                path={data?.back?.path}
+                isBackEditing={isBackEditing}
+                isFace={false}
+                isHighQuality={isBackHQ}
+              />
+            )}
+          </Stack>
+        </div>
 
-      <CardFooter
-        selected={selected}
-        onSelectChange={handleSelect}
-        bleedConfig={bleedConfig}
-        sides={sides}
-        repeat={data.repeat}
-        onRepeatChange={handleRepeatChange}
-        onRemove={handleRemove}
-        t={t}
-      />
-    </Card>
+        <CardFooter
+          selected={selected}
+          onSelectChange={handleSelect}
+          bleedConfig={bleedConfig}
+          sides={sides}
+          repeat={data.repeat}
+          onRepeatChange={handleRepeatChange}
+          onRemove={handleRemove}
+          t={t}
+        />
+      </Card>
+    </>
   );
 }, (prev, next) => {
   return (
@@ -324,6 +327,7 @@ export default memo(({ data, dialogCardSettingRef, index }) => {
     prev.data.repeat === next.data.repeat &&
     prev.data.config?.bleed === next.data.config?.bleed &&
     prev.index === next.index &&
-    prev.data.selected === next.data.selected
+    prev.data.selected === next.data.selected &&
+    prev.currentLang === next.currentLang
   );
 });

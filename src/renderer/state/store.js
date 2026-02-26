@@ -2,21 +2,18 @@ import * as yup from 'yup';
 import { eleActions, flipWay, initialState, layoutSides } from '../../shared/constants';
 import { create } from 'zustand';
 import {
-  loadConfig,
-  regUpdateProgress,
   callMain,
-  immutableMerge,
   fillByObjectValue,
-  onOpenProjectFile, isDev,
+  immutableMerge,
+  loadConfig,
+  onOpenProjectFile,
+  regUpdateProgress,
 } from '../functions';
 import _ from 'lodash';
 import { i18nInstance, initI18n } from '../i18n';
-import { actionLogger } from './logger';
-import { notificationFailed, notificationSuccess, triggerNotification } from '../parts/Notification';
+import { notificationSuccess, triggerNotification } from '../parts/Notification';
 import { shallow } from 'zustand/shallow';
 import { ipcRenderer } from 'electron';
-import LZString from 'lz-string';
-import { subscribeWithSelector } from 'zustand/middleware';
 import { middlewares } from './middlewares';
 
 
@@ -361,7 +358,6 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       }
     });
   },
-
   dragHoverMove: (to) => {
     set(state => {
       const id = 'dragTarget';

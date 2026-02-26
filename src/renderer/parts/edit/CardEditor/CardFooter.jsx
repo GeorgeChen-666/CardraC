@@ -5,16 +5,16 @@ import Button from '@mui/material/Button';
 import { NumberInput } from '../../../componments/NumberInput';
 import { layoutSides } from '../../../../shared/constants';
 
-export const CardFooter = memo(({
-                                  selected,
-                                  onSelectChange,
-                                  bleedConfig,
-                                  sides,
-                                  repeat,
-                                  onRepeatChange,
-                                  onRemove,
-                                  t
-                                }) => {
+export const CardFooter = ({
+  selected,
+  onSelectChange,
+  bleedConfig,
+  sides,
+  repeat,
+  onRepeatChange,
+  onRemove,
+  t
+}) => {
   return (
     <>
       <div className={'CardBar'}>
@@ -57,9 +57,4 @@ export const CardFooter = memo(({
       </div>
     </>
   );
-}, (prev, next) => {
-  return prev.selected === next.selected &&
-    prev.repeat === next.repeat &&
-    prev.bleedConfig === next.bleedConfig &&
-    prev.sides === next.sides;
-});
+}
