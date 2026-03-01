@@ -9,12 +9,14 @@ import { useGlobalStore } from '../state/store';
 import { PreviewToolbar } from './preview/ToolBar';
 import { PrintPreview } from './preview/PrintPreview';
 import { useRef } from 'react';
+import { FileBrowserDialog } from './FileBrowserDialog';
 
 export const Main = () => {
   const { Global } = useGlobalStore.selectors;
   const currentView = Global.currentView() || 'edit';
   const printPreviewRef = useRef(null);
-
+  const fileBrowserRef = useRef(null);
+  window.fileBrowserRef = fileBrowserRef;
   React.useEffect(() => {
     window.printPreviewRef = printPreviewRef;
   }, []);
@@ -33,5 +35,8 @@ export const Main = () => {
     </Stack>
     <LoadingModal />
     <Notification />
+    <FileBrowserDialog
+      ref={fileBrowserRef}
+    />
   </>)
 }

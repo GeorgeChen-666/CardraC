@@ -102,7 +102,7 @@ export function EditToolbar() {
       {Config.sides() === layoutSides.doubleSides && (
         <GeneralIconButton
           label={t('toolbar.btnGlobalBackground')}
-          icon={<img src={getImageSrc(globalBackground, { version : imageVersion})} width={'30px'} height={'30px'} alt='' />}
+          icon={<img src={getImageSrc(globalBackground, { version : imageVersion})} width={'21px'} height={'21px'} alt='' />}
           onClick={async () => {
             const filePath = await openImage('setGlobalBack');
             mergeConfig({ globalBackground: filePath });

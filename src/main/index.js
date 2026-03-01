@@ -2,7 +2,8 @@ import electron, { app, BrowserWindow, shell, protocol } from 'electron';
 import { registerRendererActionHandlers } from './ele_action';
 import { OverviewStorage } from './ele_action/handlers/file_render/utils';
 import { ImageStorage } from './ele_action/handlers/file_render/utils';
-import crypto from 'crypto';
+import { waitCondition } from '../shared/functions';
+import { run } from './server';
 
 if (typeof electron === 'string') {
   throw new TypeError('Not running in an Electron environment!');
@@ -48,7 +49,7 @@ const createWindow = () => {
   }
 
   registerRendererActionHandlers(mainWindow);
-
+  run();
 };
 
 // This method will be called when Electron has finished
@@ -57,18 +58,16 @@ const createWindow = () => {
 app.whenReady().then(() => {
 
   protocol.handle('cardrac', async (request) => {
-    const createResponse = (data, mimeType, etag = null) => {
+    const createResponse = (data, mimeType) => {
       const emptySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
   <rect width="100" height="100" fill="transparent"/>
 </svg>`;
-      const headers = {
-        'Content-Type': mimeType,
-        'Cache-Control': etag ? 'public, max-age=31536000, immutable' : 'no-cache'
-      };
-      if (etag) {
-        headers['ETag'] = etag;
-      }
-      return new Response(data ?? emptySvg, { headers });
+
+      return new Response(data ?? emptySvg, {
+        headers: {
+          'Content-Type': mimeType,
+        }
+      });
     };
 
     try {
@@ -102,6 +101,23 @@ app.whenReady().then(() => {
       }
 
       if (!imageData) {
+        await waitCondition(
+          () => {
+            for (const variant of pathVariants) {
+              if (storage[variant]) {
+                imageData = storage[variant];
+                foundPath = variant;
+                return true;
+              }
+            }
+            return false;
+          },
+          50,
+          3000
+        );
+      }
+
+      if (!imageData) {
         return createResponse(null, 'image/svg+xml');
       }
 
@@ -117,11 +133,11 @@ app.whenReady().then(() => {
         'webp': 'image/webp'
       };
       const mimeType = mimeTypes[ext] || 'image/png';
-      const hash = crypto.createHash('md5').update(foundPath).digest('hex');
-      const etag = `"${hash}-${buffer.length}"`;
-      return createResponse(buffer, mimeType, etag);
+
+      return createResponse(buffer, mimeType);
 
     } catch (error) {
+      console.error('Protocol handler error:', error);
       return createResponse(null, 'image/svg+xml');
     }
   });

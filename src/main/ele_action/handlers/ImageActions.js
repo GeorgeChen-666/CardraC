@@ -12,7 +12,7 @@ import {
   prerenderPage,
 } from './file_render/utils';
 import { colorCache, exportFile } from './file_render';
-import { expandPath, fixPath, invokeRenderer } from '../../utils';
+import { expandPath, fixPath } from '../../utils';
 
 log.transports.file.level = 'debug';
 log.transports.console.level = 'debug';

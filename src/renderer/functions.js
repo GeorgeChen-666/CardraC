@@ -61,6 +61,17 @@ export const getMainImage = (args) => ipcRenderer.invoke(eleActions.getImageCont
 
 export const clearPreviewCache = (args) => ipcRenderer.invoke(eleActions.clearPreviewCache, args);
 
+export const openImageNew = () => {
+  fileBrowserRef.current?.openDialog({
+    multiSelect: true,
+    filterExtensions: 'jpg,png,gif',
+    title: 'Select Images',
+    onSelect: (selectedFiles) => {
+      console.log('Selected files:', selectedFiles);
+    }
+  });
+}
+
 export const openImage = (key) => callMain(eleActions.openImage, {
   returnChannel: `${eleActions.openImage}-return-${key}`,
 }, async imageDatas => {

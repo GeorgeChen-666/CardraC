@@ -5,7 +5,7 @@ import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
 import React from 'react';
 import { useGlobalStore } from '../../../state/store';
-import { openMultiImage } from '../../../functions';
+import { openMultiImage, openImageNew } from '../../../functions';
 
 export default () => {
   const { t } = useTranslation();
@@ -15,8 +15,9 @@ export default () => {
   return <Card className={'Card'}>
     <IconButton className={'AddCardButton'}
                 onClick={async () => {
-                  const imageData = await openMultiImage('CardAddByFaces');
-                  cardAdd(imageData);
+                  // const imageData = await openMultiImage('CardAddByFaces');
+                  // cardAdd(imageData);
+                  openImageNew();
                 }}>
       <AddIcon fontSize="inherit" />
     </IconButton>

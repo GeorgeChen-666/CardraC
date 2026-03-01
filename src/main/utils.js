@@ -1,9 +1,20 @@
 import fs from 'fs';
 import path from 'path';
-import { app } from 'electron';
 import Database from 'better-sqlite3';
-import { ipcMain } from 'electron';
 import os from 'os';
+
+const getAppDataPath = () => {
+  const platform = os.platform();
+  const home = os.homedir();
+
+  if (platform === 'win32') {
+    return process.env.APPDATA || path.join(home, 'AppData', 'Roaming');
+  } else if (platform === 'darwin') {
+    return path.join(home, 'Library', 'Application Support');
+  } else {
+    return process.env.XDG_CONFIG_HOME || path.join(home, '.config');
+  }
+};
 
 /**
  * LRU 缓存
@@ -241,38 +252,20 @@ class DiskCache {
     const cleanup = () => {
       console.log(`🗑️ Cleaning up cache on exit`);
       try {
-        //先关闭数据库
-        if (this.db) {
-          this.db.close();
-        }
-
-        //检查文件是否存在再删除
-        if (fs.existsSync(this.dbPath)) {
-          fs.unlinkSync(this.dbPath);
-        }
-
-        // 删除 WAL 和 SHM 文件
+        if (this.db) this.db.close();
+        if (fs.existsSync(this.dbPath)) fs.unlinkSync(this.dbPath);
         const walPath = `${this.dbPath}-wal`;
         const shmPath = `${this.dbPath}-shm`;
-
-        if (fs.existsSync(walPath)) {
-          fs.unlinkSync(walPath);
-        }
-
-        if (fs.existsSync(shmPath)) {
-          fs.unlinkSync(shmPath);
-        }
-
+        if (fs.existsSync(walPath)) fs.unlinkSync(walPath);
+        if (fs.existsSync(shmPath)) fs.unlinkSync(shmPath);
         console.log('✅ Cache cleanup completed');
       } catch (error) {
-        //忽略文件不存在的错误
         if (error.code !== 'ENOENT') {
           console.error('Failed to cleanup cache on exit:', error);
         }
       }
     };
 
-    //防止重复清理
     let cleanupCalled = false;
     const safeCleanup = () => {
       if (cleanupCalled) return;
@@ -280,16 +273,10 @@ class DiskCache {
       cleanup();
     };
 
-    app.on('before-quit', safeCleanup);
+    // ✅ 移除 app.on，只保留 process 事件
     process.on('exit', safeCleanup);
-    process.on('SIGINT', () => {
-      safeCleanup();
-      process.exit(0);
-    });
-    process.on('SIGTERM', () => {
-      safeCleanup();
-      process.exit(0);
-    });
+    process.on('SIGINT', () => { safeCleanup(); process.exit(0); });
+    process.on('SIGTERM', () => { safeCleanup(); process.exit(0); });
   }
 
 
@@ -360,7 +347,7 @@ export class SmartStorage {
 
   get diskCache() {
     if (!this._diskCache) {
-      const appDataPath = app.getPath('appData');
+      const appDataPath = getAppDataPath();
       const cachePath = path.join(appDataPath, 'cardrac', 'cache', this.name);
       this._diskCache = new DiskCache(cachePath);
     }
@@ -562,45 +549,6 @@ export class SmartStorage {
     };
   }
 }
-
-/**
- * 从主进程异步调用渲染进程功能
- * @param {BrowserWindow} window - 目标窗口
- * @param {string} channel - 通信频道名
- * @param {any} data - 发送的数据
- * @param {number} timeout - 超时时间（毫秒），默认 30 秒
- * @returns {Promise<any>} 渲染进程返回的结果
- */
-export const invokeRenderer = (window, channel, data = {}, timeout = 30000) => {
-  return new Promise((resolve, reject) => {
-    const requestId = `${channel}-${Date.now()}-${Math.random()}`;
-    const resultChannel = `${channel}-result-${requestId}`;
-
-    // 设置超时
-    const timer = setTimeout(() => {
-      ipcMain.removeAllListeners(resultChannel);
-      reject(new Error(`Renderer invoke timeout: ${channel}`));
-    }, timeout);
-
-    // 监听结果
-    ipcMain.once(resultChannel, (event, result) => {
-      clearTimeout(timer);
-
-      if (result.error) {
-        reject(new Error(result.error));
-      } else {
-        resolve(result.data);
-      }
-    });
-
-    // 发送请求
-    window.webContents.send(channel, {
-      requestId,
-      resultChannel,
-      ...data
-    });
-  });
-};
 
 /**
  * 将绝对路径压缩为使用 ~ 的相对路径

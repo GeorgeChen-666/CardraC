@@ -1,0 +1,41 @@
+.FileBrowserDialog .chonky-fileEntryClickableWrapper svg {
+    display: none;
+}
+.FileBrowserDialog .MuiPopover-root {
+    display: none;
+}
+.FileBrowserDialog .chonky-chonkyRoot {
+    background-color: unset;
+    color: unset;
+}
+.FileBrowserDialog .MuiButtonBase-root.Mui-disabled, .FileBrowserDialog .MuiButtonBase-root.Mui-disabled svg {
+    color: rgba(255, 255, 255, 0.26)!important;
+}
+.FileBrowserDialog .MuiButtonBase-root, .FileBrowserDialog  .MuiTypography-colorTextSecondary, .FileBrowserDialog .MuiInputBase-input , .FileBrowserDialog .MuiInputBase-root{
+    color: rgba(255, 255, 255)!important;
+}
+.FileBrowserDialog .MuiOutlinedInput-notchedOutline {
+    border-color: rgba(255, 255, 255, 0.26)!important;
+}
+.FileBrowserDialog .chonky-fileEntryClickableWrapper>div>div>div>div::after {
+    border-color: transparent transparent transparent transparent;
+}
+.FileBrowserDialog .chonky-fileEntryClickableWrapper span[title] {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    max-width: 100%;
+}
+.FileBrowserDialog .chonky-toolbarRight button[title="Actions"],
+.FileBrowserDialog .chonky-toolbarRight button[title="Options"] {
+    display: none !important;
+}
+.MuiPopover-root .MuiPaper-root.MuiMenu-paper {
+    color: rgba(255, 255, 255)!important;
+    background-color: #43454A;
+}
+
+.MuiPopover-root .MuiListSubheader-root {
+    color: rgba(255, 255, 255, 0.26)!important;
+}

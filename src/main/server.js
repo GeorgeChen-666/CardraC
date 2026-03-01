@@ -1,0 +1,13 @@
+const express = require('express');
+const cors = require('cors');
+const { registerRoutes } = require('./plugins/fileBrowser');
+const { registerImageAPI } = require('./plugins/imageHandler');
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+registerRoutes(app, '/browse');
+registerImageAPI(app, '/images');
+
+export const run = () => app.listen(3333, () => console.log('✅ http://localhost:3333/browse'));

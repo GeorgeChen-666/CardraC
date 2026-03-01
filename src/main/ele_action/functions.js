@@ -1,10 +1,48 @@
 import sharp from 'sharp';
-import Store from 'electron-store';
 import path from 'path';
-const { Buffer } = require('buffer');
 import fs from 'fs';
-import { app, BrowserWindow } from 'electron';
+import os from 'os';
 import { expandPath, fixPath } from '../utils';
+// import { app, BrowserWindow } from 'electron';
+
+// ✅ 平替 electron-store
+class SimpleStore {
+  constructor() {
+    const appName = process.env.npm_package_name || 'cardrac';
+    const configDir = path.join(os.homedir(), '.config', appName);
+    this.configPath = path.join(configDir, 'config.json');
+
+    // 确保目录存在
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+
+    // 初始化配置文件
+    if (!fs.existsSync(this.configPath)) {
+      fs.writeFileSync(this.configPath, '{}', 'utf-8');
+    }
+  }
+
+  get() {
+    try {
+      const data = fs.readFileSync(this.configPath, 'utf-8');
+      return JSON.parse(data);
+    } catch (e) {
+      console.error('Failed to read config:', e);
+      return {};
+    }
+  }
+
+  set(value) {
+    try {
+      const current = this.get();
+      const updated = { ...current, ...value };
+      fs.writeFileSync(this.configPath, JSON.stringify(updated, null, 2), 'utf-8');
+    } catch (e) {
+      console.error('Failed to write config:', e);
+    }
+  }
+}
 
 export async function getBorderAverageColors(base64String, borderWidth = 5) {
   try {
@@ -13,7 +51,6 @@ export async function getBorderAverageColors(base64String, borderWidth = 5) {
     const metadata = await baseImage.metadata();
     const { width, height, channels } = metadata;
 
-    //一次性获取所有像素数据
     const { data } = await baseImage.raw().toBuffer({ resolveWithObject: true });
 
     const pixelsPerChannel = channels || 3;
@@ -22,15 +59,13 @@ export async function getBorderAverageColors(base64String, borderWidth = 5) {
     let totalR = 0, totalG = 0, totalB = 0;
     let pixelCount = 0;
 
-    //遍历所有像素，只统计边框区域
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        // 判断是否在边框区域
         const isInBorder =
-          y < actualBorderWidth ||                    // 上边框
-          y >= height - actualBorderWidth ||          // 下边框
-          x < actualBorderWidth ||                    // 左边框
-          x >= width - actualBorderWidth;             // 右边框
+          y < actualBorderWidth ||
+          y >= height - actualBorderWidth ||
+          x < actualBorderWidth ||
+          x >= width - actualBorderWidth;
 
         if (isInBorder) {
           const index = (y * width + x) * pixelsPerChannel;
@@ -54,13 +89,13 @@ export async function getBorderAverageColors(base64String, borderWidth = 5) {
   }
 }
 
-
 export const readCompressedImage = async (path, options = {}) => {
   options.format = options.format === 'jpg' ? 'jpeg' : 'png';
   const {
     maxWidth = 1000,
     quality = 80,
-    format= 'webp'
+    format= 'webp',
+    returnFormat = 'base64'
   } = options;
   try {
     let image = sharp(expandPath(path));
@@ -81,8 +116,12 @@ export const readCompressedImage = async (path, options = {}) => {
       .resize({ width: Math.min(metadata.width, maxWidth) });
     image = (image[format])({ lossless: true, force: true, quality });
     const ext = 'webp';
-    const base64String = (await image.toBuffer()).toString('base64');
-    return `data:image/${ext};base64,${base64String}`;
+    const buffer = await image.toBuffer()
+    if(returnFormat === 'base64') {
+      const base64String = (buffer).toString('base64');
+      return `data:image/${ext};base64,${base64String}`;
+    }
+    return buffer;
   } catch (e) {
     return null;
   }
@@ -125,30 +164,36 @@ export const saveDataToFile = async (data, filePath) => {
 
   await fs.writeFileSync(filePath, buffer);
 };
+
 export const base64ToBuffer = (base64Data) => {
   const buffer = Buffer.from(base64Data, 'base64');
   const decodedString = buffer.toString('binary');
   return decodedString;
 };
 
+// ✅ 平替 electron-store
 let store = null;
+
 export const updateConfigStore = (value) => {
   getConfigStore();
   store.set(value);
 }
+
 export const initConfigStore = async () => {
   return new Promise((resolve, reject) => {
     try {
       if (!store) {
-        store = new Store();
+        store = new SimpleStore();
         resolve();
       }
     } catch (e) {
-      //APPDATA npm_package_name process
-      const {APPDATA, npm_package_name} = process.env;
-      const configPath = path.join(APPDATA, npm_package_name, 'config.json');
+      console.error('Failed to init config store:', e);
+      // 兼容原有逻辑
+      const appName = process.env.npm_package_name || 'cardrac';
+      const configDir = path.join(os.homedir(), '.config', appName);
+      const configPath = path.join(configDir, 'config.json');
       fs.unlink(configPath, () => {
-        store = new Store();
+        store = new SimpleStore();
         resolve();
       });
     }
@@ -156,9 +201,12 @@ export const initConfigStore = async () => {
 }
 
 export const getConfigStore = () => {
-
+  if (!store) {
+    store = new SimpleStore();
+  }
   return store.get() || {};
 }
+
 
 /**
  * 打印 PNG Buffer 数组

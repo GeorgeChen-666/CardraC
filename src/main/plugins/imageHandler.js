@@ -1,0 +1,297 @@
+const fs = require('fs');
+const path = require('path');
+
+// ✅ 在文件内部导入 eleActions
+const { eleActions } = require('../../shared/constants');
+const { getConfigStore, readCompressedImage } = require('../ele_action/functions');
+const {
+  ImageStorage,
+  OverviewStorage,
+  getPagedImageListByCardList,
+  prerenderPage,
+  clearPrerenderCache
+} = require('../ele_action/handlers/file_render/utils');
+const { colorCache, exportFile } = require('../ele_action/handlers/file_render');
+const { expandPath, fixPath } = require('../utils');
+const { layoutSides } = require('../../shared/constants');
+
+const ImageStorageLoadingJobs = {};
+const pendingList = new Set();
+const progressClients = new Map();
+
+const pathToImageData = async (imagePath, cb) => {
+  const { Config } = getConfigStore();
+  const cardWidth = Config.cardWidth;
+  const compressLevel = Config.compressLevel || 2;
+  const compressParamsList = [
+    { maxWidth: cardWidth * 15, quality: 100 },
+    { maxWidth: cardWidth * 12, quality: 90 },
+    { maxWidth: cardWidth * 9, quality: 80 },
+    { maxWidth: cardWidth * 6, quality: 70 },
+  ];
+
+  const ext = imagePath.split('.').pop();
+  const imagePathKey = fixPath(imagePath).replaceAll('\\', '');
+  const { mtime } = fs.statSync(expandPath(imagePath));
+  const returnObj = { path: fixPath(imagePath), mtime: mtime.getTime() };
+
+  if (!(imagePathKey in ImageStorage) && !pendingList.has(imagePathKey)) {
+    pendingList.add(imagePathKey);
+    ImageStorageLoadingJobs[imagePath] = async () => {
+      ImageStorage[imagePathKey] = await readCompressedImage(expandPath(imagePath), {
+        format: ext,
+        ...compressParamsList[compressLevel - 1]
+      });
+      pendingList.delete(imagePathKey);
+      delete ImageStorageLoadingJobs[imagePath];
+    };
+    ImageStorageLoadingJobs[imagePath]();
+  }
+
+  OverviewStorage[imagePathKey] = await readCompressedImage(expandPath(imagePath), { maxWidth: 100 });
+  colorCache.delete(imagePathKey);
+  cb && cb();
+  return returnObj;
+};
+
+const sendProgress = (channelId, progress) => {
+  const client = progressClients.get(channelId);
+  if (client) {
+    client.write(`data: ${JSON.stringify({ progress })}\n\n`);
+  }
+};
+
+// ✅ 添加 basePath 参数，默认 '/api'
+const registerImageAPI = (app, basePath = '/api') => {
+
+  // 进度通道
+  app.get(`${basePath}/progress/:channelId`, (req, res) => {
+    const { channelId } = req.params;
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    progressClients.set(channelId, res);
+    console.log(`📡 Progress channel connected: ${channelId}`);
+
+    const heartbeat = setInterval(() => {
+      res.write(': heartbeat\n\n');
+    }, 30000);
+
+    req.on('close', () => {
+      clearInterval(heartbeat);
+      progressClients.delete(channelId);
+      console.log(`📡 Progress channel closed: ${channelId}`);
+    });
+  });
+
+  // 获取导出页数
+  app.post(`${basePath}/${eleActions.getExportPageCount}`, (req, res) => {
+    try {
+      const { CardList, globalBackground } = req.body;
+      const { Config } = getConfigStore();
+      const state = { CardList, globalBackground };
+      const pagedImageList = getPagedImageListByCardList(state, Config);
+      const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
+      res.json({ count: isFoldInHalf ? pagedImageList.length / 2 : pagedImageList.length });
+    } catch (err) {
+      console.error('Error getting export page count:', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 获取导出预览
+  app.post(`${basePath}/${eleActions.getExportPreview}`, async (req, res) => {
+    try {
+      const { pageIndex, CardList, globalBackground } = req.body;
+      const { Config } = getConfigStore();
+      const state = { CardList, globalBackground };
+
+      const actualIndex = pageIndex - 1;
+      const requestStartTime = performance.now();
+      console.log(`📄 Request: Page ${pageIndex}`);
+
+      const pagedImageList = getPagedImageListByCardList(state, Config);
+      const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
+      const totalPages = isFoldInHalf ? pagedImageList.length / 2 : pagedImageList.length;
+
+      const result = await prerenderPage(actualIndex, state, Config, exportFile, 'exportFile');
+
+      const requestEndTime = performance.now();
+      const totalDuration = (requestEndTime - requestStartTime).toFixed(2);
+      console.log(`✨ Request completed in ${totalDuration}ms`);
+
+      console.log('🔮 Pre-rendering next 3 pages...');
+      for (let i = 1; i <= 3; i++) {
+        const nextIndex = actualIndex + i;
+        if (nextIndex < totalPages) {
+          prerenderPage(nextIndex, state, Config, exportFile, 'exportFile').catch(err => {
+            console.error(`Failed to prerender page ${nextIndex + 1}:`, err);
+          });
+        }
+      }
+
+      res.json(result);
+    } catch (err) {
+      console.error('Error getting export preview:', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 清除预览缓存
+  app.post(`${basePath}/${eleActions.clearPreviewCache}`, async (req, res) => {
+    try {
+      clearPrerenderCache();
+      console.log('Preview cache cleared');
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Error clearing preview cache:', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 获取图片内容
+  app.get(`${basePath}/${eleActions.getImageContent}`, (req, res) => {
+    try {
+      const { path: imagePath } = req.query;
+      const imagePathKey = imagePath.replaceAll('\\', '');
+      const content = ImageStorage[imagePathKey];
+
+      if (!content) {
+        return res.status(404).json({ error: 'Image not found in storage' });
+      }
+
+      res.json({ content });
+    } catch (err) {
+      console.error('Error getting image content:', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 打开图片
+  app.post(`${basePath}/${eleActions.openImage}`, async (req, res) => {
+    try {
+      const { filePaths, progressChannel } = req.body;
+
+      if (!filePaths || !Array.isArray(filePaths)) {
+        return res.status(400).json({ error: 'filePaths must be an array' });
+      }
+
+      console.log(`📂 Opening ${filePaths.length} images`);
+
+      const toRenderData = [];
+      let current = 0;
+
+      for (const imagePath of filePaths) {
+        toRenderData.push(pathToImageData(imagePath, () => {
+          current++;
+          if (progressChannel) {
+            sendProgress(progressChannel, current / filePaths.length);
+          }
+        }));
+      }
+
+      const results = await Promise.all(toRenderData);
+      console.log(`✅ Successfully loaded ${results.length} images`);
+
+      res.json(results);
+    } catch (err) {
+      console.error('❌ Error opening images:', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 检查图片
+  app.post(`${basePath}/${eleActions.checkImage}`, (req, res) => {
+    try {
+      const { pathList } = req.body;
+      const invalidImages = [];
+
+      pathList.forEach(imagePath => {
+        try {
+          fs.accessSync(expandPath(imagePath), fs.constants.F_OK);
+        } catch (e) {
+          invalidImages.push(imagePath);
+        }
+      });
+
+      res.json(invalidImages);
+    } catch (err) {
+      console.error('Error checking images:', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // 重新加载本地图片
+  app.post(`${basePath}/${eleActions.reloadLocalImage}`, async (req, res) => {
+    try {
+      const { CardList, globalBackground, progressChannel } = req.body;
+      const { Config } = getConfigStore();
+      Config.globalBackground = globalBackground;
+
+      const reloadImageJobs = [];
+      colorCache.clear();
+
+      let totalCount = 0;
+      let currentCount = 0;
+
+      const reloadImage = (args, cb) => {
+        if (!args) return false;
+
+        const { path: imagePath, mtime: cardMtime } = args;
+        const imagePathKey = imagePath.replaceAll('\\', '');
+
+        try {
+          const { mtime } = fs.statSync(expandPath(imagePath));
+
+          if (cardMtime !== mtime.getTime() || !(imagePathKey in ImageStorage)) {
+            totalCount++;
+            reloadImageJobs.push((async () => {
+              cb && cb(mtime.getTime());
+              delete ImageStorage[imagePathKey];
+              delete OverviewStorage[imagePathKey];
+              await pathToImageData(imagePath);
+              currentCount++;
+
+              if (progressChannel) {
+                sendProgress(progressChannel, currentCount / totalCount);
+              }
+            })());
+            return true;
+          }
+        } catch (e) {
+          console.error('Error reloading image:', e);
+        }
+        return false;
+      };
+
+      CardList.forEach((card, index) => {
+        reloadImage(card.face, newMtime => {
+          CardList[index].face.mtime = newMtime;
+        });
+        reloadImage(card.back, newMtime => {
+          CardList[index].back.mtime = newMtime;
+        });
+      });
+
+      reloadImage(Config.globalBackground, newMtime => {
+        Config.globalBackground.mtime = newMtime;
+      });
+
+      await Promise.all(reloadImageJobs);
+
+      if (progressChannel) {
+        sendProgress(progressChannel, 1);
+      }
+
+      res.json({ CardList, Config });
+    } catch (err) {
+      console.error('Error reloading images:', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+};
+
+module.exports = { registerImageAPI };
