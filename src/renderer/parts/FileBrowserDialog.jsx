@@ -18,7 +18,6 @@ console.debug = () => {}
 
 const API_BASE = 'http://localhost:3333/browse';
 
-// ✅ 获取默认路径
 const getDefaultPath = async () => {
   try {
     const response = await fetch(`${API_BASE}/default-path`);
@@ -30,7 +29,6 @@ const getDefaultPath = async () => {
   }
 };
 
-// ✅ 保存默认路径
 const saveDefaultPath = async (path) => {
   try {
     await fetch(`${API_BASE}/default-path`, {
@@ -83,6 +81,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
   const [multiSelect, setMultiSelect] = useState(false);
   const [filterExtensions, setFilterExtensions] = useState(null);
   const [title, setTitle] = useState('Select Files');
+  const [customComponent, setCustomComponent] = useState(null); // ✅ 新增
 
   const historyStack = useRef([]);
   const forwardStack = useRef([]);
@@ -98,13 +97,15 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
         onSelect,
         multiSelect = false,
         filterExtensions = null,
-        title = 'Select Files'
+        title = 'Select Files',
+        customComponent = null // ✅ 新增参数
       } = options;
 
       onSelectRef.current = onSelect;
       setMultiSelect(multiSelect);
       setFilterExtensions(filterExtensions);
       setTitle(title);
+      setCustomComponent(() => customComponent); // ✅ 保存自定义组件
       setOpen(true);
 
       historyStack.current = [];
@@ -112,7 +113,6 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
       setCanGoBack(false);
       setCanGoForward(false);
 
-      // ✅ 获取并加载默认路径
       const defaultPath = await getDefaultPath();
       loadFiles(defaultPath, filterExtensions);
       setSelectedFiles([]);
@@ -250,7 +250,6 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
   ], []);
 
   const handleConfirm = async () => {
-    // ✅ 保存当前路径
     if (currentPath) {
       await saveDefaultPath(currentPath);
     }
@@ -261,6 +260,9 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
     }
     setOpen(false);
   };
+
+  // ✅ 渲染自定义组件
+  const CustomComponent = customComponent;
 
   return (
     <Dialog
@@ -316,6 +318,10 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
             <span>Selected: {selectedFiles.length} file(s)</span>
           )}
         </div>
+
+        {/* ✅ 渲染自定义组件 */}
+        {CustomComponent && <CustomComponent selectedFiles={selectedFiles} multiSelect={multiSelect} />}
+
         <Button onClick={() => setOpen(false)}>
           {t('button.cancel')}
         </Button>

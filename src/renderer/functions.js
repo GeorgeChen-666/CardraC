@@ -61,11 +61,12 @@ export const getMainImage = (args) => ipcRenderer.invoke(eleActions.getImageCont
 
 export const clearPreviewCache = (args) => ipcRenderer.invoke(eleActions.clearPreviewCache, args);
 
-export const openImageNew = () => {
+export const openImageNew = (MyCustomComponent) => {
   fileBrowserRef.current?.openDialog({
     multiSelect: true,
-    filterExtensions: 'jpg,png,gif',
+    filterExtensions: 'jpg,png,gif,cpnp',
     title: 'Select Images',
+    customComponent: MyCustomComponent,
     onSelect: (selectedFiles) => {
       console.log('Selected files:', selectedFiles);
     }
