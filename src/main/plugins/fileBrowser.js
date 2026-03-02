@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { readCompressedImage } = require('../ele_action/functions');
-const { fixPath } = require('../utils');
+const { fixPath, expandPath } = require('../utils');
 const { OverviewStorage } = require('../ele_action/handlers/file_render/utils'); // ✅ 引入压缩函数
 
 // ✅ 配置文件路径
@@ -148,6 +148,7 @@ const browse = (drivePath, query = {}, basePath = '/browse') => {
           name: path.basename(real),
           path: cur,
           realPath: real,
+          safePath: fixPath(real),
           size: st.size,
           modified: st.mtime.getTime(),
           url: `${basePath}/${cur}${suffix}`,
@@ -177,6 +178,7 @@ const browse = (drivePath, query = {}, basePath = '/browse') => {
       name: f,
       path: itemPath,
       realPath: fp,
+      safePath: fixPath(fp),
       isDirectory: fst.isDirectory(),
       size: fst.size,
       modified: fst.mtime.getTime(),

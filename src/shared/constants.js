@@ -7,6 +7,7 @@ export const eleActions = Object.freeze({
   loadPrintConfig: 'load-print-config',
   savePrintConfig: 'save-print-config',
   checkImage: 'check-image',
+  loadImageList: 'load-image-list',
   getImagePath: 'get-image-path',
   getImageContent: 'get-image-content',
   getExportPageCount: 'get-export-page-count',

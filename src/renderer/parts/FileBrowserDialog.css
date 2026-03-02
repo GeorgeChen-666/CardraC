@@ -31,9 +31,6 @@
 .FileBrowserDialog .chonky-toolbarRight button[title="Options"] {
     display: none !important;
 }
-.FileBrowserDialog .MuiDialogActions-root > div:first-child {
-    display: none !important;
-}
 .MuiPopover-root .MuiPaper-root.MuiMenu-paper {
     color: rgba(255, 255, 255)!important;
     background-color: #43454A;

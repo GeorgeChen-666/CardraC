@@ -12,9 +12,11 @@ import { FileBrowser, FileNavbar, FileToolbar, FileList, FileContextMenu } from 
 import { ChonkyActions } from 'chonky';
 import { ChonkyIconFA } from 'chonky-icon-fontawesome';
 import { useTranslation } from 'react-i18next';
-import './FileBrowserDialog.css'
+import { Divider } from '@mui/material';
+import './FileBrowserDialog.css';
+import { FileOrganizer } from './FileOrganizer';
 
-console.debug = () => {}
+console.debug = () => {};
 
 const API_BASE = 'http://localhost:3333/browse';
 
@@ -49,7 +51,7 @@ const CustomNavbar = ({ canGoBack, canGoForward, onBack, onForward }) => {
           size='small'
           onClick={onBack}
           disabled={!canGoBack}
-          className={'chonky-baseButton chonky-iconOnlyButton '}
+          className={'chonky-baseButton chonky-iconOnlyButton'}
           title='后退'
         >
           <ArrowBackIcon fontSize='small' />
@@ -58,7 +60,7 @@ const CustomNavbar = ({ canGoBack, canGoForward, onBack, onForward }) => {
           size='small'
           onClick={onForward}
           disabled={!canGoForward}
-          className={'chonky-baseButton chonky-iconOnlyButton '}
+          className={'chonky-baseButton chonky-iconOnlyButton'}
           title='前进'
         >
           <ArrowForwardIcon fontSize='small' />
@@ -77,19 +79,18 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
   const [folderChain, setFolderChain] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [loading, setLoading] = useState(false);
-
   const [multiSelect, setMultiSelect] = useState(false);
   const [filterExtensions, setFilterExtensions] = useState(null);
   const [title, setTitle] = useState('Select Files');
-  const [customComponent, setCustomComponent] = useState(null); // ✅ 新增
-
-  const historyStack = useRef([]);
-  const forwardStack = useRef([]);
-  const isNavigating = useRef(false);
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
 
-  const onSelectRef = React.useRef(null);
+  const fileBrowserRef = useRef(null);
+  const historyStack = useRef([]);
+  const forwardStack = useRef([]);
+  const isNavigating = useRef(false);
+  const onSelectRef = useRef(null);
+  const customComponentRef = useRef(null);
 
   useImperativeHandle(ref, () => ({
     openDialog: async (options = {}) => {
@@ -97,15 +98,13 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
         onSelect,
         multiSelect = false,
         filterExtensions = null,
-        title = 'Select Files',
-        customComponent = null // ✅ 新增参数
+        title = 'Select Files'
       } = options;
 
       onSelectRef.current = onSelect;
       setMultiSelect(multiSelect);
       setFilterExtensions(filterExtensions);
       setTitle(title);
-      setCustomComponent(() => customComponent); // ✅ 保存自定义组件
       setOpen(true);
 
       historyStack.current = [];
@@ -116,28 +115,23 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
       const defaultPath = await getDefaultPath();
       loadFiles(defaultPath, filterExtensions);
       setSelectedFiles([]);
+      fileBrowserRef.current?.setFileSelection(new Set(), true);
     },
   }));
 
   const buildFolderChain = useCallback((currentPath) => {
-    const chain = [];
-
-    chain.push({
+    const chain = [{
       id: 'root',
       name: '💾 All Drives',
       isDir: true
-    });
+    }];
 
-    if (!currentPath) {
-      return chain;
-    }
+    if (!currentPath) return chain;
 
     const parts = currentPath.split(/[/\\]/).filter(Boolean);
-
     if (parts.length === 0) return chain;
 
     const firstPart = parts[0];
-
     if (firstPart.includes(':')) {
       chain.push({ id: firstPart, name: firstPart, isDir: true });
 
@@ -179,19 +173,17 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
 
         setFiles(chonkyFiles);
 
-        if (addToHistory && !isNavigating.current) {
-          if (currentPath !== path) {
-            historyStack.current.push(currentPath);
-            forwardStack.current = [];
-            updateHistoryState();
-          }
+        if (addToHistory && !isNavigating.current && currentPath !== path) {
+          historyStack.current.push(currentPath);
+          forwardStack.current = [];
+          updateHistoryState();
         }
 
         setCurrentPath(data.currentPath || '');
         setFolderChain(buildFolderChain(data.currentPath || ''));
       }
     } catch (error) {
-      console.error('❌ Failed to load files:', error);
+      console.error('Failed to load files:', error);
     } finally {
       setLoading(false);
     }
@@ -239,8 +231,8 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
         setOpen(false);
       }
     } else if (data.id === ChonkyActions.ChangeSelection.id) {
-      const selected = data.state.selectedFiles;
-      setSelectedFiles(selected.filter(f => !f.isDir));
+      const selected = data.state.selectedFiles.filter(f => !f.isDir);
+      setSelectedFiles(selected);
     }
   }, [loadFiles, multiSelect, filterExtensions]);
 
@@ -254,23 +246,25 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
       await saveDefaultPath(currentPath);
     }
 
-    const rawFiles = selectedFiles.map(f => f._raw);
+    let resultData;
+    if (customComponentRef.current?.getResultData) {
+      resultData = customComponentRef.current.getResultData();
+    } else {
+      // 默认返回原始文件数组
+      resultData = selectedFiles.map(f => f._raw);
+    }
+
     if (onSelectRef.current) {
-      onSelectRef.current(rawFiles);
+      onSelectRef.current(resultData);
     }
     setOpen(false);
   };
-
-  // ✅ 渲染自定义组件
-  const CustomComponent = customComponent;
 
   return (
     <Dialog
       open={open}
       onClose={(event, reason) => {
-        if (reason === 'backdropClick') {
-          return;
-        }
+        if (reason === 'backdropClick') return;
         setOpen(false);
       }}
       className="FileBrowserDialog"
@@ -289,6 +283,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
       <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column' }}>
         <div style={{ flex: 1, minHeight: 0 }}>
           <FileBrowser
+            ref={fileBrowserRef}
             files={files}
             folderChain={folderChain}
             fileActions={fileActions}
@@ -313,15 +308,13 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
       </DialogContent>
 
       <DialogActions>
-        <div style={{ flex: 1, paddingLeft: 16, color: '#666' }}>
-          {selectedFiles.length > 0 && (
-            <span>Selected: {selectedFiles.length} file(s)</span>
-          )}
-        </div>
-
-        {/* ✅ 渲染自定义组件 */}
-        {CustomComponent && <CustomComponent selectedFiles={selectedFiles} multiSelect={multiSelect} />}
-
+        <FileOrganizer
+          ref={customComponentRef}
+          selectedFiles={selectedFiles}
+          multiSelect={multiSelect}
+          fileBrowserRef={fileBrowserRef}
+        />
+        <Divider orientation="vertical" flexItem />
         <Button onClick={() => setOpen(false)}>
           {t('button.cancel')}
         </Button>
@@ -330,7 +323,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
           variant="contained"
           disabled={selectedFiles.length === 0}
         >
-          {t('button.select')} ({selectedFiles.length})
+          {t('button.ok')}
         </Button>
       </DialogActions>
     </Dialog>

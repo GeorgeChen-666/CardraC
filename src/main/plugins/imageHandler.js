@@ -223,6 +223,33 @@ const registerImageAPI = (app, basePath = '/api') => {
       res.status(500).json({ error: err.message });
     }
   });
+  app.post(`${basePath}/${eleActions.loadImageList}`, (req, res) => {
+    try {
+      const { imageList } = req.body; // imageList: [{ext, mtime, path}, ...]
+
+      if (!Array.isArray(imageList)) {
+        return res.status(400).json({ error: 'imageList must be an array' });
+      }
+
+      imageList.forEach(imageData => {
+        pathToImageData(imageData.path).catch(err => {
+          console.error(`Failed to load image in background: ${imageData.path}`, err);
+        });
+      });
+
+      res.json({
+        success: true,
+        message: 'Images are being loaded in background',
+      });
+
+    } catch (err) {
+      console.error('Error processing image list:', err);
+      res.status(500).json({
+        success: false,
+        error: err.message
+      });
+    }
+  });
 
   // 重新加载本地图片
   app.post(`${basePath}/${eleActions.reloadLocalImage}`, async (req, res) => {

@@ -257,8 +257,8 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       ...state,
       CardList: state.CardList.concat(images.map(p => ({
         id: crypto.randomUUID(),
-        face: p,
-        back: null,
+        face: p.face,
+        back: p.back,
         repeat: 1,
       })))
     }));

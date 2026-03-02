@@ -61,17 +61,38 @@ export const getMainImage = (args) => ipcRenderer.invoke(eleActions.getImageCont
 
 export const clearPreviewCache = (args) => ipcRenderer.invoke(eleActions.clearPreviewCache, args);
 
-export const openImageNew = (MyCustomComponent) => {
-  fileBrowserRef.current?.openDialog({
-    multiSelect: true,
-    filterExtensions: 'jpg,png,gif,cpnp',
-    title: 'Select Images',
-    customComponent: MyCustomComponent,
-    onSelect: (selectedFiles) => {
-      console.log('Selected files:', selectedFiles);
-    }
-  });
-}
+export const openMultiImage = (key) => new Promise((res,rej) => {
+  try {
+    fileBrowserRef.current?.openDialog({
+      multiSelect: true,
+      filterExtensions: 'jpg,png,gif',
+      title: 'Select Images',
+      onSelect: (selectedFiles) => {
+        const convertFn = (data) => data ? {
+          ext: data.ext,
+          mtime: data.modified,
+          path: data.safePath
+        } : data;
+        const paramFiles = selectedFiles.map(f => ({
+          face: convertFn(f.face),
+          back: convertFn(f.back),
+        }))
+
+        const allFiles = [];
+        paramFiles.forEach(f => {
+          if (f.face) allFiles.push(f.face);
+          if (f.back) allFiles.push(f.back);
+        });
+
+
+        res(paramFiles);
+      }
+    });
+  }
+  catch (e) {
+    rej(e);
+  }
+})
 
 export const openImage = (key) => callMain(eleActions.openImage, {
   returnChannel: `${eleActions.openImage}-return-${key}`,
@@ -82,16 +103,16 @@ export const openImage = (key) => callMain(eleActions.openImage, {
   return imageData;
 });
 
-export const openMultiImage = (key) => callMain(eleActions.openImage, {
-  properties: ['multiSelections'],
-  returnChannel: `${eleActions.openImage}-return-Multi-${key}`,
-}, async imageDatas => {
-  const newImageDatas = [...imageDatas];
-  for (const imageData of newImageDatas) {
-    imageData.ext = imageData.path.split('.').pop();
-  }
-  return newImageDatas;
-});
+// export const openMultiImage = (key) => callMain(eleActions.openImage, {
+//   properties: ['multiSelections'],
+//   returnChannel: `${eleActions.openImage}-return-Multi-${key}`,
+// }, async imageDatas => {
+//   const newImageDatas = [...imageDatas];
+//   for (const imageData of newImageDatas) {
+//     imageData.ext = imageData.path.split('.').pop();
+//   }
+//   return newImageDatas;
+// });
 
 
 export const loadConfig = () => callMain(eleActions.loadConfig);
