@@ -1,7 +1,7 @@
 import './handlers/file_render/utils';
 import ProjectActions from './handlers/ProjectActions';
 import ConfigActions from './handlers/ConfigActions';
-import ImageActions from './handlers/ImageActions';
+//import ImageActions from './handlers/ImageActions';
 import OtherActions from './handlers/OtherActions';
 import TemplateActions from './handlers/TemplateActions';
 import PrinterActions from './handlers/PrinterActions';
@@ -13,7 +13,7 @@ export const registerRendererActionHandlers = async (mainWindow) => {
   OtherActions(mainWindow);
   ProjectActions(mainWindow);
   ConfigActions(mainWindow);
-  ImageActions(mainWindow);
+  //ImageActions(mainWindow);
   TemplateActions(mainWindow);
   PrinterActions(mainWindow);
 }

@@ -1,3 +1,5 @@
+import { registerProjectAPI } from './plugins/projectHandler';
+
 const express = require('express');
 const cors = require('cors');
 const { registerRoutes } = require('./plugins/fileBrowser');
@@ -8,6 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 registerRoutes(app, '/browse');
-registerImageAPI(app, '/images');
+registerImageAPI(app, '/api');
+registerProjectAPI(app, '/api');
 
 export const run = () => app.listen(3333, () => console.log('✅ http://localhost:3333/browse'));

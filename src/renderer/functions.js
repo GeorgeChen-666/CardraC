@@ -22,7 +22,7 @@ export const getImageSrc = (imageData, {quality = 'low', version = 1}) => {
   //   ? `cardrac://image/${imageData.path.replaceAll('\\', '')}?quality=${quality}&version=${version}`
   //   : emptyImg.path;
   return imageData?.path
-    ? `http://localhost:3333/images/${eleActions.getImageContent}?path=${imageData.path.replaceAll('\\', '')}&quality=${quality}&version=${version}`
+    ? `http://localhost:3333/api/${eleActions.getImageContent}?path=${imageData.path.replaceAll('\\', '')}&quality=${quality}&version=${version}`
     : emptyImg.path;
 }
 
@@ -63,11 +63,12 @@ export const onOpenProjectFile = (cb) => {
 
 export const getMainImage = (args) => ipcRenderer.invoke(eleActions.getImageContent, args);
 
-export const clearPreviewCache = (args) => ipcRenderer.invoke(eleActions.clearPreviewCache, args);
+
 const fetchMain = async (path, params) => {
   try {
     const response = await fetch(`http://localhost:3333/${path}`, {
       headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
       ...params,
     });
     return response;
@@ -75,9 +76,26 @@ const fetchMain = async (path, params) => {
     console.error('Failed to trigger background image loading:', error);
   }
 }
+
+export const reloadLocalImage = async (params) => {
+  const response = await fetchMain(`api/${eleActions.reloadLocalImage}`, {
+    body: JSON.stringify(params)
+  });
+  const result = await response.json();
+  return result;
+}
+export const checkImage = async (params) => {
+  const response = await fetchMain(`api/${eleActions.checkImage}`, {
+    body: JSON.stringify(params)
+  });
+  const result = await response.json();
+  return result;
+}
+export const clearPreviewCache = async () => {
+  await fetchMain(`api/${eleActions.clearPreviewCache}`)
+}
 export const getExportPreview = async (args) => {
-  const response = await fetchMain(`images/${eleActions.getExportPreview}`, {
-    method: 'POST',
+  const response = await fetchMain(`api/${eleActions.getExportPreview}`, {
     body: JSON.stringify(args)
   });
   const result = await response.text()
@@ -85,8 +103,7 @@ export const getExportPreview = async (args) => {
 }
 export const getExportPageCount = async (param) => {
   try {
-    const response = await fetchMain( `images/${eleActions.getExportPageCount}`, {
-      method: 'POST',
+    const response = await fetchMain( `api/${eleActions.getExportPageCount}`, {
       body: JSON.stringify(param)
     });
 
@@ -102,17 +119,12 @@ export const openProject = () => new Promise((res, rej) => {
       filterExtensions: 'cpnp',
       showFileIcon: false,
       onSelect: async (selectedFiles) => {
-        const convertFn = (data) => data ? {
-          ext: data.ext,
-          mtime: data.modified,
-          path: data.safePath
-        } : data;
-        const paramFiles = selectedFiles.map(f => ({
-          face: convertFn(f.face),
-          back: convertFn(f.back),
-        }))
-
-        res(paramFiles);
+        const response = await fetchMain(`api/${eleActions.openProject}`, {
+          method: 'POST',
+          body: JSON.stringify({ filePath: selectedFiles[0][0].realPath })
+        });
+        const result = await response.json();
+        res(result);
       }
     });
   }
@@ -120,7 +132,9 @@ export const openProject = () => new Promise((res, rej) => {
     rej(e);
   }
 })
-export const openMultiImage = (isDoubleSides) => new Promise((res,rej) => {
+export const openMultiImage = (isDoubleSides) => openImage(isDoubleSides, true)
+
+export const openImage = (isDoubleSides, isMultiImage = false) => new Promise((res,rej) => {
   try {
     fileBrowserRef.current?.openDialog({
       multiSelect: true,
@@ -146,7 +160,7 @@ export const openMultiImage = (isDoubleSides) => new Promise((res,rej) => {
 
         if (allFiles.length > 0) {
           try {
-            const response = await fetchMain(`images/${eleActions.loadImageList}`, {
+            const response = await fetchMain(`api/${eleActions.loadImageList}`, {
               method: 'POST',
               body: JSON.stringify({ imageList: allFiles })
             });
@@ -172,25 +186,6 @@ export const openMultiImage = (isDoubleSides) => new Promise((res,rej) => {
   }
 })
 
-export const openImage = (key) => callMain(eleActions.openImage, {
-  returnChannel: `${eleActions.openImage}-return-${key}`,
-}, async imageDatas => {
-  if (imageDatas.length === 0) return;
-  const imageData = imageDatas[0];
-  imageData.ext = imageData.path.split('.').pop();
-  return imageData;
-});
-
-// export const openMultiImage = (key) => callMain(eleActions.openImage, {
-//   properties: ['multiSelections'],
-//   returnChannel: `${eleActions.openImage}-return-Multi-${key}`,
-// }, async imageDatas => {
-//   const newImageDatas = [...imageDatas];
-//   for (const imageData of newImageDatas) {
-//     imageData.ext = imageData.path.split('.').pop();
-//   }
-//   return newImageDatas;
-// });
 
 
 export const loadConfig = () => callMain(eleActions.loadConfig);

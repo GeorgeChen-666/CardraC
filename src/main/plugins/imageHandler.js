@@ -14,6 +14,7 @@ const {
 const { colorCache, exportFile } = require('../ele_action/handlers/file_render');
 const { expandPath, fixPath } = require('../utils');
 const { layoutSides } = require('../../shared/constants');
+const { waitCondition } = require('../../shared/functions');
 
 const ImageStorageLoadingJobs = {};
 const pendingList = new Set();
@@ -156,24 +157,16 @@ const registerImageAPI = (app, basePath = '/api') => {
     try {
       const { path: imagePath, quality = 'low' } = req.query;
       const imagePathKey = imagePath.replaceAll('\\', '');
-
       let content;
-
       if (quality === 'high') {
-        // ✅ 高清晰度：从 ImageStorage 获取
         content = ImageStorage[imagePathKey];
-
-        // ✅ 如果没有值，等待最多 5 秒
         if (!content) {
-          const { waitCondition } = require('../../shared/functions');
-
           try {
             await waitCondition(
               () => ImageStorage[imagePathKey],
               5000,
               100
             );
-
             content = ImageStorage[imagePathKey];
           } catch (error) {
             console.warn(`Timeout waiting for high quality image: ${imagePath}`);
@@ -181,7 +174,6 @@ const registerImageAPI = (app, basePath = '/api') => {
           }
         }
       } else {
-        // ✅ 低清晰度：从 OverviewStorage 获取
         content = OverviewStorage[imagePathKey];
       }
 

@@ -8,7 +8,7 @@ import { Divider } from '@mui/material';
 import Tooltip from '@mui/material/Tooltip';
 import Badge from '@mui/material/Badge';
 import { ReloadDialog } from './ReloadImg/ReloadDialog';
-import { callMain } from '../../../functions';
+import { callMain, checkImage } from '../../../functions';
 import { eleActions } from '../../../../shared/constants';
 import { useTranslation } from 'react-i18next';
 
@@ -33,7 +33,7 @@ export const CompressSelectButton = ({ label, disabled }) => {
       card.face?.path && pathList.push(card.face?.path);
       card.back?.path && pathList.push(card.back?.path);
     });
-    const result = await callMain(eleActions.checkImage, { pathList })
+    const result = await checkImage({ pathList })
     setInvalidImages(result || []);
   };
   const handleClose = () => {

@@ -7,7 +7,7 @@ import {
   immutableMerge,
   loadConfig,
   onOpenProjectFile, openProject,
-  regUpdateProgress,
+  regUpdateProgress, reloadLocalImage,
 } from '../functions';
 import _ from 'lodash';
 import { i18nInstance, initI18n } from '../i18n';
@@ -194,7 +194,7 @@ export const useGlobalStore = create(middlewares((set, get) => ({
   reloadLocalImage: () => {
     get().loading(async () => {
       const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList };
-      const stateData = await callMain(eleActions.reloadLocalImage, param);
+      const stateData = await reloadLocalImage(param);
       if (stateData && !stateData.isAborted) {
         const imageVersion = Date.now();
         get().mergeState({
