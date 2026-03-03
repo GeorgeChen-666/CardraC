@@ -10,10 +10,10 @@ import Button from '@mui/material/Button';
 export const FileOrganizer = forwardRef(({
                                         selectedFiles,
                                         multiSelect = true,
+                                        isDoubleSides = false,
+                                        showFileIcon,
                                         fileBrowserRef
                                       }, ref) => {
-  const { Config } = useGlobalStore.selectors;
-  const isDoubleSides = Config.sides() === layoutSides.doubleSides || Config.sides() === layoutSides.foldInHalf;
   const scrollRef = useRef(null);
 
   const [isLocked, setIsLocked] = useState(false);
@@ -32,14 +32,12 @@ export const FileOrganizer = forwardRef(({
           backFiles = [];
         }
         const maxLen = Math.max(frontFiles.length, backFiles.length);
-        return Array.from({ length: maxLen }, (_, i) => ({
-          face: frontFiles[i]?._raw || null,
-          back: backFiles[i]?._raw || null
-        }));
+        return Array.from({ length: maxLen }, (_, i) => [
+          frontFiles[i]?._raw || null,
+          backFiles[i]?._raw || null
+        ]);
       } else {
-        return selectedFiles.map(f => ({
-          face: f._raw || null
-        }));
+        return selectedFiles.map(f => [f._raw || null]);
       }
     }
   }));
@@ -206,7 +204,7 @@ export const FileOrganizer = forwardRef(({
                 scrollSnapAlign: 'start'
               }}
             >
-              <Box sx={{ display: 'flex', gap: 1, p: 1, border: '1px dashed', borderColor: 'divider', borderRadius: 1 }}>
+              {showFileIcon && (<Box sx={{ display: 'flex', gap: 1, p: 1, border: '1px dashed', borderColor: 'divider', borderRadius: 1 }}>
                 <FileSlot file={pair.front} label={isDoubleSides ? '正面' : null} isNextToFill={false} />
                 {isDoubleSides && (
                   <FileSlot
@@ -215,7 +213,7 @@ export const FileOrganizer = forwardRef(({
                     isNextToFill={isBackNextToFill}
                   />
                 )}
-              </Box>
+              </Box>)}
 
               {!isDoubleSides && (
                 <Typography

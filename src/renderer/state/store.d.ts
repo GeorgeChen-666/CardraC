@@ -84,7 +84,7 @@ interface StoreState {
   getExportPreview: (pageIndex: number) => Promise<any>;
 
   // Card methods
-  cardAdd: (images: any[]) => void;
+  cardAdd: (images: unknown) => void;
   cardEditById: (newState: Partial<Card> & { id: string }) => void;
   cardRemoveByIds: (ids: string[]) => void;
   cardSelect: (selectedId: string) => void;

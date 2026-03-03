@@ -3,10 +3,10 @@ import { eleActions, flipWay, initialState, layoutSides } from '../../shared/con
 import { create } from 'zustand';
 import {
   callMain,
-  fillByObjectValue,
+  fillByObjectValue, getExportPageCount, getExportPreview,
   immutableMerge,
   loadConfig,
-  onOpenProjectFile,
+  onOpenProjectFile, openProject,
   regUpdateProgress,
 } from '../functions';
 import _ from 'lodash';
@@ -158,7 +158,8 @@ export const useGlobalStore = create(middlewares((set, get) => ({
   },
   openProject: () => {
     get().loading(async () => {
-      const projectData = await callMain(eleActions.openProject);
+      // const projectData = await callMain(eleActions.openProject);
+      const projectData = await openProject();
       if (projectData) {
         const { isValid, config: validatedData } = await validateAndFixConfig({
           ...projectData,
@@ -216,7 +217,7 @@ export const useGlobalStore = create(middlewares((set, get) => ({
   getExportPageCount: (targetFileType) => {
     get().loading(async () => {
       const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList, targetFileType };
-      const exportPageCount = await callMain(eleActions.getExportPageCount, param);
+      const exportPageCount = await getExportPageCount(param);
       get().mergeGlobal({exportPageCount})
     });
   },
@@ -227,7 +228,9 @@ export const useGlobalStore = create(middlewares((set, get) => ({
         CardList: get().CardList,
         pageIndex
       };
-      const content = await ipcRenderer.invoke(eleActions.getExportPreview, param);
+      // const content = await ipcRenderer.invoke(eleActions.getExportPreview, param);
+      const content = await getExportPreview(param);
+
       return content;
     }
     if(isSilence) {

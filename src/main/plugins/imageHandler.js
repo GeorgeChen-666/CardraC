@@ -133,7 +133,7 @@ const registerImageAPI = (app, basePath = '/api') => {
         }
       }
 
-      res.json(result);
+      res.send(result);
     } catch (err) {
       console.error('Error getting export preview:', err);
       res.status(500).json({ error: err.message });
@@ -152,54 +152,71 @@ const registerImageAPI = (app, basePath = '/api') => {
     }
   });
 
-  // 获取图片内容
-  app.get(`${basePath}/${eleActions.getImageContent}`, (req, res) => {
+  app.get(`${basePath}/${eleActions.getImageContent}`, async (req, res) => {
     try {
-      const { path: imagePath } = req.query;
+      const { path: imagePath, quality = 'low' } = req.query;
       const imagePathKey = imagePath.replaceAll('\\', '');
-      const content = ImageStorage[imagePathKey];
+
+      let content;
+
+      if (quality === 'high') {
+        // ✅ 高清晰度：从 ImageStorage 获取
+        content = ImageStorage[imagePathKey];
+
+        // ✅ 如果没有值，等待最多 5 秒
+        if (!content) {
+          const { waitCondition } = require('../../shared/functions');
+
+          try {
+            await waitCondition(
+              () => ImageStorage[imagePathKey],
+              5000,
+              100
+            );
+
+            content = ImageStorage[imagePathKey];
+          } catch (error) {
+            console.warn(`Timeout waiting for high quality image: ${imagePath}`);
+            return res.status(404).send('Image not ready');
+          }
+        }
+      } else {
+        // ✅ 低清晰度：从 OverviewStorage 获取
+        content = OverviewStorage[imagePathKey];
+      }
 
       if (!content) {
-        return res.status(404).json({ error: 'Image not found in storage' });
+        return res.status(404).send('Image not found');
       }
 
-      res.json({ content });
+      const matches = content.match(/^data:image\/(\w+);base64,(.+)$/);
+
+      if (!matches) {
+        return res.status(500).send('Invalid image format');
+      }
+
+      const [, imageType, base64Data] = matches;
+      const buffer = Buffer.from(base64Data, 'base64');
+
+      // ✅ 设置正确的 Content-Type
+      const mimeTypes = {
+        'jpeg': 'image/jpeg',
+        'jpg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+        'bmp': 'image/bmp'
+      };
+
+      const mimeType = mimeTypes[imageType.toLowerCase()] || 'image/jpeg';
+
+      res.set('Content-Type', mimeType);
+      res.set('Cache-Control', 'public, max-age=31536000'); // 缓存 1 年
+      res.send(buffer);
+
     } catch (err) {
       console.error('Error getting image content:', err);
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // 打开图片
-  app.post(`${basePath}/${eleActions.openImage}`, async (req, res) => {
-    try {
-      const { filePaths, progressChannel } = req.body;
-
-      if (!filePaths || !Array.isArray(filePaths)) {
-        return res.status(400).json({ error: 'filePaths must be an array' });
-      }
-
-      console.log(`📂 Opening ${filePaths.length} images`);
-
-      const toRenderData = [];
-      let current = 0;
-
-      for (const imagePath of filePaths) {
-        toRenderData.push(pathToImageData(imagePath, () => {
-          current++;
-          if (progressChannel) {
-            sendProgress(progressChannel, current / filePaths.length);
-          }
-        }));
-      }
-
-      const results = await Promise.all(toRenderData);
-      console.log(`✅ Successfully loaded ${results.length} images`);
-
-      res.json(results);
-    } catch (err) {
-      console.error('❌ Error opening images:', err);
-      res.status(500).json({ error: err.message });
+      res.status(500).send('Internal server error');
     }
   });
 
