@@ -13,7 +13,6 @@ import _ from 'lodash';
 import { i18nInstance, initI18n } from '../i18n';
 import { notificationSuccess, triggerNotification } from '../parts/Notification';
 import { shallow } from 'zustand/shallow';
-import { ipcRenderer } from 'electron';
 import { middlewares } from './middlewares';
 
 

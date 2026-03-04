@@ -3,7 +3,7 @@ const path = require('path');
 const os = require('os');
 const { readCompressedImage } = require('../ele_action/functions');
 const { fixPath, expandPath } = require('../utils');
-const { OverviewStorage } = require('../ele_action/handlers/file_render/utils'); // ✅ 引入压缩函数
+const { OverviewStorage } = require('../file_render/utils'); // ✅ 引入压缩函数
 
 // ✅ 配置文件路径
 const CONFIG_DIR = path.join(os.homedir(), '.cardrac');

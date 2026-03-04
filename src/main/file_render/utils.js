@@ -1,7 +1,7 @@
-import { emptyImg, layoutSides } from '../../../../shared/constants';
+import { emptyImg, layoutSides } from '../../shared/constants';
 import { SVGAdapter } from './adapter/SVGAdapter';
-import { SmartStorage } from '../../../utils';
-import { fixFloat } from '../../../../shared/functions';
+import { SmartStorage } from '../utils';
+import { fixFloat } from '../../shared/functions';
 
 export const defaultImageStorage = {
   '_emptyImg': emptyImg.path,

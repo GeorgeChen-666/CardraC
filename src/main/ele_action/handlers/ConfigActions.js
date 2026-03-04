@@ -28,7 +28,7 @@ const initLanguageJson = (lang) => {
     cwd: localesDir
   });
 
-  const defaultLangStore = require(`../locales/${lang}.json`);
+  const defaultLangStore = require(`../../locales/${lang}.json`);
   en.set(_.merge(defaultLangStore, en.store));
 }
 const printStore = new Store({ name: 'print_config' });

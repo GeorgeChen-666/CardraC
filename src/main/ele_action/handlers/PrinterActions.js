@@ -1,8 +1,8 @@
 import { ipcMain } from 'electron';
 import { eleActions, initialState, layoutSides } from '../../../shared/constants';
-import { exportFile } from './file_render';
+import { exportFile } from '../../file_render';
 import { getConfigStore, printPNGs } from '../functions';
-import { clearPrerenderCache, prerenderPage } from './file_render/utils';
+import { clearPrerenderCache, prerenderPage } from '../../file_render/utils';
 
 
 

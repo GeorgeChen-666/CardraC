@@ -1,10 +1,10 @@
 const { eleActions, exportType, layoutSides } = require('../../shared/constants');
 const { getConfigStore, saveDataToFile } = require('../ele_action/functions');
-const { getPagedImageListByCardList } = require('../ele_action/handlers/file_render/utils');
-const { exportFile } = require('../ele_action/handlers/file_render');
-const { SharpAdapter } = require('../ele_action/handlers/file_render/adapter/SharpAdapter');
-const { JsPDFAdapter } = require('../ele_action/handlers/file_render/adapter/JsPdfAdapter');
-const { SVGAdapter } = require('../ele_action/handlers/file_render/adapter/SVGAdapter');
+const { getPagedImageListByCardList } = require('../file_render/utils');
+const { exportFile } = require('../file_render');
+const { SharpAdapter } = require('../file_render/adapter/SharpAdapter');
+const { JsPDFAdapter } = require('../file_render/adapter/JsPdfAdapter');
+const { SVGAdapter } = require('../file_render/adapter/SVGAdapter');
 const JSZip = require('jszip');
 const fs = require('fs');
 const path = require('path');

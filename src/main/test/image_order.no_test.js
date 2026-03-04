@@ -11,10 +11,10 @@ vi.mock('./ele_action/functions', () => ({
   })
 }));
 
-import { getCutRectangleList, getPagedImageListByCardList, adjustBackPageImageOrder, isNeedRotation, ImageStorage  } from '../ele_action/handlers/file_render/utils';
+import { getCutRectangleList, getPagedImageListByCardList, adjustBackPageImageOrder, isNeedRotation, ImageStorage  } from '../file_render/utils';
 import { layoutSides, initialState, flipWay } from '../../shared/constants';
-import { ShadowAdapter } from '../ele_action/handlers/file_render/adapter/ShadowAdapter';
-import { exportFile } from '../ele_action/handlers/file_render';
+import { ShadowAdapter } from '../file_render/adapter/ShadowAdapter';
+import { exportFile } from '../file_render';
 
 const resetConfig = () => {
   mockConfigStore.Config = { ...initialState.Config };

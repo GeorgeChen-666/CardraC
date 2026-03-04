@@ -1,7 +1,7 @@
 import electron, { app, BrowserWindow, shell, protocol } from 'electron';
 import { registerRendererActionHandlers } from './ele_action';
-import { OverviewStorage } from './ele_action/handlers/file_render/utils';
-import { ImageStorage } from './ele_action/handlers/file_render/utils';
+import { OverviewStorage } from './file_render/utils';
+import { ImageStorage } from './file_render/utils';
 import { waitCondition } from '../shared/functions';
 import { run } from './server';
 

@@ -2,7 +2,7 @@ import { dialog, ipcMain } from 'electron';
 import { eleActions } from '../../../shared/constants';
 import { getConfigStore, saveDataToFile } from '../functions';
 import fs from 'fs';
-import { defaultImageStorage, ImageStorage, OverviewStorage } from './file_render/utils';
+import { defaultImageStorage, ImageStorage, OverviewStorage } from '../../file_render/utils';
 import { parser } from 'stream-json';
 import { streamObject } from 'stream-json/streamers/StreamObject';
 

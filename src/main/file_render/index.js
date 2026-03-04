@@ -1,8 +1,8 @@
-import { fixFloat, waitCondition } from '../../../../shared/functions';
-import { getPendingList } from '../ImageActions';
-import { getBorderAverageColors, getConfigStore } from '../../functions';
+import { fixFloat, waitCondition } from '../../shared/functions';
+import { getPendingList } from '../ele_action/handlers/ImageActions';
+import { getBorderAverageColors, getConfigStore } from '../ele_action/functions';
 import { adjustBackPageImageOrder, getCutRectangleList, getPagedImageListByCardList, isNeedRotation } from './utils';
-import { layoutSides } from '../../../../shared/constants';
+import { layoutSides } from '../../shared/constants';
 import { ImageStorage } from './utils';
 
 export const colorCache = new Map();

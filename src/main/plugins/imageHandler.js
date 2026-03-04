@@ -10,8 +10,8 @@ const {
   getPagedImageListByCardList,
   prerenderPage,
   clearPrerenderCache
-} = require('../ele_action/handlers/file_render/utils');
-const { colorCache, exportFile } = require('../ele_action/handlers/file_render');
+} = require('../file_render/utils');
+const { colorCache, exportFile } = require('../file_render');
 const { expandPath, fixPath } = require('../utils');
 const { layoutSides } = require('../../shared/constants');
 const { waitCondition } = require('../../shared/functions');

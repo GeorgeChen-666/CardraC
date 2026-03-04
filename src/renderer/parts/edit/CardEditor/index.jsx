@@ -13,7 +13,6 @@ import { CardImage } from './CardImage';
 import { CardToolbar } from './CardToolbar';
 import { CardFooter } from './CardFooter';
 import { useEvent } from './useEvent';
-import { webUtils } from 'electron';
 import { useProgressiveImage } from './useProgressiveImage';
 
 const useMenuState = (items) => {
@@ -113,8 +112,8 @@ export default memo(({ data, dialogCardSettingRef, index, sharedPreviewRef, curr
       console.log('文件路径:', file.path);  //完整路径
       console.log('文件大小:', file.size);
       console.log('文件类型:', file.type);
-      const path = webUtils.getPathForFile(file);
-      console.log('aaa', path)
+      // const path = webUtils.getPathForFile(file);
+      // console.log('aaa', path)
     });
 
     //过滤图片并获取路径
