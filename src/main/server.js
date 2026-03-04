@@ -1,4 +1,7 @@
 import { registerProjectAPI } from './plugins/projectHandler';
+import { registerTemplateAPI } from './plugins/templateHandler';
+import { registerConfigAPI } from './plugins/configHandler';
+import { registerOtherAPI } from './plugins/otherHandler';
 
 const express = require('express');
 const cors = require('cors');
@@ -12,5 +15,8 @@ app.use(express.json());
 registerRoutes(app, '/browse');
 registerImageAPI(app, '/api');
 registerProjectAPI(app, '/api');
+registerTemplateAPI(app, '/api');
+registerOtherAPI(app, '/api');
+registerConfigAPI(app, '/api')
 
 export const run = () => app.listen(3333, () => console.log('✅ http://localhost:3333/browse'));
