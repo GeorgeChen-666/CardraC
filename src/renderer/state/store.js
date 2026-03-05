@@ -7,7 +7,7 @@ import {
   immutableMerge,
   loadConfig,
   onOpenProjectFile, openProject,
-  regUpdateProgress, reloadLocalImage,
+  regUpdateProgress, reloadLocalImage, saveProject,
 } from '../functions';
 import _ from 'lodash';
 import { i18nInstance, initI18n } from '../i18n';
@@ -172,7 +172,8 @@ export const useGlobalStore = create(middlewares((set, get) => ({
   saveProject: () => {
     get().loading(async () => {
       const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList };
-      const rs = await callMain(eleActions.saveProject, param);
+      // const rs = await callMain(eleActions.saveProject, param);
+      const rs = await saveProject(param);
       rs && notificationSuccess();
     });
   },

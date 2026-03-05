@@ -104,8 +104,9 @@ export function EditToolbar() {
           label={t('toolbar.btnGlobalBackground')}
           icon={<img src={getImageSrc(globalBackground, { version : imageVersion})} width={'21px'} height={'21px'} alt='' />}
           onClick={async () => {
-            const filePath = await openImage('setGlobalBack');
-            mergeConfig({ globalBackground: filePath });
+            const selectedFiles = await openImage();
+
+            mergeConfig({ globalBackground: selectedFiles?.[0]?.face });
           }}
           onMouseOver={() => imageViewerRef.current?.update?.(globalBackground?.path)}
           onMouseLeave={() => imageViewerRef.current?.close?.()}

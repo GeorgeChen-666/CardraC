@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
 import Store from 'electron-store';
-import { getConfigStore } from '../functions';
+import { getConfigStore } from '../../functions';
 
 export default (mainWindow) => {
   const templateStore = new Store({name: 'templates'});

@@ -5,7 +5,7 @@ import ConfigActions from './handlers/ConfigActions';
 import OtherActions from './handlers/OtherActions';
 import TemplateActions from './handlers/TemplateActions';
 import PrinterActions from './handlers/PrinterActions';
-import { initConfigStore } from './functions';
+import { initConfigStore } from '../functions';
 
 
 export const registerRendererActionHandlers = async (mainWindow) => {

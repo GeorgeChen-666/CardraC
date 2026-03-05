@@ -1,6 +1,6 @@
 import { app, dialog, ipcMain } from 'electron';
 import { exportFile } from '../../file_render';
-import { getConfigStore, saveDataToFile } from '../functions';
+import { getConfigStore, saveDataToFile } from '../../functions';
 import { getPagedImageListByCardList } from '../../file_render/utils';
 import { eleActions, exportType, layoutSides } from '../../../shared/constants';
 import { SharpAdapter } from '../../file_render/adapter/SharpAdapter';

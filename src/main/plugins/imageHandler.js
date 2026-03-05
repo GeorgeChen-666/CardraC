@@ -3,7 +3,7 @@ const path = require('path');
 
 // ✅ 在文件内部导入 eleActions
 const { eleActions } = require('../../shared/constants');
-const { getConfigStore, readCompressedImage } = require('../ele_action/functions');
+const { getConfigStore, readCompressedImage } = require('../functions');
 const {
   ImageStorage,
   OverviewStorage,

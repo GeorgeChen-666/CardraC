@@ -1,5 +1,5 @@
 const { eleActions, exportType, layoutSides } = require('../../shared/constants');
-const { getConfigStore, saveDataToFile } = require('../ele_action/functions');
+const { getConfigStore, saveDataToFile } = require('../functions');
 const { getPagedImageListByCardList } = require('../file_render/utils');
 const { exportFile } = require('../file_render');
 const { SharpAdapter } = require('../file_render/adapter/SharpAdapter');
@@ -226,13 +226,10 @@ const registerOtherAPI = (app, basePath = '/api') => {
   // ✅ 获取应用版本
   app.get(`${basePath}/version`, (req, res) => {
     try {
-      const packageJson = require('../../package.json');
+      const packageJson = require('../../../package.json');
       const version = packageJson.version || '1.0.0';
 
-      res.json({
-        success: true,
-        version
-      });
+      res.send(version);
 
     } catch (err) {
       console.error('Error getting version:', err);

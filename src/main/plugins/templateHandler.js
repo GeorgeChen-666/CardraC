@@ -1,7 +1,7 @@
 const { eleActions } = require('../../shared/constants');
-const { getConfigStore, SimpleStore } = require('../ele_action/functions');
+const { getConfigStore, SimpleStore } = require('../functions');
 
-const templateStore = new SimpleStore('templateConfig')
+const templateStore = new SimpleStore('templates')
 
 const registerTemplateAPI = (app, basePath = '/api') => {
   app.get(`${basePath}/${eleActions.getTemplate}`, (req, res) => {

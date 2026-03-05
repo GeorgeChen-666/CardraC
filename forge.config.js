@@ -184,7 +184,7 @@ module.exports = {
       unpack: "**/node_modules/{sharp,@img}/**/*"
     },
     extraResource: [
-      'src/main/ele_action/locales',
+      'src/main/locales',
       './node_modules/better-sqlite3/build/Release'
     ],
     prune: true,

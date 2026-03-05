@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { readCompressedImage, SimpleStore } = require('../ele_action/functions');
+const { readCompressedImage, SimpleStore } = require('../functions');
 const { fixPath, expandPath } = require('../utils');
 const { OverviewStorage } = require('../file_render/utils'); // ✅ 引入压缩函数
 

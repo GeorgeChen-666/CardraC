@@ -2,7 +2,7 @@ import { dialog, ipcMain, protocol } from 'electron';
 import log from 'electron-log';
 import fs from 'fs';
 
-import { getConfigStore, readCompressedImage } from '../functions';
+import { getConfigStore, readCompressedImage } from '../../functions';
 import { eleActions, layoutSides } from '../../../shared/constants';
 import {
   clearPrerenderCache,

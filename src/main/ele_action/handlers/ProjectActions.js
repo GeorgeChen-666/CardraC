@@ -1,6 +1,6 @@
 import { dialog, ipcMain } from 'electron';
 import { eleActions } from '../../../shared/constants';
-import { getConfigStore, saveDataToFile } from '../functions';
+import { getConfigStore, saveDataToFile } from '../../functions';
 import fs from 'fs';
 import { defaultImageStorage, ImageStorage, OverviewStorage } from '../../file_render/utils';
 import { parser } from 'stream-json';

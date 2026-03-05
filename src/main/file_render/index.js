@@ -1,6 +1,6 @@
 import { fixFloat, waitCondition } from '../../shared/functions';
 import { getPendingList } from '../ele_action/handlers/ImageActions';
-import { getBorderAverageColors, getConfigStore } from '../ele_action/functions';
+import { getBorderAverageColors, getConfigStore } from '../functions';
 import { adjustBackPageImageOrder, getCutRectangleList, getPagedImageListByCardList, isNeedRotation } from './utils';
 import { layoutSides } from '../../shared/constants';
 import { ImageStorage } from './utils';

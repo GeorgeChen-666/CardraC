@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { eleActions } = require('../../shared/constants');
-const { getConfigStore, saveDataToFile } = require('../ele_action/functions');
+const { getConfigStore, saveDataToFile } = require('../functions');
 const { defaultImageStorage, ImageStorage, OverviewStorage } = require('../file_render/utils');
 const { parser } = require('stream-json');
 const { streamObject } = require('stream-json/streamers/StreamObject');

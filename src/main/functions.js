@@ -2,14 +2,27 @@ import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
-import { expandPath, fixPath } from '../utils';
+import { expandPath, fixPath } from './utils';
 // import { app, BrowserWindow } from 'electron';
+
+export const isDev = process.env.NODE_ENV === 'development';
 
 // ✅ 平替 electron-store
 export class SimpleStore {
-  constructor(name = 'config') {
+  constructor(name = 'config', cwd = null) {
     const appName = process.env.npm_package_name || 'cardrac';
-    this.configDir = path.join(os.homedir(), '.config', appName);
+    const getConfigDir = () => {
+      if(cwd) return path.join(cwd, appName);
+      switch (process.platform) {
+        case 'win32':
+          return path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), appName);
+        case 'darwin':
+          return path.join(os.homedir(), 'Library', 'Application Support', appName);
+        default:
+          return path.join(os.homedir(), '.config', appName);
+      }
+    };
+    this.configDir = getConfigDir();
     this.configPath = path.join(this.configDir, `${name}.json`);
     this.name = name;
 

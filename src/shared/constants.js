@@ -22,6 +22,7 @@ export const eleActions = Object.freeze({
   setTemplate: 'set-template',
   editTemplate: 'edit-template',
   deleteTemplate: 'delete-template',
+  version: 'version',
 });
 
 export const layoutSides = Object.freeze({

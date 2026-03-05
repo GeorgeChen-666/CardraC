@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import Store from 'electron-store';
 import { eleActions } from '../../../shared/constants';
-import { getConfigStore, updateConfigStore } from '../functions';
+import { getConfigStore, updateConfigStore } from '../../functions';
 
 const getLocalesDir = () => {
   if (app.isPackaged) {

@@ -1,20 +1,10 @@
-import electron, { app, BrowserWindow, shell, protocol } from 'electron';
+import { app, BrowserWindow, shell, protocol } from 'electron';
 import { registerRendererActionHandlers } from './ele_action';
 import { OverviewStorage } from './file_render/utils';
 import { ImageStorage } from './file_render/utils';
 import { waitCondition } from '../shared/functions';
 import { run } from './server';
-
-if (typeof electron === 'string') {
-  throw new TypeError('Not running in an Electron environment!');
-}
-
-const {env} = process; // eslint-disable-line n/prefer-global/process
-const isEnvSet = 'ELECTRON_IS_DEV' in env;
-const getFromEnv = Number.parseInt(env.ELECTRON_IS_DEV, 10) === 1;
-export const isDev = isEnvSet ? getFromEnv : !electron?.app?.isPackaged;
-
-
+import { isDev } from './functions';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
