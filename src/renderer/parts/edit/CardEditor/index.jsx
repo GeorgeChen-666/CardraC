@@ -69,10 +69,8 @@ export default memo(({ data, dialogCardSettingRef, index, sharedPreviewRef, curr
 
     //获取拖拽的项目
     const items = Array.from(e.dataTransfer.items);
-
     //过滤出文件类型的项目
     const fileItems = items.filter(item => item.kind === 'file');
-
     //检查是否都是图片
     const imageItems = fileItems.filter(item =>
       item.type.startsWith('image/')
@@ -281,7 +279,7 @@ export default memo(({ data, dialogCardSettingRef, index, sharedPreviewRef, curr
         {MenuElement}
 
         <div className={'CardMain'}>
-          <Stack direction='row' justifyContent={'space-between'}>
+          <Stack direction='row' justifyContent={'center'}>
             <CardImage
               imageSrc={faceUrl}
               path={data?.face?.path}

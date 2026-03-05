@@ -1,45 +1,26 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { readCompressedImage } = require('../ele_action/functions');
+const { readCompressedImage, SimpleStore } = require('../ele_action/functions');
 const { fixPath, expandPath } = require('../utils');
 const { OverviewStorage } = require('../file_render/utils'); // ✅ 引入压缩函数
 
-// ✅ 配置文件路径
-const CONFIG_DIR = path.join(os.homedir(), '.cardrac');
-const CONFIG_FILE = path.join(CONFIG_DIR, 'filebrowser.json');
-
-// ✅ 确保配置目录存在
-if (!fs.existsSync(CONFIG_DIR)) {
-  fs.mkdirSync(CONFIG_DIR, { recursive: true });
-}
-
-// ✅ 获取默认路径
+const defaultPathStore = new SimpleStore('defaultPathConfig')
 const getDefaultPath = () => {
   try {
-    if (fs.existsSync(CONFIG_FILE)) {
-      const data = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
-      return data.lastPath || '';
-    }
+    const { defaultPath } = defaultPathStore.get();
+    return defaultPath || os.homedir().replace(/\\/g, '/').replace(/^([A-Z]):/, '$1:');
   } catch (e) {
-    console.error('Failed to read config:', e);
+    console.error('Failed to read default path from config:', e);
+    return os.homedir().replace(/\\/g, '/').replace(/^([A-Z]):/, '$1:');
   }
-
-  // 兜底：返回用户文件夹
-  return os.homedir().replace(/\\/g, '/').replace(/^([A-Z]):/, '$1:');
 };
 
-// ✅ 保存默认路径
 const setDefaultPath = (pathToSave) => {
   try {
-    const config = fs.existsSync(CONFIG_FILE)
-      ? JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'))
-      : {};
-
-    config.lastPath = pathToSave;
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8');
+    defaultPathStore.set({ defaultPath:pathToSave });
   } catch (e) {
-    console.error('Failed to save config:', e);
+    console.error('Failed to save default path to config:', e);
   }
 };
 

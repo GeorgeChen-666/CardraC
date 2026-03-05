@@ -3,8 +3,6 @@ import { eleActions, emptyImg } from '../shared/constants';
 // import { Actions, store } from './store';
 import { i18nInstance } from './i18n';
 import { triggerNotification } from './parts/Notification';
-import { useGlobalStore } from './state/store';
-
 
 
 export const isDev = process?.env?.NODE_ENV === 'development';
@@ -45,6 +43,23 @@ export const fillByObjectValue = (source, value) => {
   return result;
 };
 
+const showFileOpenDialog = (params) => new Promise((resolve, reject) => {
+  try {
+    fileBrowserRef.current?.openDialog({
+      multiSelect: false,
+      showFileIcon: false,
+      filterExtensions: '*',
+      ...params,
+      onSelect: async (selectedFiles) => {
+        resolve(selectedFiles)
+      }
+    });
+  }
+  catch (e) {
+    reject(e);
+  }
+});
+
 ipcRenderer.on('notification', (ev, args) => {
   return triggerNotification({...args, description: i18nInstance.t(args.description)})
 });
@@ -63,137 +78,100 @@ export const onOpenProjectFile = (cb) => {
 
 export const getMainImage = (args) => ipcRenderer.invoke(eleActions.getImageContent, args);
 
-
-const fetchMain = async (path, params) => {
+// json	Object/Array	JSON 数据
+// text	String	文本数据
+// blob	Blob	图片、文件
+// arrayBuffer	ArrayBuffer	二进制数据
+// formData	FormData	表单数据
+// body	ReadableStream	流式处理
+const fetchMain = async (path, params= null, config = {}) => {
   try {
-    const response = await fetch(`http://localhost:3333/${path}`, {
-      headers: { 'Content-Type': 'application/json' },
+    const fetchConfig = {
+      format: 'json',
       method: 'POST',
-      ...params,
+      ...(config || {})
+    }
+    const response =  await fetch(`http://localhost:3333/api/${path}`, {
+      headers: { 'Content-Type': 'application/json' },
+      ...fetchConfig,
+      ...(params && {body: JSON.stringify(params)})
     });
-    return response;
+    return await response[fetchConfig.format]()
   } catch (error) {
     console.error('Failed to trigger background image loading:', error);
   }
 }
 
-export const reloadLocalImage = async (params) => {
-  const response = await fetchMain(`api/${eleActions.reloadLocalImage}`, {
-    body: JSON.stringify(params)
-  });
-  const result = await response.json();
-  return result;
-}
-export const checkImage = async (params) => {
-  const response = await fetchMain(`api/${eleActions.checkImage}`, {
-    body: JSON.stringify(params)
-  });
-  const result = await response.json();
-  return result;
-}
-export const clearPreviewCache = async () => {
-  await fetchMain(`api/${eleActions.clearPreviewCache}`)
-}
-export const getExportPreview = async (args) => {
-  const response = await fetchMain(`api/${eleActions.getExportPreview}`, {
-    body: JSON.stringify(args)
-  });
-  const result = await response.text()
-  return result;
-}
-export const getExportPageCount = async (param) => {
-  try {
-    const response = await fetchMain( `api/${eleActions.getExportPageCount}`, {
-      body: JSON.stringify(param)
-    });
+export const reloadLocalImage = (params) =>
+  fetchMain(eleActions.reloadLocalImage, params)
+export const checkImage = (params) =>
+  fetchMain(eleActions.checkImage, params)
+export const clearPreviewCache = () =>
+  fetchMain(eleActions.clearPreviewCache)
+export const getExportPreview = (params) =>
+  fetchMain(eleActions.getExportPreview, params, {format: 'text'})
+export const getExportPageCount = (params) =>
+  fetchMain( eleActions.getExportPageCount, params)
+export const getTemplate = (params) =>
+  fetchMain(eleActions.getTemplate, params, { method: 'GET' })
+export const setTemplate = (params) =>
+  fetchMain(eleActions.setTemplate, params)
+export const editTemplate = (params) =>
+  fetchMain(eleActions.editTemplate, params, { method: 'PUT' })
+export const deleteTemplate = (params) =>
+  fetchMain(eleActions.deleteTemplate, params, { method: 'DELETE' })
 
-    const result = await response.json();
-    return result.count;
-  } catch (error) {
+export const openProject = async () => {
+  const selectedFiles = await showFileOpenDialog({filterExtensions: 'cpnp'});
+  if(selectedFiles.length === 0) {
+    return;
   }
+  return await fetchMain(eleActions.openProject, { filePath: selectedFiles[0][0].realPath });
 }
-export const openProject = () => new Promise((res, rej) => {
-  try {
-    fileBrowserRef.current?.openDialog({
-      multiSelect: false,
-      filterExtensions: 'cpnp',
-      showFileIcon: false,
-      onSelect: async (selectedFiles) => {
-        const response = await fetchMain(`api/${eleActions.openProject}`, {
-          method: 'POST',
-          body: JSON.stringify({ filePath: selectedFiles[0][0].realPath })
-        });
-        const result = await response.json();
-        res(result);
-      }
-    });
-  }
-  catch (e) {
-    rej(e);
-  }
-})
+
 export const openMultiImage = (isDoubleSides) => openImage(isDoubleSides, true)
+export const openImage = async (isDoubleSides, isMultiImage = false) => {
+  const selectedFiles = await showFileOpenDialog({multiSelect: true, filterExtensions: 'jpg,png,gif',isDoubleSides, showFileIcon: true});
+  const convertFn = (data) => data ? {
+    ext: data.ext,
+    mtime: data.modified,
+    path: data.safePath
+  } : data;
+  const paramFiles = selectedFiles.map(f => ({
+    face: convertFn(f[0]),
+    back: convertFn(f[1]),
+  }))
 
-export const openImage = (isDoubleSides, isMultiImage = false) => new Promise((res,rej) => {
-  try {
-    fileBrowserRef.current?.openDialog({
-      multiSelect: true,
-      filterExtensions: 'jpg,png,gif',
-      isDoubleSides,
-      showFileIcon: true,
-      onSelect: async (selectedFiles) => {
-        const convertFn = (data) => data ? {
-          ext: data.ext,
-          mtime: data.modified,
-          path: data.safePath
-        } : data;
-        const paramFiles = selectedFiles.map(f => ({
-          face: convertFn(f[0]),
-          back: convertFn(f[1]),
-        }))
+  const allFiles = [];
+  paramFiles.forEach(f => {
+    if (f.face) allFiles.push(f.face);
+    if (f.back) allFiles.push(f.back);
+  });
 
-        const allFiles = [];
-        paramFiles.forEach(f => {
-          if (f.face) allFiles.push(f.face);
-          if (f.back) allFiles.push(f.back);
-        });
+  if (allFiles.length > 0) {
+    try {
+      const result = await fetchMain(eleActions.loadImageList, { imageList: allFiles });
 
-        if (allFiles.length > 0) {
-          try {
-            const response = await fetchMain(`api/${eleActions.loadImageList}`, {
-              method: 'POST',
-              body: JSON.stringify({ imageList: allFiles })
-            });
+      console.log('Background loading started:', result);
 
-            const result = await response.json();
-            console.log('Background loading started:', result);
-
-            if (!result.success) {
-              console.warn('Some images failed to start loading:', result);
-            }
-          } catch (error) {
-            console.error('Failed to trigger background image loading:', error);
-            // 不阻止返回结果，只是记录错误
-          }
-        }
-
-        res(paramFiles);
+      if (!result.success) {
+        console.warn('Some images failed to start loading:', result);
       }
-    });
+    } catch (error) {
+      console.error('Failed to trigger background image loading:', error);
+      // 不阻止返回结果，只是记录错误
+    }
   }
-  catch (e) {
-    rej(e);
-  }
-})
 
-
+  return paramFiles;
+}
 
 export const loadConfig = () => callMain(eleActions.loadConfig);
 
-export const setTemplate = (args) => callMain('set-template', { ...args });
-export const editTemplate = (args) => callMain('edit-template', { ...args });
-export const getTemplate = (args) => callMain('get-template', { ...args });
-export const deleteTemplate = (args) => callMain('delete-template', { ...args });
+// export const setTemplate = (args) => callMain('set-template', { ...args });
+// export const editTemplate = (args) => callMain('edit-template', { ...args });
+// export const getTemplate = (args) => callMain('get-template', { ...args });
+// export const deleteTemplate = (args) => callMain('delete-template', { ...args });
 export const version = () => callMain('version');
 
 let updateProgress = () => {};

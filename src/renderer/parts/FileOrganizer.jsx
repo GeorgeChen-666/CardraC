@@ -1,27 +1,62 @@
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, TextField, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import DescriptionIcon from '@mui/icons-material/Description';
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
-import { layoutSides } from '../../shared/constants';
-import { useGlobalStore } from '../state/store';
 import React, { useEffect, useImperativeHandle, useRef, useState, forwardRef } from 'react';
 import Button from '@mui/material/Button';
 
 export const FileOrganizer = forwardRef(({
-                                        selectedFiles,
-                                        multiSelect = true,
-                                        isDoubleSides = false,
-                                        showFileIcon,
-                                        fileBrowserRef
-                                      }, ref) => {
+                                           selectedFiles,
+                                           multiSelect = true,
+                                           isDoubleSides = false,
+                                           showFileIcon = false,
+                                           fileBrowserRef,
+                                           // ✅ 新增 Save 模式参数
+                                           mode = 'open', // 'open' | 'save'
+                                           defaultFileName = '',
+                                           fileTypes = [{ label: 'All Files', value: '*' }],
+                                           onFileNameChange,
+                                           onFileTypeChange
+                                         }, ref) => {
   const scrollRef = useRef(null);
-
   const [isLocked, setIsLocked] = useState(false);
   const [lockedFiles, setLockedFiles] = useState([]);
   const prevSelectedFiles = useRef([]);
 
+  // ✅ Save 模式状态
+  const [fileName, setFileName] = useState(defaultFileName);
+  const [fileType, setFileType] = useState(fileTypes[0]?.value || '*');
+
+  // ✅ 同步外部传入的默认文件名
+  useEffect(() => {
+    setFileName(defaultFileName);
+  }, [defaultFileName]);
+
+  // ✅ 文件名变化时通知父组件
+  useEffect(() => {
+    if (mode === 'save' && onFileNameChange) {
+      onFileNameChange(fileName);
+    }
+  }, [fileName, mode, onFileNameChange]);
+
+  // ✅ 文件类型变化时通知父组件
+  useEffect(() => {
+    if (mode === 'save' && onFileTypeChange) {
+      onFileTypeChange(fileType);
+    }
+  }, [fileType, mode, onFileTypeChange]);
+
   useImperativeHandle(ref, () => ({
     getResultData: () => {
+      if (mode === 'save') {
+        // ✅ Save 模式：返回文件名和类型
+        return {
+          fileName,
+          fileType
+        };
+      }
+
+      // ✅ Open 模式：返回选择的文件
       if (isDoubleSides) {
         let frontFiles, backFiles;
         if (isLocked) {
@@ -39,27 +74,47 @@ export const FileOrganizer = forwardRef(({
       } else {
         return selectedFiles.map(f => [f._raw || null]);
       }
-    }
+    },
+    // ✅ 暴露设置文件名的方法
+    setFileName: (name) => setFileName(name)
   }));
 
   useEffect(() => {
-    if (isLocked && isDoubleSides) {
+    let shouldLimit = false;
+    let limitedFiles = selectedFiles;
+
+    // ✅ Save 模式不需要限制选择
+    if (mode === 'save') {
+      return;
+    }
+
+    // ✅ 单选模式：只能选择一个文件
+    if (!multiSelect && selectedFiles.length > 1) {
+      console.warn('单选模式下只能选择一个文件，已自动限制');
+      limitedFiles = selectedFiles.slice(-1);
+      shouldLimit = true;
+    }
+    // ✅ 双面锁定模式：背面不能超过正面
+    else if (isLocked && isDoubleSides) {
       const maxAllowed = lockedFiles.length;
 
       if (selectedFiles.length > maxAllowed) {
         console.warn(`最多只能选择 ${maxAllowed} 个背面文件，已自动限制`);
-        const limitedFiles = selectedFiles.slice(0, maxAllowed);
-        const limitedIds = new Set(limitedFiles.map(f => f.id));
-        setTimeout(() => {
-          fileBrowserRef.current?.setFileSelection(limitedIds, true);
-        }, 0);
-        return;
+        limitedFiles = selectedFiles.slice(0, maxAllowed);
+        shouldLimit = true;
       }
     }
 
-    // 保存当前有效的选择
+    if (shouldLimit) {
+      const limitedIds = new Set(limitedFiles.map(f => f.id));
+      setTimeout(() => {
+        fileBrowserRef.current?.setFileSelection(limitedIds, true);
+      }, 0);
+      return;
+    }
+
     prevSelectedFiles.current = selectedFiles;
-  }, [selectedFiles, isLocked, lockedFiles.length, isDoubleSides, fileBrowserRef]);
+  }, [selectedFiles, isLocked, lockedFiles.length, isDoubleSides, multiSelect, fileBrowserRef, mode]);
 
   // ✅ 鼠标滚轮横向滚动
   useEffect(() => {
@@ -96,23 +151,51 @@ export const FileOrganizer = forwardRef(({
     }, 100);
   }, [selectedFiles, isLocked, isDoubleSides]);
 
-  // ✅ 锁定/解锁切换
   const handleLockToggle = () => {
     if (!isLocked) {
-      // 锁定：保存当前选择为正面，清空选择
       setLockedFiles([...selectedFiles]);
       setIsLocked(true);
       prevSelectedFiles.current = [];
       fileBrowserRef.current?.setFileSelection(new Set(), true);
     } else {
-      // 解锁：清空锁定的文件
       setLockedFiles([]);
       setIsLocked(false);
       prevSelectedFiles.current = selectedFiles;
     }
   };
 
-  // ✅ 生成文件配对
+  // ✅ Save 模式：渲染文件名输入和类型选择
+  if (mode === 'save') {
+    return (
+      <Box sx={{ display: 'flex', gap: 2, flex: 1, alignItems: 'center' }}>
+        <TextField
+          label="File Name"
+          value={fileName}
+          onChange={(e) => setFileName(e.target.value)}
+          fullWidth
+          size="small"
+          autoFocus
+          placeholder="Enter file name..."
+        />
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel>File Type</InputLabel>
+          <Select
+            value={fileType}
+            onChange={(e) => setFileType(e.target.value)}
+            label="File Type"
+          >
+            {fileTypes.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
+    );
+  }
+
+  // ✅ Open 模式：原有的文件选择器 UI
   const filePairs = (() => {
     if (!isDoubleSides || !isLocked) {
       return selectedFiles.map(file => ({ front: file, back: null }));
@@ -124,7 +207,6 @@ export const FileOrganizer = forwardRef(({
     }));
   })();
 
-  // ✅ 文件槽组件
   const FileSlot = ({ file, label, isNextToFill }) => (
     <Box sx={{
       width: 100,
@@ -204,16 +286,18 @@ export const FileOrganizer = forwardRef(({
                 scrollSnapAlign: 'start'
               }}
             >
-              {showFileIcon && (<Box sx={{ display: 'flex', gap: 1, p: 1, border: '1px dashed', borderColor: 'divider', borderRadius: 1 }}>
-                <FileSlot file={pair.front} label={isDoubleSides ? '正面' : null} isNextToFill={false} />
-                {isDoubleSides && (
-                  <FileSlot
-                    file={pair.back}
-                    label="背面"
-                    isNextToFill={isBackNextToFill}
-                  />
-                )}
-              </Box>)}
+              {showFileIcon && (
+                <Box sx={{ display: 'flex', gap: 1, p: 1, border: '1px dashed', borderColor: 'divider', borderRadius: 1 }}>
+                  <FileSlot file={pair.front} label={isDoubleSides ? '正面' : null} isNextToFill={false} />
+                  {isDoubleSides && (
+                    <FileSlot
+                      file={pair.back}
+                      label="背面"
+                      isNextToFill={isBackNextToFill}
+                    />
+                  )}
+                </Box>
+              )}
 
               {!isDoubleSides && (
                 <Typography

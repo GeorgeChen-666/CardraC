@@ -105,7 +105,8 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
         filterExtensions = null,
         title = 'Select Files',
         isDoubleSides = false,
-        showFileIcon = false
+        showFileIcon = false,
+        mode = 'open'
       } = newOptions;
 
       onSelectRef.current = onSelect;
@@ -115,7 +116,8 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
         filterExtensions,
         title,
         isDoubleSides,
-        showFileIcon
+        showFileIcon,
+        mode
       });
 
       setOpen(true);
@@ -239,26 +241,32 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
         } else {
           loadFiles(fileToOpen.id, options.filterExtensions);
         }
-      } else if (fileToOpen && !options.multiSelect) {
-        if (onSelectRef.current) {
-          onSelectRef.current([fileToOpen._raw]);
-        }
+      } else if (fileToOpen && !options.multiSelect && options.mode === 'open') {
+        handleConfirm();
         setOpen(false);
+      } else if (fileToOpen && options.mode === 'save') {
+        // ✅ Save 模式：双击文件自动填充文件名
+        customComponentRef.current?.setFileName(fileToOpen.name);
       }
     } else if (data.id === ChonkyActions.ChangeSelection.id) {
       const selected = data.state.selectedFiles.filter(f => !f.isDir);
       setSelectedFiles(selected);
+
+      // ✅ Save 模式：选择文件时自动填充文件名
+      if (options.mode === 'save' && selected.length > 0) {
+        customComponentRef.current?.setFileName(selected[0].name);
+      }
     }
-  }, [loadFiles, options.multiSelect, options.filterExtensions]);
+  }, [loadFiles, options.multiSelect, options.filterExtensions, options.mode]);
 
   const fileActions = useMemo(() => [
     ChonkyActions.SelectAllFiles,
     ChonkyActions.ClearSelection,
   ], []);
 
-  const handleConfirm = async () => {
+  const handleConfirm = () => {
     if (currentPath) {
-      await saveDefaultPath(currentPath);
+      saveDefaultPath(currentPath);
     }
 
     let resultData;
@@ -329,9 +337,13 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
           fileBrowserRef={fileBrowserRef}
           isDoubleSides={options.isDoubleSides}
           showFileIcon={options.showFileIcon}
+          mode={options.mode}
         />
         <Divider orientation="vertical" flexItem />
-        <Button onClick={() => setOpen(false)}>
+        <Button onClick={() => {
+          onSelectRef?.current?.([]);
+          setOpen(false)
+        }}>
           {t('button.cancel')}
         </Button>
         <Button
@@ -339,7 +351,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
           variant="contained"
           disabled={selectedFiles.length === 0}
         >
-          {t('button.ok')}
+          {options.mode === 'save' ? t('button.save') : t('button.ok')}
         </Button>
       </DialogActions>
     </Dialog>

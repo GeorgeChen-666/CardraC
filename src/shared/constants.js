@@ -18,6 +18,10 @@ export const eleActions = Object.freeze({
   getPrinters: 'get-printers',
   adjustGuidePrint: 'adjust-guide-print',
   printPages: 'print-pages',
+  getTemplate: 'get-template',
+  setTemplate: 'set-template',
+  editTemplate: 'edit-template',
+  deleteTemplate: 'delete-template',
 });
 
 export const layoutSides = Object.freeze({

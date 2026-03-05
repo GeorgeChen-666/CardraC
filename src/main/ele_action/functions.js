@@ -6,15 +6,16 @@ import { expandPath, fixPath } from '../utils';
 // import { app, BrowserWindow } from 'electron';
 
 // ✅ 平替 electron-store
-class SimpleStore {
-  constructor() {
+export class SimpleStore {
+  constructor(name = 'config') {
     const appName = process.env.npm_package_name || 'cardrac';
-    const configDir = path.join(os.homedir(), '.config', appName);
-    this.configPath = path.join(configDir, 'config.json');
+    this.configDir = path.join(os.homedir(), '.config', appName);
+    this.configPath = path.join(this.configDir, `${name}.json`);
+    this.name = name;
 
     // 确保目录存在
-    if (!fs.existsSync(configDir)) {
-      fs.mkdirSync(configDir, { recursive: true });
+    if (!fs.existsSync(this.configDir)) {
+      fs.mkdirSync(this.configDir, { recursive: true });
     }
 
     // 初始化配置文件
@@ -28,7 +29,7 @@ class SimpleStore {
       const data = fs.readFileSync(this.configPath, 'utf-8');
       return JSON.parse(data);
     } catch (e) {
-      console.error('Failed to read config:', e);
+      console.error(`Failed to read config ${this.name}:`, e);
       return {};
     }
   }
@@ -39,7 +40,27 @@ class SimpleStore {
       const updated = { ...current, ...value };
       fs.writeFileSync(this.configPath, JSON.stringify(updated, null, 2), 'utf-8');
     } catch (e) {
-      console.error('Failed to write config:', e);
+      console.error(`Failed to write config ${this.name}:`, e);
+    }
+  }
+
+  // ✅ 新增：清空配置
+  clear() {
+    try {
+      fs.writeFileSync(this.configPath, '{}', 'utf-8');
+    } catch (e) {
+      console.error(`Failed to clear config ${this.name}:`, e);
+    }
+  }
+
+  // ✅ 新增：删除配置文件
+  delete() {
+    try {
+      if (fs.existsSync(this.configPath)) {
+        fs.unlinkSync(this.configPath);
+      }
+    } catch (e) {
+      console.error(`Failed to delete config ${this.name}:`, e);
     }
   }
 }
@@ -183,7 +204,7 @@ export const initConfigStore = async () => {
   return new Promise((resolve, reject) => {
     try {
       if (!store) {
-        store = new SimpleStore();
+        store = new SimpleStore('config');
         resolve();
       }
     } catch (e) {
