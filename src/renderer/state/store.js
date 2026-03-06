@@ -155,10 +155,9 @@ export const useGlobalStore = create(middlewares((set, get) => ({
     get().mergeState({ Config: initialState.Config, CardList: [] });
     get().historyReset();
   },
-  openProject: () => {
+  openProject: (filePath) => {
     get().loading(async () => {
-      // const projectData = await callMain(eleActions.openProject);
-      const projectData = await openProject();
+      const projectData = await openProject(filePath);
       if (projectData) {
         const { isValid, config: validatedData } = await validateAndFixConfig({
           ...projectData,
@@ -169,11 +168,12 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       }
     });
   },
-  saveProject: () => {
+  saveProject: (params) => {
     get().loading(async () => {
-      const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList };
-      // const rs = await callMain(eleActions.saveProject, param);
-      const rs = await saveProject(param);
+      const rs = await saveProject({
+        ...params,
+        ...{ globalBackground: get().Config.globalBackground, CardList: get().CardList }
+      });
       rs && notificationSuccess();
     });
   },

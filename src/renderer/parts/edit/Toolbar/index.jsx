@@ -17,7 +17,7 @@ import { AboutDialog } from './About/AboutDialog';
 import { SetupDialog } from './Setup/SetupDialog';
 import { ChatDialog } from './Chat/ChatDialog';
 import Switch from '@mui/material/Switch';
-import { getImageSrc, openImage } from '../../../functions';
+import { getImageSrc, openImage, showFileOpenDialog } from '../../../functions';
 import { exportType, layoutSides, initialState } from '../../../../shared/constants';
 import { CompressSelectButton } from './CompressSelectButton';
 import { BulkOperationButton } from './BulkOperationButton';
@@ -79,12 +79,24 @@ export function EditToolbar() {
       <GeneralIconButton
         label={t('toolbar.btnOpen')}
         icon={<FindInPageIcon />}
-        onClick={() => openProject()}
+        onClick={async () => {
+          const selectedFiles = await showFileOpenDialog({filterExtensions: 'cpnp'});
+          if(selectedFiles.length === 0) {
+            return;
+          }
+          openProject({ filePath: selectedFiles[0][0].realPath })
+        }}
       />
       <GeneralIconButton
         label={t('toolbar.btnSave')}
         icon={<SaveIcon />}
-        onClick={() => saveProject()}
+        onClick={async () => {
+          const selectedFiles = await showFileOpenDialog({filterExtensions: 'cpnp', mode: 'save'});
+          if(selectedFiles.length === 0) {
+            return;
+          }
+          saveProject({ filePath: selectedFiles[0][0].realPath })
+        }}
       />
       <GeneralIconButton
         disabled={!canUndo}

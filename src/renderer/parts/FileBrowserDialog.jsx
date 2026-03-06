@@ -283,7 +283,26 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
 
     let resultData;
 
-    if (options.mode === 'save') {
+if (options.mode === 'save') {
+      const { fileName } = customComponentRef.current?.getResultData?.();
+
+      if (!fileName) {
+        // 可以显示错误提示
+        console.warn('Please enter a filename');
+        return;
+      }
+
+      const fullPath = currentPath
+        ? `${currentPath}/${fileName}`
+        : fileName;
+
+      resultData = [[{
+        realPath: fullPath,
+        name: fileName,
+        isDirectory: false
+      }]];
+    } else {
+      if (options.mode === 'save') {
       const { fileName, fileType } = customComponentRef.current?.getResultData?.() || {};
       let finalFileName = fileName;
       if (fileType && fileType !== '*') {
@@ -302,8 +321,8 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
         directory: currentPath,
         isDirectory: false
       }];
-    } else {
-      resultData = customComponentRef.current?.getResultData?.() || selectedFiles.map(f => f._raw);
+      } else {
+        resultData = customComponentRef.current?.getResultData?.() || selectedFiles.map(f => f._raw);}
     }
     if (onSelectRef.current) {
       onSelectRef.current(resultData);
@@ -411,7 +430,11 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
           skipConfirm={shouldSkipConfirm()}
           onClick={handleConfirm}
           variant="contained"
-          disabled={inputFileName.length === 0}
+          disabled={
+            options.mode === 'save'
+              ? inputFileName.length === 0  // save 模式下始终可点击
+              : selectedFiles.length === 0  // open 模式下需要选中文件
+          }
         >
           {options.mode === 'save' ? t('button.save') : t('button.ok')}
         </ConfimButton>

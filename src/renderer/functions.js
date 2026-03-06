@@ -43,7 +43,7 @@ export const fillByObjectValue = (source, value) => {
   return result;
 };
 
-const showFileOpenDialog = (params) => new Promise((resolve, reject) => {
+export const showFileOpenDialog = (params) => new Promise((resolve, reject) => {
   try {
     fileBrowserRef.current?.openDialog({
       multiSelect: false,
@@ -124,20 +124,16 @@ export const version = () =>
   fetchMain(eleActions.version, null, { method: 'GET', format: 'text' })
 export const loadConfig = () =>
   fetchMain(eleActions.loadConfig, null, { method: 'GET'})
-export const openProject = async () => {
-  const selectedFiles = await showFileOpenDialog({filterExtensions: 'cpnp'});
-  if(selectedFiles.length === 0) {
-    return;
-  }
-  return await fetchMain(eleActions.openProject, { filePath: selectedFiles[0][0].realPath });
-}
-export const saveProject = async () => {
-  const selectedFiles = await showFileOpenDialog({filterExtensions: 'cpnp', mode: 'save'});
-  if(selectedFiles.length === 0) {
-    return;
-  }
-  return await fetchMain(eleActions.saveProject, { filePath: selectedFiles[0][0].realPath });
-}
+export const openProject = (params) =>
+  fetchMain(eleActions.openProject, params)
+export const saveProject = (params) =>
+  fetchMain(eleActions.saveProject, params)
+export const loadImageList = (params) =>
+  fetchMain(eleActions.loadImageList, params)
+
+
+
+
 export const openMultiImage = (isDoubleSides) => openImage(isDoubleSides, true)
 export const openImage = async (isDoubleSides, isMultiImage = false) => {
   const selectedFiles = await showFileOpenDialog({multiSelect: true, filterExtensions: 'jpg,png,gif',isDoubleSides, showFileIcon: true});
@@ -159,8 +155,7 @@ export const openImage = async (isDoubleSides, isMultiImage = false) => {
 
   if (allFiles.length > 0) {
     try {
-      const result = await fetchMain(eleActions.loadImageList, { imageList: allFiles });
-
+      const result = await loadImageList({ imageList: allFiles })
       console.log('Background loading started:', result);
 
       if (!result.success) {
@@ -174,14 +169,6 @@ export const openImage = async (isDoubleSides, isMultiImage = false) => {
 
   return paramFiles;
 }
-
-// export const loadConfig = () => callMain(eleActions.loadConfig);
-
-// export const setTemplate = (args) => callMain('set-template', { ...args });
-// export const editTemplate = (args) => callMain('edit-template', { ...args });
-// export const getTemplate = (args) => callMain('get-template', { ...args });
-// export const deleteTemplate = (args) => callMain('delete-template', { ...args });
-// export const version = () => callMain('version');
 
 let updateProgress = () => {};
 export const regUpdateProgress = cb => updateProgress = cb;

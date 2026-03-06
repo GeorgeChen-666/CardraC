@@ -75,7 +75,7 @@ interface StoreState {
   progress: (v: number) => void;
 
   // Project methods
-  openProject: () => void;
+  openProject: (filePath: any | string) => void;
   saveProject: () => void;
   exportFile: (targetFileType: string) => void;
   printPages: (params: { pageList: any[]; printConfig: any }) => void;
