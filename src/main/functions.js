@@ -7,7 +7,7 @@ import { expandPath, fixPath } from './utils';
 
 export const isDev = process.env.NODE_ENV === 'development';
 
-// ✅ 平替 electron-store
+//平替 electron-store
 export class SimpleStore {
   constructor(name = 'config', cwd = null) {
     const appName = process.env.npm_package_name || 'cardrac';
@@ -57,7 +57,7 @@ export class SimpleStore {
     }
   }
 
-  // ✅ 新增：清空配置
+  //新增：清空配置
   clear() {
     try {
       fs.writeFileSync(this.configPath, '{}', 'utf-8');
@@ -66,7 +66,7 @@ export class SimpleStore {
     }
   }
 
-  // ✅ 新增：删除配置文件
+  //新增：删除配置文件
   delete() {
     try {
       if (fs.existsSync(this.configPath)) {
@@ -205,7 +205,7 @@ export const base64ToBuffer = (base64Data) => {
   return decodedString;
 };
 
-// ✅ 平替 electron-store
+//平替 electron-store
 let store = null;
 
 export const updateConfigStore = (value) => {

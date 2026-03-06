@@ -108,7 +108,7 @@ const registerTemplateAPI = (app, basePath = '/api') => {
     }
   });
 
-  // ✅ 删除模板
+  //删除模板
   app.delete(`${basePath}/${eleActions.deleteTemplate}`, (req, res) => {
     try {
       const { id } = req.body;

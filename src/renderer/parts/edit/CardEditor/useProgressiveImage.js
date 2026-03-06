@@ -13,12 +13,12 @@ export const useProgressiveImage = (imageData, version) => {
       return;
     }
 
-    // ✅ 立即显示低清图
+    //立即显示低清图
     const lowQualitySrc = getImageSrc(imageData, { quality: 'low', version });
     setSrc(lowQualitySrc);
     setIsHighQuality(false);
 
-    // ✅ 后台加载高清图
+    //后台加载高清图
     const highQualitySrc = getImageSrc(imageData, { quality: 'high', version });
     const img = new Image();
 

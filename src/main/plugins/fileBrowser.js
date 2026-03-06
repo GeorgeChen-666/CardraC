@@ -3,7 +3,7 @@ const path = require('path');
 const os = require('os');
 const { readCompressedImage, SimpleStore } = require('../functions');
 const { fixPath, expandPath } = require('../utils');
-const { OverviewStorage } = require('../file_render/utils'); // ✅ 引入压缩函数
+const { OverviewStorage } = require('../file_render/utils'); //引入压缩函数
 
 const defaultPathStore = new SimpleStore('defaultPathConfig')
 const getDefaultPath = () => {
@@ -83,7 +83,7 @@ const listDrives = (query = {}, basePath = '/browse') => {
           path: `${d}:`,
           url: `${basePath}/${d}:/${suffix}`,
           fileUrl: `${basePath}/${d}:/`,
-          // ✅ 添加缩略图 URL
+          //添加缩略图 URL
           thumbnailUrl: `${basePath}/${d}:/`,
           isDirectory: true
         })),
@@ -113,7 +113,7 @@ const browse = (drivePath, query = {}, basePath = '/browse') => {
   const cur = up === '/' ? `${drv.toUpperCase()}:` : `${drv.toUpperCase()}:${up}`;
   const real = path.join(root, up === '/' ? '' : up.replace(/^\//, ''));
 
-  const { mode, sort = 'name', order = 'asc', ext, thumbnail } = query; // ✅ 添加 thumbnail 参数
+  const { mode, sort = 'name', order = 'asc', ext, thumbnail } = query; //添加 thumbnail 参数
   const qs = new URLSearchParams(query).toString();
   const suffix = qs ? `?${qs}` : '';
 
@@ -134,13 +134,13 @@ const browse = (drivePath, query = {}, basePath = '/browse') => {
           modified: st.mtime.getTime(),
           url: `${basePath}/${cur}${suffix}`,
           fileUrl: `${basePath}/${cur}`,
-          // ✅ 添加缩略图 URL
+          //添加缩略图 URL
           thumbnailUrl: `${basePath}/${cur}?thumbnail=true`
         }
       };
     }
 
-    // ✅ 如果请求缩略图，标记为需要压缩
+    //如果请求缩略图，标记为需要压缩
     if (thumbnail === 'true') {
       return { type: 'thumbnail', path: real };
     }

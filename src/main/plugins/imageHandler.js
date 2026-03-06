@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-// ✅ 在文件内部导入 eleActions
+//在文件内部导入 eleActions
 const { eleActions } = require('../../shared/constants');
 const { getConfigStore, readCompressedImage } = require('../functions');
 const {
@@ -62,7 +62,7 @@ const sendProgress = (channelId, progress) => {
   }
 };
 
-// ✅ 添加 basePath 参数，默认 '/api'
+//添加 basePath 参数，默认 '/api'
 const registerImageAPI = (app, basePath = '/api') => {
 
   // 进度通道
@@ -190,7 +190,7 @@ const registerImageAPI = (app, basePath = '/api') => {
       const [, imageType, base64Data] = matches;
       const buffer = Buffer.from(base64Data, 'base64');
 
-      // ✅ 设置正确的 Content-Type
+      //设置正确的 Content-Type
       const mimeTypes = {
         'jpeg': 'image/jpeg',
         'jpg': 'image/jpeg',

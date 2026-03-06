@@ -11,7 +11,7 @@ export const FileOrganizer = forwardRef(({
                                            isDoubleSides = false,
                                            showFileIcon = false,
                                            fileBrowserRef,
-                                           // ✅ 新增 Save 模式参数
+                                           //新增 Save 模式参数
                                            mode = 'open', // 'open' | 'save'
                                            defaultFileName = '',
                                            fileTypes = [{ label: 'All Files', value: '*' }],
@@ -23,23 +23,23 @@ export const FileOrganizer = forwardRef(({
   const [lockedFiles, setLockedFiles] = useState([]);
   const prevSelectedFiles = useRef([]);
 
-  // ✅ Save 模式状态
+  //Save 模式状态
   const [fileName, setFileName] = useState(defaultFileName);
   const [fileType, setFileType] = useState(fileTypes[0]?.value || '*');
 
-  // ✅ 同步外部传入的默认文件名
+  //同步外部传入的默认文件名
   useEffect(() => {
     setFileName(defaultFileName);
   }, [defaultFileName]);
 
-  // ✅ 文件名变化时通知父组件
+  //文件名变化时通知父组件
   useEffect(() => {
     if (mode === 'save' && onFileNameChange) {
       onFileNameChange(fileName);
     }
   }, [fileName, mode, onFileNameChange]);
 
-  // ✅ 文件类型变化时通知父组件
+  //文件类型变化时通知父组件
   useEffect(() => {
     if (mode === 'save' && onFileTypeChange) {
       onFileTypeChange(fileType);
@@ -49,14 +49,14 @@ export const FileOrganizer = forwardRef(({
   useImperativeHandle(ref, () => ({
     getResultData: () => {
       if (mode === 'save') {
-        // ✅ Save 模式：返回文件名和类型
+        //Save 模式：返回文件名和类型
         return {
           fileName,
           fileType
         };
       }
 
-      // ✅ Open 模式：返回选择的文件
+      //Open 模式：返回选择的文件
       if (isDoubleSides) {
         let frontFiles, backFiles;
         if (isLocked) {
@@ -75,7 +75,7 @@ export const FileOrganizer = forwardRef(({
         return selectedFiles.map(f => [f._raw || null]);
       }
     },
-    // ✅ 暴露设置文件名的方法
+    //暴露设置文件名的方法
     setFileName: (name) => setFileName(name)
   }));
 
@@ -83,18 +83,18 @@ export const FileOrganizer = forwardRef(({
     let shouldLimit = false;
     let limitedFiles = selectedFiles;
 
-    // ✅ Save 模式不需要限制选择
+    //Save 模式不需要限制选择
     if (mode === 'save') {
       return;
     }
 
-    // ✅ 单选模式：只能选择一个文件
+    //单选模式：只能选择一个文件
     if (!multiSelect && selectedFiles.length > 1) {
       console.warn('单选模式下只能选择一个文件，已自动限制');
       limitedFiles = selectedFiles.slice(-1);
       shouldLimit = true;
     }
-    // ✅ 双面锁定模式：背面不能超过正面
+    //双面锁定模式：背面不能超过正面
     else if (isLocked && isDoubleSides) {
       const maxAllowed = lockedFiles.length;
 
@@ -116,7 +116,7 @@ export const FileOrganizer = forwardRef(({
     prevSelectedFiles.current = selectedFiles;
   }, [selectedFiles, isLocked, lockedFiles.length, isDoubleSides, multiSelect, fileBrowserRef, mode]);
 
-  // ✅ 鼠标滚轮横向滚动
+  //鼠标滚轮横向滚动
   useEffect(() => {
     const scrollElement = scrollRef.current;
     if (!scrollElement) return;
@@ -133,7 +133,7 @@ export const FileOrganizer = forwardRef(({
     };
   }, []);
 
-  // ✅ 自动滚动到最新选择的文件
+  //自动滚动到最新选择的文件
   useEffect(() => {
     if (!scrollRef.current || selectedFiles.length === 0) return;
 
@@ -164,7 +164,7 @@ export const FileOrganizer = forwardRef(({
     }
   };
 
-  // ✅ Save 模式：渲染文件名输入和类型选择
+  //Save 模式：渲染文件名输入和类型选择
   if (mode === 'save') {
     return (
       <Box sx={{ display: 'flex', gap: 2, flex: 1, alignItems: 'center' }}>
@@ -195,7 +195,7 @@ export const FileOrganizer = forwardRef(({
     );
   }
 
-  // ✅ Open 模式：原有的文件选择器 UI
+  //Open 模式：原有的文件选择器 UI
   const filePairs = (() => {
     if (!isDoubleSides || !isLocked) {
       return selectedFiles.map(file => ({ front: file, back: null }));

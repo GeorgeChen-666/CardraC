@@ -273,7 +273,7 @@ class DiskCache {
       cleanup();
     };
 
-    // ✅ 移除 app.on，只保留 process 事件
+    //移除 app.on，只保留 process 事件
     process.on('exit', safeCleanup);
     process.on('SIGINT', () => { safeCleanup(); process.exit(0); });
     process.on('SIGTERM', () => { safeCleanup(); process.exit(0); });

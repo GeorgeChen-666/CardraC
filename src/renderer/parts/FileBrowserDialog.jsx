@@ -134,7 +134,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
     },
   }));
 
-  // ✅ 添加 buildFolderChain 函数
+  //添加 buildFolderChain 函数
   const buildFolderChain = useCallback((currentPath) => {
     const chain = [{
       id: 'root',
@@ -161,7 +161,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
     return chain;
   }, []);
 
-  // ✅ 添加 updateHistoryState 函数
+  //添加 updateHistoryState 函数
   const updateHistoryState = useCallback(() => {
     setCanGoBack(historyStack.current.length > 0);
     setCanGoForward(forwardStack.current.length > 0);
@@ -245,14 +245,14 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
         handleConfirm();
         setOpen(false);
       } else if (fileToOpen && options.mode === 'save') {
-        // ✅ Save 模式：双击文件自动填充文件名
+        // Save 模式：双击文件自动填充文件名
         customComponentRef.current?.setFileName(fileToOpen.name);
       }
     } else if (data.id === ChonkyActions.ChangeSelection.id) {
       const selected = data.state.selectedFiles.filter(f => !f.isDir);
       setSelectedFiles(selected);
 
-      // ✅ Save 模式：选择文件时自动填充文件名
+      // Save 模式：选择文件时自动填充文件名
       if (options.mode === 'save' && selected.length > 0) {
         customComponentRef.current?.setFileName(selected[0].name);
       }
@@ -270,10 +270,31 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
     }
 
     let resultData;
-    if (customComponentRef.current?.getResultData) {
-      resultData = customComponentRef.current.getResultData();
+
+    if (options.mode === 'save') {
+      const { fileName } = customComponentRef.current?.getResultData?.();
+
+      if (!fileName) {
+        // 可以显示错误提示
+        console.warn('Please enter a filename');
+        return;
+      }
+
+      const fullPath = currentPath
+        ? `${currentPath}/${fileName}`
+        : fileName;
+
+      resultData = [[{
+        realPath: fullPath,
+        name: fileName,
+        isDirectory: false
+      }]];
     } else {
-      resultData = selectedFiles.map(f => f._raw);
+      if (customComponentRef.current?.getResultData) {
+        resultData = customComponentRef.current.getResultData();
+      } else {
+        resultData = selectedFiles.map(f => f._raw);
+      }
     }
 
     if (onSelectRef.current) {
@@ -281,6 +302,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
     }
     setOpen(false);
   };
+
 
   return (
     <Dialog
@@ -349,7 +371,11 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
         <Button
           onClick={handleConfirm}
           variant="contained"
-          disabled={selectedFiles.length === 0}
+          disabled={
+            options.mode === 'save'
+              ? false  // save 模式下始终可点击
+              : selectedFiles.length === 0  // open 模式下需要选中文件
+          }
         >
           {options.mode === 'save' ? t('button.save') : t('button.ok')}
         </Button>

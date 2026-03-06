@@ -156,7 +156,7 @@ const registerProjectAPI = (app, basePath = '/api') => {
     });
   });
 
-  // ✅ 保存项目
+  //保存项目
   app.post(`${basePath}/${eleActions.saveProject}`, async (req, res) => {
     try {
       const { CardList, globalBackground, filePath, progressChannel } = req.body;
@@ -216,7 +216,7 @@ const registerProjectAPI = (app, basePath = '/api') => {
     }
   });
 
-  // ✅ 加载项目
+  //加载项目
   app.post(`${basePath}/${eleActions.openProject}`, async (req, res) => {
     try {
       const { filePath, progressChannel } = req.body;
