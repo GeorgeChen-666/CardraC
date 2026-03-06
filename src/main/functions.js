@@ -12,7 +12,7 @@ export class SimpleStore {
   constructor(name = 'config', cwd = null) {
     const appName = process.env.npm_package_name || 'cardrac';
     const getConfigDir = () => {
-      if(cwd) return path.join(cwd, appName);
+      if(cwd) return cwd;
       switch (process.platform) {
         case 'win32':
           return path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), appName);
