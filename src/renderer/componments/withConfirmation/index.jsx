@@ -13,6 +13,7 @@ export const withConfirmation = (WrappedComponent) => {
       confirmMessage = 'Confirm?',
       confirmButtonText = 'Yes',
       cancelButtonText = 'No',
+      skipConfirm = false,
       ...otherProps
     } = props;
 
@@ -22,6 +23,12 @@ export const withConfirmation = (WrappedComponent) => {
     const handleOpen = (e,...args) => {
       e.preventDefault();
       e.stopPropagation();
+      if (skipConfirm) {
+        if (typeof onClick === 'function') {
+          onClick(e, ...args);
+        }
+        return;
+      }
       setClickArgs([e,...args]);
       setOpen(true);
     };

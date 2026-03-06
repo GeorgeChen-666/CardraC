@@ -20,7 +20,7 @@ const sendProgress = (channelId, progress) => {
 
 const registerOtherAPI = (app, basePath = '/api') => {
 
-  // ✅ 进度通道（与其他 handler 共用）
+  //进度通道（与其他 handler 共用）
   app.get(`${basePath}/progress/:channelId`, (req, res) => {
     const { channelId } = req.params;
 
@@ -43,7 +43,7 @@ const registerOtherAPI = (app, basePath = '/api') => {
     });
   });
 
-  // ✅ 导出文件
+  //导出文件
   app.post(`${basePath}/${eleActions.exportFile}`, async (req, res) => {
     try {
       const { CardList, globalBackground, targetFileType, progressChannel } = req.body;
@@ -126,7 +126,7 @@ const registerOtherAPI = (app, basePath = '/api') => {
 
       progressChannel && sendProgress(progressChannel, 1);
 
-      // ✅ 返回文件供下载
+      //返回文件供下载
       res.setHeader('Content-Type', mimeType);
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
       res.send(fileContent);
@@ -142,7 +142,7 @@ const registerOtherAPI = (app, basePath = '/api') => {
     }
   });
 
-  // ✅ 导出文件到指定路径（服务器端保存）
+  //导出文件到指定路径（服务器端保存）
   app.post(`${basePath}/${eleActions.exportFile}/save`, async (req, res) => {
     try {
       const { CardList, globalBackground, targetFileType, filePath, progressChannel } = req.body;
@@ -203,7 +203,7 @@ const registerOtherAPI = (app, basePath = '/api') => {
         fileContent = blob[0].buffer || blob[0];
       }
 
-      // ✅ 保存到指定路径
+      //保存到指定路径
       await saveDataToFile(fileContent, filePath);
 
       progressChannel && sendProgress(progressChannel, 1);
@@ -223,7 +223,7 @@ const registerOtherAPI = (app, basePath = '/api') => {
     }
   });
 
-  // ✅ 获取应用版本
+  //获取应用版本
   app.get(`${basePath}/version`, (req, res) => {
     try {
       const packageJson = require('../../../package.json');

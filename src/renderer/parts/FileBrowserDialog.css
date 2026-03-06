@@ -41,3 +41,11 @@
 .FileBrowserDialog .MuiDialogContent-root {
     padding-top: 0!important;
 }
+
+.FileBrowserDialog .MuiInputBase-sizeSmall .MuiInputBase-inputSizeSmall:not(.MuiSelect-select) {
+    padding: 9px 14px;
+    margin-bottom: 2px;
+}
+.FileBrowserDialog .MuiInputBase-sizeSmall .MuiInputBase-inputSizeSmall.MuiSelect-select {
+    padding: 8px 14px;
+}

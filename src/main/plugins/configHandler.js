@@ -14,7 +14,7 @@ const getLangFilePath = () => {
   }
 };
 
-// ✅ 初始化语言文件
+//初始化语言文件
 const initLanguageJson = (lang) => {
   const langFilePath = getLangFilePath();
   const langStore = new SimpleStore(lang, langFilePath);
@@ -22,7 +22,7 @@ const initLanguageJson = (lang) => {
   langStore.set(_.merge(defaultLangStore, langStore.get()));
 };
 
-// ✅ 获取所有可用语言
+//获取所有可用语言
 const getAvailableLanguages = () => {
   try {
     const langFilePath = getLangFilePath();
@@ -40,7 +40,7 @@ const getAvailableLanguages = () => {
   }
 };
 
-// ✅ 读取语言文件
+//读取语言文件
 const getLocale = (lang) => {
   try {
     const langFilePath = getLangFilePath();
@@ -53,7 +53,7 @@ const getLocale = (lang) => {
 };
 
 const registerConfigAPI = (app, basePath = '/api') => {
-  // ✅ 加载配置
+  //加载配置
   app.get(`${basePath}/${eleActions.loadConfig}`, (req, res) => {
     try {
       // 初始化语言文件
@@ -81,7 +81,7 @@ const registerConfigAPI = (app, basePath = '/api') => {
     }
   });
 
-  // ✅ 保存配置
+  //保存配置
   app.post(`${basePath}/${eleActions.saveConfig}`, (req, res) => {
     try {
       const { Global, Config } = req.body;
@@ -115,7 +115,7 @@ const registerConfigAPI = (app, basePath = '/api') => {
     }
   });
 
-  // ✅ 加载打印配置
+  //加载打印配置
   app.get(`${basePath}/${eleActions.loadPrintConfig}`, (req, res) => {
     try {
       const {
@@ -136,7 +136,7 @@ const registerConfigAPI = (app, basePath = '/api') => {
     }
   });
 
-  // ✅ 保存打印配置
+  //保存打印配置
   app.post(`${basePath}/${eleActions.savePrintConfig}`, (req, res) => {
     try {
       const { printConfig } = req.body;

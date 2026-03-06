@@ -15,8 +15,11 @@ import { useTranslation } from 'react-i18next';
 import { Divider } from '@mui/material';
 import './FileBrowserDialog.css';
 import { FileOrganizer } from './FileOrganizer';
+import { withConfirmation } from '../componments/withConfirmation';
 
 console.debug = () => {};
+
+const ConfimButton = withConfirmation(Button)
 
 const API_BASE = 'http://localhost:3333/browse';
 
@@ -81,7 +84,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
   const [loading, setLoading] = useState(false);
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
-
+  const [inputFileName, setInputFileName] = useState('');
   const [options, setOptions] = useState({
     multiSelect: false,
     filterExtensions: null,
@@ -110,8 +113,10 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
       } = newOptions;
 
       onSelectRef.current = onSelect;
+      const defaultPath = await getDefaultPath();
 
       setOptions({
+        defaultPath,
         multiSelect,
         filterExtensions,
         title,
@@ -127,14 +132,21 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
       setCanGoBack(false);
       setCanGoForward(false);
 
-      const defaultPath = await getDefaultPath();
+
       loadFiles(defaultPath, filterExtensions);
       setSelectedFiles([]);
       fileBrowserRef.current?.setFileSelection(new Set(), true);
     },
   }));
 
-  // ✅ 添加 buildFolderChain 函数
+  const getCurrentExtension = useCallback(() => {
+    if (options.mode === 'save') {
+      return customComponentRef.current?.fileType || options.filterExtensions;
+    }
+    return options.filterExtensions;
+  }, [options.mode, options.filterExtensions]);
+
+  //添加 buildFolderChain 函数
   const buildFolderChain = useCallback((currentPath) => {
     const chain = [{
       id: 'root',
@@ -161,7 +173,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
     return chain;
   }, []);
 
-  // ✅ 添加 updateHistoryState 函数
+  //添加 updateHistoryState 函数
   const updateHistoryState = useCallback(() => {
     setCanGoBack(historyStack.current.length > 0);
     setCanGoForward(forwardStack.current.length > 0);
@@ -211,7 +223,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
       const previousPath = historyStack.current.pop();
       forwardStack.current.push(currentPath);
       isNavigating.current = true;
-      loadFiles(previousPath, options.filterExtensions, false).then(() => {
+      loadFiles(previousPath, getCurrentExtension(), false).then(() => {
         isNavigating.current = false;
         updateHistoryState();
       });
@@ -223,7 +235,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
       const nextPath = forwardStack.current.pop();
       historyStack.current.push(currentPath);
       isNavigating.current = true;
-      loadFiles(nextPath, options.filterExtensions, false).then(() => {
+      loadFiles(nextPath, getCurrentExtension(), false).then(() => {
         isNavigating.current = false;
         updateHistoryState();
       });
@@ -237,22 +249,22 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
 
       if (fileToOpen && fileToOpen.isDir) {
         if (fileToOpen.id === 'root' || fileToOpen.id === '') {
-          loadFiles('', options.filterExtensions);
+          loadFiles('', getCurrentExtension());
         } else {
-          loadFiles(fileToOpen.id, options.filterExtensions);
+          loadFiles(fileToOpen.id, getCurrentExtension());
         }
       } else if (fileToOpen && !options.multiSelect && options.mode === 'open') {
         handleConfirm();
         setOpen(false);
       } else if (fileToOpen && options.mode === 'save') {
-        // ✅ Save 模式：双击文件自动填充文件名
+        //Save 模式：双击文件自动填充文件名
         customComponentRef.current?.setFileName(fileToOpen.name);
       }
     } else if (data.id === ChonkyActions.ChangeSelection.id) {
       const selected = data.state.selectedFiles.filter(f => !f.isDir);
       setSelectedFiles(selected);
 
-      // ✅ Save 模式：选择文件时自动填充文件名
+      //Save 模式：选择文件时自动填充文件名
       if (options.mode === 'save' && selected.length > 0) {
         customComponentRef.current?.setFileName(selected[0].name);
       }
@@ -270,17 +282,56 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
     }
 
     let resultData;
-    if (customComponentRef.current?.getResultData) {
-      resultData = customComponentRef.current.getResultData();
-    } else {
-      resultData = selectedFiles.map(f => f._raw);
-    }
 
+    if (options.mode === 'save') {
+      const { fileName, fileType } = customComponentRef.current?.getResultData?.() || {};
+      let finalFileName = fileName;
+      if (fileType && fileType !== '*') {
+        const ext = fileType.startsWith('.') ? fileType : `.${fileType}`;
+        if (!finalFileName.toLowerCase().endsWith(ext.toLowerCase())) {
+          finalFileName = `${finalFileName}${ext}`;
+        }
+      }
+      const fullPath = currentPath
+        ? `${currentPath.replace(/[/\\]+$/, '')}/${finalFileName}`
+        : finalFileName;
+
+      resultData = [{
+        path: fullPath,
+        name: finalFileName,
+        directory: currentPath,
+        isDirectory: false
+      }];
+    } else {
+      resultData = customComponentRef.current?.getResultData?.() || selectedFiles.map(f => f._raw);
+    }
     if (onSelectRef.current) {
       onSelectRef.current(resultData);
     }
     setOpen(false);
   };
+
+  const shouldSkipConfirm = useCallback(() => {
+    if (options.mode !== 'save') {
+      return true;
+    }
+    const { fileName, fileType } = customComponentRef.current?.getResultData?.() || {};
+    if (!fileName) return true;
+
+    let finalFileName = fileName;
+    if (fileType && fileType !== '*') {
+      const ext = fileType.startsWith('.') ? fileType : `.${fileType}`;
+      if (!finalFileName.toLowerCase().endsWith(ext.toLowerCase())) {
+        finalFileName = `${finalFileName}${ext}`;
+      }
+    }
+
+    const fileExists = files.some(f =>
+      !f.isDir && f.name.toLowerCase() === finalFileName.toLowerCase()
+    );
+
+    return !fileExists;
+  }, [options.mode, selectedFiles.length, files]);
 
   return (
     <Dialog
@@ -337,7 +388,17 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
           fileBrowserRef={fileBrowserRef}
           isDoubleSides={options.isDoubleSides}
           showFileIcon={options.showFileIcon}
+          fileTypes={(options.filterExtensions??'').split(',').map(ext => ({ label: ext, value: ext }))}
           mode={options.mode}
+          dialogConfim={handleConfirm}
+          onFileTypeChange={(newFileType) => {
+            if (options?.mode === 'save') {
+              loadFiles(options.defaultPath, newFileType, false);
+            }
+          }}
+          onFileNameChange={(fileName) => {
+            setInputFileName(fileName);
+          }}
         />
         <Divider orientation="vertical" flexItem />
         <Button onClick={() => {
@@ -346,13 +407,14 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
         }}>
           {t('button.cancel')}
         </Button>
-        <Button
+        <ConfimButton
+          skipConfirm={shouldSkipConfirm()}
           onClick={handleConfirm}
           variant="contained"
-          disabled={selectedFiles.length === 0}
+          disabled={inputFileName.length === 0}
         >
           {options.mode === 'save' ? t('button.save') : t('button.ok')}
-        </Button>
+        </ConfimButton>
       </DialogActions>
     </Dialog>
   );
