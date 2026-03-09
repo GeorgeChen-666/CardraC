@@ -46,7 +46,7 @@ const registerOtherAPI = (app, basePath = '/api') => {
   //导出文件
   app.post(`${basePath}/${eleActions.exportFile}`, async (req, res) => {
     try {
-      const { CardList, globalBackground, targetFileType, progressChannel } = req.body;
+      const { CardList, globalBackground, targetFileType, progressChannel, filePath } = req.body;
 
       if (!CardList || !targetFileType) {
         return res.status(400).json({
@@ -89,8 +89,6 @@ const registerOtherAPI = (app, basePath = '/api') => {
       progressChannel && sendProgress(progressChannel, 0.7);
 
       let fileContent = blob;
-      let mimeType = 'application/octet-stream';
-      let fileName = `pnp.${extension}`;
 
       // 如果是多页且非 PDF，打包成 ZIP
       if (Array.isArray(blob) && blob.length > 1) {
@@ -107,31 +105,14 @@ const registerOtherAPI = (app, basePath = '/api') => {
           compressionOptions: { level: 9 }
         });
 
-        mimeType = 'application/zip';
-        fileName = `pnp.zip`;
-      } else {
-        // 单页文件
-        if (targetFileType === exportType.pdf) {
-          mimeType = 'application/pdf';
-        } else if (targetFileType === exportType.png) {
-          mimeType = 'image/png';
-        } else if (targetFileType === exportType.svg) {
-          mimeType = 'image/svg+xml';
-        }
-
-        if (Array.isArray(blob)) {
-          fileContent = blob[0].buffer || blob[0];
-        }
       }
 
       progressChannel && sendProgress(progressChannel, 1);
 
-      //返回文件供下载
-      res.setHeader('Content-Type', mimeType);
-      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-      res.send(fileContent);
 
-      console.log(`✅ Export completed: ${fileName}`);
+      await saveDataToFile(fileContent, filePath);
+      res.send({ success: true })
+      console.log(`✅ Export completed: ${filePath}`);
 
     } catch (err) {
       console.error('❌ Export failed:', err);

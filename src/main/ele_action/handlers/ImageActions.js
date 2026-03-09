@@ -26,10 +26,10 @@ const pathToImageData = async (path, cb) => {
   const cardWidth = Config.cardWidth;
   const compressLevel = Config.compressLevel || 2;
   const compressParamsList = [
-    { maxWidth: cardWidth * 15, quality: 100 },
-    { maxWidth: cardWidth * 12, quality: 90 },
-    { maxWidth: cardWidth * 9, quality: 80 },
-    { maxWidth: cardWidth * 6, quality: 70 },
+    { maxWidth: cardWidth * 15, quality: 100, maxDpi: 300 },
+    { maxWidth: cardWidth * 12, quality: 90, maxDpi: 200 },
+    { maxWidth: cardWidth * 9, quality: 80, maxDpi: 150 },
+    { maxWidth: cardWidth * 6, quality: 70, maxDpi: 75 },
   ];
 
   const ext = path.split('.').pop();

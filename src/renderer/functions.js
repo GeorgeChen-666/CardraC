@@ -43,7 +43,11 @@ export const showFileOpenDialog = (params) => new Promise((resolve, reject) => {
       filterExtensions: '*',
       ...params,
       onSelect: async (selectedFiles) => {
-        resolve(selectedFiles)
+        if(params.mode ==='save') {
+          resolve(selectedFiles[0][0])
+        } else {
+          resolve(selectedFiles)
+        }
       }
     });
   }
@@ -99,15 +103,18 @@ export const version = () =>
   fetchMain(eleActions.version, null, { method: 'GET', format: 'text' })
 export const loadConfig = () =>
   fetchMain(eleActions.loadConfig, null, { method: 'GET'})
+export const saveConfig = (params) =>
+  fetchMain(eleActions.saveConfig, params)
 export const openProject = (params) =>
   fetchMain(eleActions.openProject, params)
 export const saveProject = (params) =>
   fetchMain(eleActions.saveProject, params)
 export const loadImageList = (params) =>
   fetchMain(eleActions.loadImageList, params)
+export const exportFile = (params) =>
+  fetchMain(eleActions.exportFile, params)
 
-
-
+export const callMain = () => alert('666')
 
 export const openMultiImage = (isDoubleSides) => openImage(isDoubleSides, true)
 export const openImage = async (isDoubleSides, isMultiImage = false) => {

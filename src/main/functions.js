@@ -128,12 +128,13 @@ export const readCompressedImage = async (path, options = {}) => {
     maxWidth = 1000,
     quality = 80,
     format= 'webp',
+    maxDpi = 300,
     returnFormat = 'base64'
   } = options;
   try {
     let image = sharp(expandPath(path));
     const metadata = await image.metadata();
-
+    const imageDpi = metadata.density;
     let rotateDegrees = 0;
     if (metadata.orientation) {
       if ([5, 6, 7, 8].includes(metadata.orientation)) {
@@ -147,6 +148,9 @@ export const readCompressedImage = async (path, options = {}) => {
 
     image = image.rotate(rotateDegrees)
       .resize({ width: Math.min(metadata.width, maxWidth) });
+    if(imageDpi > maxDpi) {
+      image = image.withMetadata({ density: maxDpi });
+    }
     image = (image[format])({ lossless: true, force: true, quality });
     const ext = 'webp';
     const buffer = await image.toBuffer()
@@ -185,6 +189,8 @@ export const saveDataToFile = async (data, filePath) => {
 
   if (Buffer.isBuffer(data)) {
     buffer = data;
+  } else if (data instanceof ArrayBuffer) {
+    buffer = Buffer.from(data);
   } else if (typeof data === 'object' && data instanceof Blob) {
     buffer = Buffer.from(await data.arrayBuffer());
   } else if (typeof data === 'string') {

@@ -66,6 +66,6 @@ export class JsPDFAdapter extends IAdapter {
   }
 
   finalize() {
-    return this.doc.output('blob');
+    return this.doc.output('arraybuffer');
   }
 }

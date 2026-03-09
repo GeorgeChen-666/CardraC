@@ -84,7 +84,7 @@ const registerConfigAPI = (app, basePath = '/api') => {
   //保存配置
   app.post(`${basePath}/${eleActions.saveConfig}`, (req, res) => {
     try {
-      const { Global, Config } = req.body;
+      const { state: { Global, Config } } = req.body;
 
       if (!Global && !Config) {
         return res.status(400).json({

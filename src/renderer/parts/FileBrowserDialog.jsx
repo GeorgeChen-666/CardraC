@@ -427,6 +427,7 @@ if (options.mode === 'save') {
           {t('button.cancel')}
         </Button>
         <ConfimButton
+          confirmMessage={'文件已存在，是否覆盖？'}
           skipConfirm={shouldSkipConfirm()}
           onClick={handleConfirm}
           variant="contained"

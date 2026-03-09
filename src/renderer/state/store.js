@@ -3,11 +3,16 @@ import { eleActions, flipWay, initialState, layoutSides } from '../../shared/con
 import { create } from 'zustand';
 import {
   callMain,
-  fillByObjectValue, getExportPageCount, getExportPreview,
+  exportFile,
+  fillByObjectValue,
+  getExportPageCount,
+  getExportPreview,
   immutableMerge,
   loadConfig,
-  onOpenProjectFile, openProject,
-  regUpdateProgress, reloadLocalImage, saveProject,
+  openProject,
+  reloadLocalImage,
+  saveConfig,
+  saveProject,
 } from '../functions';
 import _ from 'lodash';
 import { i18nInstance, initI18n } from '../i18n';
@@ -155,9 +160,9 @@ export const useGlobalStore = create(middlewares((set, get) => ({
     get().mergeState({ Config: initialState.Config, CardList: [] });
     get().historyReset();
   },
-  openProject: (filePath) => {
+  openProject: (params) => {
     get().loading(async () => {
-      const projectData = await openProject(filePath);
+      const projectData = await openProject(params);
       if (projectData) {
         const { isValid, config: validatedData } = await validateAndFixConfig({
           ...projectData,
@@ -177,10 +182,10 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       rs && notificationSuccess();
     });
   },
-  exportFile: (targetFileType) => {
+  exportFile: (params) => {
     get().loading(async () => {
-      const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList, targetFileType };
-      const isSuccess = await callMain(eleActions.exportFile, param);
+      const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList, ...params };
+      const isSuccess = await exportFile(param);
       isSuccess && notificationSuccess();
     });
   },
@@ -222,21 +227,18 @@ export const useGlobalStore = create(middlewares((set, get) => ({
     });
   },
   getExportPreview: (pageIndex, isSilence = false) => {
-    const callMainGetExportPreview = async () => {
+    const getPreview = async () => {
       const param = {
         globalBackground: get().Config.globalBackground,
         CardList: get().CardList,
         pageIndex
       };
-      // const content = await ipcRenderer.invoke(eleActions.getExportPreview, param);
-      const content = await getExportPreview(param);
-
-      return content;
+      return await getExportPreview(param);
     }
     if(isSilence) {
       return new Promise((resolve, reject) => {
         try {
-          callMainGetExportPreview().then(content => {
+          getPreview().then(content => {
             resolve(content);
           })
         } catch (error) {
@@ -247,7 +249,7 @@ export const useGlobalStore = create(middlewares((set, get) => ({
     return new Promise((resolve, reject) => {
       get().loading(async () => {
         try {
-          const content = await callMainGetExportPreview();
+          const content = await getPreview();
           resolve(content);
         } catch (error) {
           reject(error);
@@ -519,15 +521,15 @@ useGlobalStore.subscribe(
   (state) => ({ Config: state.Config, Global: state.Global }),
   (newState, prevState) => {
     if (newState.Config !== prevState.Config || newState.Global !== prevState.Global) {
-      callMain(eleActions.saveConfig, { state: newState });
+      saveConfig({ state: newState })
     }
   },
   { equalityFn: shallow }
 );
 const state = useGlobalStore.getState();
-onOpenProjectFile((data) => {
-  state.fillState(data);
-});
+// onOpenProjectFile((data) => {
+//   state.fillState(data);
+// });
 
 let config = await loadConfig();
 await initI18n(config.Global);
@@ -544,5 +546,5 @@ if (!isValid) {
 
 const newStateData = _.pick(validatedConfig, ['Global', 'Config']);
 state.fillState(newStateData);
-callMain(eleActions.saveConfig, { state: newStateData });
-regUpdateProgress(state.progress);
+saveConfig({ state: newStateData });
+// regUpdateProgress(state.progress);
