@@ -8,8 +8,7 @@ import { Divider } from '@mui/material';
 import Tooltip from '@mui/material/Tooltip';
 import Badge from '@mui/material/Badge';
 import { ReloadDialog } from './ReloadImg/ReloadDialog';
-import { callMain, checkImage } from '../../../functions';
-import { eleActions } from '../../../../shared/constants';
+import { checkImage } from '../../../functions';
 import { useTranslation } from 'react-i18next';
 
 export const CompressSelectButton = ({ label, disabled }) => {

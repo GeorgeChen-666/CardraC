@@ -1,9 +1,4 @@
-import { ipcRenderer } from 'electron';
 import { eleActions, emptyImg } from '../shared/constants';
-// import { Actions, store } from './store';
-import { i18nInstance } from './i18n';
-import { triggerNotification } from './parts/Notification';
-
 
 export const isDev = process?.env?.NODE_ENV === 'development';
 
@@ -16,9 +11,6 @@ export const getResourcesPath = (path) => (isDev ? '' : '..') + path;
 export const isObject = data => typeof data === 'object' && data?.constructor === Object;
 
 export const getImageSrc = (imageData, {quality = 'low', version = 1}) => {
-  // imageData?.path
-  //   ? `cardrac://image/${imageData.path.replaceAll('\\', '')}?quality=${quality}&version=${version}`
-  //   : emptyImg.path;
   return imageData?.path
     ? `http://localhost:3333/api/${eleActions.getImageContent}?path=${imageData.path.replaceAll('\\', '')}&quality=${quality}&version=${version}`
     : emptyImg.path;
@@ -60,23 +52,6 @@ export const showFileOpenDialog = (params) => new Promise((resolve, reject) => {
   }
 });
 
-ipcRenderer.on('notification', (ev, args) => {
-  return triggerNotification({...args, description: i18nInstance.t(args.description)})
-});
-
-ipcRenderer.on('console', (ev, ...args) => console.log(...args));
-
-export const onOpenProjectFile = (cb) => {
-  ipcRenderer.once('open-project-file', async (event, data) => {
-    // dispatch(Actions.GlobalEdit({isLoading: true, loadingText: ''}));
-    console.log('open-project-file ',data);
-    cb && await cb(data);
-    // dispatch(Actions.StateFill(data));
-    // dispatch(Actions.GlobalEdit({isLoading: false, isInProgress:false, loadingText: ''}));
-  });
-};
-
-export const getMainImage = (args) => ipcRenderer.invoke(eleActions.getImageContent, args);
 
 // json	Object/Array	JSON 数据
 // text	String	文本数据
@@ -170,73 +145,9 @@ export const openImage = async (isDoubleSides, isMultiImage = false) => {
   return paramFiles;
 }
 
-let updateProgress = () => {};
-export const regUpdateProgress = cb => updateProgress = cb;
-export const callMain = (key, params = {}, transform = d => d) => new Promise((resolve) => {
-  const { returnChannel, onProgress, progressChannel, cancelCallback, ...restParams } = params;
-  const returnKey = returnChannel || `${key}-done`;
-  const progressKey = progressChannel || `${key}-progress`;
-  const cancelKey = `${key}-cancel`;
-
-  cancelCallback && cancelCallback(() => {
-    ipcRenderer.off(progressKey, onMainProgress);
-    ipcRenderer.off(returnKey, onDone);
-    ipcRenderer.send(cancelKey);
-    onMainProgress(null, 0);
-  });
-  if(restParams.state) {
-    restParams.state = JSON.parse(JSON.stringify(restParams.state));
-  }
-  ipcRenderer.send(key, {
-    returnChannel: returnKey,
-    progressChannel: progressKey,
-    ...restParams,
-  });
-
-  let lastProgress = -1;
-  const onMainProgress = ($, value) => {
-    const currentProgress = Math.round(value * 100);
-    if(currentProgress>lastProgress) {
-      if(onProgress) {
-        onProgress(currentProgress);
-      }
-      else {
-        updateProgress(currentProgress);
-      }
-    }
-    if (Math.round(value * 100) >= 100) {
-      updateProgress(-1);
-      lastProgress = -1;
-      ipcRenderer.off(progressKey, onMainProgress);
-    }
-  };
-  ipcRenderer.once(progressKey, onMainProgress);
-
-  const onDone = (event, data) => {
-    ipcRenderer.off(progressKey, onMainProgress);
-    ipcRenderer.off(returnKey, onDone);
-    const newData = transform(data);
-    const resolveData = (rs) => {
-      if(data instanceof Uint8Array) {
-        resolve(new TextDecoder().decode(rs))
-      }
-      resolve(rs);
-    }
-    if (isPromise(newData)) {
-      newData.then(nd => {
-        resolveData(nd);
-      });
-    } else {
-      resolveData(newData);
-    }
-  };
-  ipcRenderer.once(returnKey, onDone);
-});
-
 function isPlainObject(obj) {
   return typeof obj === 'object' && obj !== null && !Array.isArray(obj);
 }
-
 /**
  * 深度不可变合并，数组或对象的任意子字段引用变化时，父级对象/数组也会新建引用
  */

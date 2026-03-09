@@ -13,8 +13,7 @@ import Paper from '@mui/material/Paper';
 import './style.css'
 
 import { useTranslation } from 'react-i18next';
-import { eleActions } from '../../../../../shared/constants';
-import { callMain, checkImage, openImage } from '../../../../functions';
+import { checkImage, openImage } from '../../../../functions';
 import { useGlobalStore } from '../../../../state/store';
 import IconButton from '@mui/material/IconButton';
 
@@ -88,7 +87,6 @@ export const ReloadDialog = forwardRef(({},ref) => {
                         return path.replace(/\\/g, '/').split('/').pop();
                       }
                     };
-                    // const newPath = await callMain(eleActions.getImagePath);
                     const result = await openImage();
                     const newPath = result?.[0]?.face?.path;
                     if(newPath) {

@@ -3,7 +3,6 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { expandPath, fixPath } from './utils';
-// import { app, BrowserWindow } from 'electron';
 
 export const isDev = process.env.NODE_ENV === 'development';
 
@@ -205,7 +204,6 @@ export const base64ToBuffer = (base64Data) => {
   return decodedString;
 };
 
-//平替 electron-store
 let store = null;
 
 export const updateConfigStore = (value) => {
