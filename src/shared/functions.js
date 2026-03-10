@@ -1,8 +1,8 @@
 export const waitTime = async timeout => new Promise(resolve => setTimeout(resolve, timeout));
 export const waitCondition = async (Condition = () => true, timeout = 500, totalWaitingTime  = 30000) => new Promise(resolve => {
-  const startTime = new Date().getTime() / 1000;
+  const startTime = new Date().getTime();
   const timer = setInterval(() => {
-    const nowTime = new Date().getTime() / 1000;
+    const nowTime = new Date().getTime();
     if(Condition() || nowTime - startTime > totalWaitingTime) {
       clearInterval(timer);
       resolve();

@@ -1,4 +1,5 @@
 import { eleActions, emptyImg } from '../shared/constants';
+import { fixPath } from '../main/utils';
 
 export const isDev = process?.env?.NODE_ENV === 'development';
 
@@ -12,7 +13,7 @@ export const isObject = data => typeof data === 'object' && data?.constructor ==
 
 export const getImageSrc = (imageData, {quality = 'low', version = 1}) => {
   return imageData?.path
-    ? `http://localhost:3333/api/${eleActions.getImageContent}?path=${imageData.path.replaceAll('\\', '')}&quality=${quality}&version=${version}`
+    ? `http://localhost:3333/api/${eleActions.getImageContent}?path=${fixPath(imageData.path)}&quality=${quality}&version=${version}`
     : emptyImg.path;
 }
 

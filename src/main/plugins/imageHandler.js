@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 //在文件内部导入 eleActions
-const { eleActions } = require('../../shared/constants');
+const { eleActions, emptyImg } = require('../../shared/constants');
 const { getConfigStore, readCompressedImage } = require('../functions');
 const {
   ImageStorage,
@@ -25,10 +25,10 @@ const pathToImageData = async (imagePath, cb) => {
   const cardWidth = Config.cardWidth;
   const compressLevel = Config.compressLevel || 2;
   const compressParamsList = [
-    { maxWidth: cardWidth * 15, quality: 100 },
-    { maxWidth: cardWidth * 12, quality: 90 },
-    { maxWidth: cardWidth * 9, quality: 80 },
-    { maxWidth: cardWidth * 6, quality: 70 },
+    { maxWidth: cardWidth * 15, quality: 100, maxDpi: 300 },
+    { maxWidth: cardWidth * 12, quality: 90, maxDpi: 200 },
+    { maxWidth: cardWidth * 9, quality: 80, maxDpi: 150 },
+    { maxWidth: cardWidth * 6, quality: 70, maxDpi: 75 },
   ];
 
   const ext = imagePath.split('.').pop();
@@ -156,7 +156,7 @@ const registerImageAPI = (app, basePath = '/api') => {
   app.get(`${basePath}/${eleActions.getImageContent}`, async (req, res) => {
     try {
       const { path: imagePath, quality = 'low' } = req.query;
-      const imagePathKey = imagePath.replaceAll('\\', '');
+      const imagePathKey = fixPath(imagePath).replaceAll('\\', '');
       let content;
       if (quality === 'high') {
         content = ImageStorage[imagePathKey];
@@ -164,8 +164,8 @@ const registerImageAPI = (app, basePath = '/api') => {
           try {
             await waitCondition(
               () => ImageStorage[imagePathKey],
-              5000,
-              100
+              50,
+              10000
             );
             content = ImageStorage[imagePathKey];
           } catch (error) {
@@ -277,20 +277,19 @@ const registerImageAPI = (app, basePath = '/api') => {
         if (!args) return false;
 
         const { path: imagePath, mtime: cardMtime } = args;
-        const imagePathKey = imagePath.replaceAll('\\', '');
+        const imagePathKey = fixPath(imagePath).replaceAll('\\', '');
 
         try {
           const { mtime } = fs.statSync(expandPath(imagePath));
 
           if (cardMtime !== mtime.getTime() || !(imagePathKey in ImageStorage)) {
             totalCount++;
+            ImageStorage[imagePathKey] = null;
+            OverviewStorage[imagePathKey] = null;
             reloadImageJobs.push((async () => {
               cb && cb(mtime.getTime());
-              delete ImageStorage[imagePathKey];
-              delete OverviewStorage[imagePathKey];
               await pathToImageData(imagePath);
               currentCount++;
-
               if (progressChannel) {
                 sendProgress(progressChannel, currentCount / totalCount);
               }
@@ -302,7 +301,8 @@ const registerImageAPI = (app, basePath = '/api') => {
         }
         return false;
       };
-
+      ImageStorage.clear();
+      OverviewStorage.keys();
       CardList.forEach((card, index) => {
         reloadImage(card.face, newMtime => {
           CardList[index].face.mtime = newMtime;

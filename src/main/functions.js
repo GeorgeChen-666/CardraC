@@ -132,7 +132,8 @@ export const readCompressedImage = async (path, options = {}) => {
     returnFormat = 'base64'
   } = options;
   try {
-    let image = sharp(expandPath(path));
+    const fileBuffer = fs.readFileSync(expandPath(path));
+    let image = sharp(fileBuffer);
     const metadata = await image.metadata();
     const imageDpi = metadata.density;
     let rotateDegrees = 0;

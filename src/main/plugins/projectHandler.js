@@ -5,6 +5,7 @@ const { getConfigStore, saveDataToFile } = require('../functions');
 const { defaultImageStorage, ImageStorage, OverviewStorage } = require('../file_render/utils');
 const { parser } = require('stream-json');
 const { streamObject } = require('stream-json/streamers/StreamObject');
+const { fixPath, homeDir } = require('../utils');
 
 const progressClients = new Map();
 
@@ -38,8 +39,8 @@ const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
     const readStream = fs.createReadStream(filePath);
 
     // 清空现有存储
-    Object.keys(ImageStorage).forEach(key => delete ImageStorage[key]);
-    Object.keys(OverviewStorage).forEach(key => delete OverviewStorage[key]);
+    ImageStorage.clear();
+    OverviewStorage.clear();
 
     // 用于存储非图片数据
     const projectData = {};
@@ -61,7 +62,8 @@ const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
         if (value && typeof value === 'object') {
           Object.entries(value).forEach(([imgKey, imgValue]) => {
             if (imgValue && typeof imgValue === 'string' && imgValue.length > 0) {
-              ImageStorage[imgKey] = imgValue;
+              const fixedImgKey = imgKey.replace(homeDir.replaceAll('\\', ''), '~')
+              ImageStorage[fixedImgKey] = imgValue;
               imageCount++;
 
               if (imageCount % 10 === 0) {
@@ -85,7 +87,8 @@ const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
         if (value && typeof value === 'object') {
           Object.entries(value).forEach(([ovKey, ovValue]) => {
             if (ovValue && typeof ovValue === 'string' && ovValue.length > 0) {
-              OverviewStorage[ovKey] = ovValue;
+              const fixedImgKey = ovKey.replace(homeDir.replaceAll('\\', ''), '~')
+              OverviewStorage[fixedImgKey] = ovValue;
               overviewCount++;
             } else {
               console.warn(`⚠️ Invalid overview value for key: ${ovKey}`);

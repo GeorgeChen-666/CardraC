@@ -550,13 +550,12 @@ export class SmartStorage {
   }
 }
 
+export const homeDir = os.homedir();
 /**
  * 将绝对路径压缩为使用 ~ 的相对路径
  */
 export const fixPath = (filePath) => {
   if (!filePath || typeof filePath !== 'string') return filePath;
-
-  const homeDir = os.homedir();
   const normalizedPath = path.normalize(filePath);
   const normalizedHome = path.normalize(homeDir);
 
@@ -575,7 +574,6 @@ export const expandPath = (filePath) => {
   if (!filePath || typeof filePath !== 'string') return filePath;
 
   if (filePath.startsWith('~')) {
-    const homeDir = os.homedir();
     return path.join(homeDir, filePath.substring(1));
   }
 

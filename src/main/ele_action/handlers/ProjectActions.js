@@ -5,6 +5,7 @@ import fs from 'fs';
 import { defaultImageStorage, ImageStorage, OverviewStorage } from '../../file_render/utils';
 import { parser } from 'stream-json';
 import { streamObject } from 'stream-json/streamers/StreamObject';
+import { fixPath, homeDir } from '../../utils';
 
 
 const refreshCardStorage = (CardList, globalBackground) => {
@@ -60,7 +61,8 @@ const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
         if (value && typeof value === 'object') {
           Object.entries(value).forEach(([imgKey, imgValue]) => {
             if (imgValue && typeof imgValue === 'string' && imgValue.length > 0) {
-              ImageStorage[imgKey] = imgValue;
+              const fixedImgKey = imgKey.replace(fixPath(homeDir).replace('\\', ''), '~')
+              ImageStorage[fixedImgKey] = imgValue;
               imageCount++;
               
               if (imageCount % 10 === 0) {
@@ -84,7 +86,8 @@ const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
         if (value && typeof value === 'object') {
           Object.entries(value).forEach(([ovKey, ovValue]) => {
             if (ovValue && typeof ovValue === 'string' && ovValue.length > 0) {
-              OverviewStorage[ovKey] = ovValue;
+              const fixedImgKey = ovKey.replace(fixPath(homeDir).replace('\\', ''), '~')
+              OverviewStorage[fixedImgKey] = ovValue;
               overviewCount++;
             } else {
               console.warn(`⚠️ Invalid overview value for key: ${ovKey}`);
