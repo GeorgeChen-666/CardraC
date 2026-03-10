@@ -111,7 +111,7 @@ export function EditToolbar() {
         onClick={() => historyRedo()}
       />
       <span style={{ color: '#666', padding: '4px' }}>|</span>
-      {Config.sides() === layoutSides.doubleSides && (
+      {[layoutSides.doubleSides, layoutSides.foldInHalf].includes(Config.sides()) && (
         <GeneralIconButton
           label={t('toolbar.btnGlobalBackground')}
           icon={<img src={getImageSrc(globalBackground, { version : imageVersion})} width={'21px'} height={'21px'} alt='' />}

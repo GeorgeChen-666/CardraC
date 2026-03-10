@@ -185,7 +185,7 @@ module.exports = {
     },
     extraResource: [
       'src/main/locales',
-      './node_modules/better-sqlite3/build/Release'
+      // './node_modules/better-sqlite3/build/Release'
     ],
     prune: true,
     derefSymlinks: true
@@ -248,7 +248,7 @@ module.exports = {
     {
       name: "@timfish/forge-externals-plugin",
       config: {
-        "externals": ["sharp"],
+        "externals": ["sharp", "better-sqlite3"],
         "includeDeps": true
       }
     },

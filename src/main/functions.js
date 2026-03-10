@@ -148,11 +148,13 @@ export const readCompressedImage = async (path, options = {}) => {
     }
 
     image = image.rotate(rotateDegrees)
-      .resize({ width: Math.min(metadata.width, maxWidth) });
-    if(imageDpi > maxDpi) {
-      image = image.withMetadata({ density: maxDpi });
-    }
-    image = (image[format])({ lossless: true, force: true, quality });
+      .resize({ width: Math.min(metadata.width, maxWidth) })
+      .withMetadata({ density: Math.min(imageDpi, maxDpi) })
+      .toFormat(format, {
+        lossless: true,
+        force: true,
+        quality
+      });
     const ext = 'webp';
     const buffer = await image.toBuffer()
     if(returnFormat === 'base64') {

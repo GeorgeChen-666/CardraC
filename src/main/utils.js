@@ -384,7 +384,7 @@ export class SmartStorage {
   set(key, value) {
     this.allKeys.add(key);
     this.memoryCache.set(key, value);
-    //不需要 this.keysOnDisk.delete(key)
+    this.keysOnDisk.delete(key);
     this.checkAndStartCompaction();
   }
 

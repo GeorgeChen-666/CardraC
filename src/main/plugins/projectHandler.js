@@ -97,6 +97,22 @@ const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
         }
         console.log(`✅ Loaded ${overviewCount} overviews from OverviewStorage`);
       }
+      else if (key === 'CardList') {
+        projectData[key] = value.map(card => ({
+          ...card,
+          face: { ...(card.face || {}), path: fixPath(card.face?.path)},
+          back: { ...(card.back || {}), path: fixPath(card.back?.path)},
+        }))
+      }
+      else if (key === 'Config') {
+        projectData[key] = {
+          ...value,
+          globalBackground: {
+            ...(value.globalBackground || {}),
+            path: fixPath(value.globalBackground?.path)
+          }
+        }
+      }
       else {
         projectData[key] = value;
       }

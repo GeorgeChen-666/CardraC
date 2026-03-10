@@ -27,8 +27,8 @@ const pathToImageData = async (imagePath, cb) => {
   const compressParamsList = [
     { maxWidth: cardWidth * 15, quality: 100, maxDpi: 300 },
     { maxWidth: cardWidth * 12, quality: 90, maxDpi: 200 },
-    { maxWidth: cardWidth * 9, quality: 80, maxDpi: 150 },
-    { maxWidth: cardWidth * 6, quality: 70, maxDpi: 75 },
+    { maxWidth: cardWidth * 9, quality: 85, maxDpi: 150 },
+    { maxWidth: cardWidth * 6, quality: 80, maxDpi: 75 },
   ];
 
   const ext = imagePath.split('.').pop();
@@ -36,7 +36,7 @@ const pathToImageData = async (imagePath, cb) => {
   const { mtime } = fs.statSync(expandPath(imagePath));
   const returnObj = { path: fixPath(imagePath), mtime: mtime.getTime() };
 
-  if (!(imagePathKey in ImageStorage) && !pendingList.has(imagePathKey)) {
+  if (!pendingList.has(imagePathKey)) {
     pendingList.add(imagePathKey);
     ImageStorageLoadingJobs[imagePath] = async () => {
       ImageStorage[imagePathKey] = await readCompressedImage(expandPath(imagePath), {
@@ -272,20 +272,19 @@ const registerImageAPI = (app, basePath = '/api') => {
 
       let totalCount = 0;
       let currentCount = 0;
-
+      const alreadyKnownKey = new Set();
       const reloadImage = (args, cb) => {
         if (!args) return false;
 
         const { path: imagePath, mtime: cardMtime } = args;
-        const imagePathKey = fixPath(imagePath).replaceAll('\\', '');
+        const imagePathKey = fixPath(imagePath)?.replaceAll?.('\\', '');
 
         try {
           const { mtime } = fs.statSync(expandPath(imagePath));
 
-          if (cardMtime !== mtime.getTime() || !(imagePathKey in ImageStorage)) {
+          if (cardMtime !== mtime.getTime() || !alreadyKnownKey.has(imagePathKey)) {
             totalCount++;
-            ImageStorage[imagePathKey] = null;
-            OverviewStorage[imagePathKey] = null;
+            alreadyKnownKey.add(imagePathKey);
             reloadImageJobs.push((async () => {
               cb && cb(mtime.getTime());
               await pathToImageData(imagePath);
@@ -301,8 +300,6 @@ const registerImageAPI = (app, basePath = '/api') => {
         }
         return false;
       };
-      ImageStorage.clear();
-      OverviewStorage.keys();
       CardList.forEach((card, index) => {
         reloadImage(card.face, newMtime => {
           CardList[index].face.mtime = newMtime;
