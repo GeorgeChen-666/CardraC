@@ -1,5 +1,6 @@
 import { eleActions, emptyImg } from '../shared/constants';
 import { fixPath } from '../main/utils';
+import { wsAdapter } from './wsAdapter';
 
 export const isDev = process?.env?.NODE_ENV === 'development';
 
@@ -81,6 +82,68 @@ const fetchMain = async (path, params= null, config = {}) => {
     console.error('Failed to trigger background image loading:', error);
   }
 }
+let updateProgress = () => {};
+export const regUpdateProgress = cb => updateProgress = cb;
+export const callMain = (key, params = {}, transform = d => d) => new Promise((resolve) => {
+  const { returnChannel, onProgress, progressChannel, cancelCallback, ...restParams } = params;
+  const returnKey = returnChannel || `${key}-done`;
+  const progressKey = progressChannel || `${key}-progress`;
+  const cancelKey = `${key}-cancel`;
+
+  cancelCallback && cancelCallback(() => {
+    wsAdapter.off(progressKey, onMainProgress);
+    wsAdapter.off(returnKey, onDone);
+    wsAdapter.send(cancelKey);
+    onMainProgress(null, 0);
+  });
+  if(restParams.state) {
+    restParams.state = JSON.parse(JSON.stringify(restParams.state));
+  }
+  wsAdapter.send(key, {
+    returnChannel: returnKey,
+    progressChannel: progressKey,
+    ...restParams,
+  });
+
+  let lastProgress = -1;
+  const onMainProgress = ($, value) => {
+    const currentProgress = Math.round(value * 100);
+    if(currentProgress>lastProgress) {
+      if(onProgress) {
+        onProgress(currentProgress);
+      }
+      else {
+        updateProgress(currentProgress);
+      }
+    }
+    if (Math.round(value * 100) >= 100) {
+      updateProgress(-1);
+      lastProgress = -1;
+      wsAdapter.off(progressKey, onMainProgress);
+    }
+  };
+  wsAdapter.once(progressKey, onMainProgress);
+
+  const onDone = (data) => {
+    wsAdapter.off(progressKey, onMainProgress);
+    wsAdapter.off(returnKey, onDone);
+    const newData = transform(data);
+    const resolveData = (rs) => {
+      if(data instanceof Uint8Array) {
+        resolve(new TextDecoder().decode(rs))
+      }
+      resolve(rs);
+    }
+    if (isPromise(newData)) {
+      newData.then(nd => {
+        resolveData(nd);
+      });
+    } else {
+      resolveData(newData);
+    }
+  };
+  wsAdapter.once(returnKey, onDone);
+});
 
 export const reloadLocalImage = (params) =>
   fetchMain(eleActions.reloadLocalImage, params)
@@ -93,19 +156,19 @@ export const getExportPreview = (params) =>
 export const getExportPageCount = (params) =>
   fetchMain( eleActions.getExportPageCount, params)
 export const getTemplate = (params) =>
-  fetchMain(eleActions.getTemplate, params, { method: 'GET' })
+  callMain(eleActions.getTemplate, { ...params });
 export const setTemplate = (params) =>
-  fetchMain(eleActions.setTemplate, params)
+  callMain(eleActions.setTemplate, { ...params });
 export const editTemplate = (params) =>
-  fetchMain(eleActions.editTemplate, params, { method: 'PUT' })
+  callMain(eleActions.editTemplate, { ...params });
 export const deleteTemplate = (params) =>
-  fetchMain(eleActions.deleteTemplate, params, { method: 'DELETE' })
+  callMain(eleActions.deleteTemplate, { ...params });
 export const version = () =>
   fetchMain(eleActions.version, null, { method: 'GET', format: 'text' })
-export const loadConfig = () =>
-  fetchMain(eleActions.loadConfig, null, { method: 'GET'})
+export const loadConfig = (params) =>
+  callMain(eleActions.loadConfig, { ...params });
 export const saveConfig = (params) =>
-  fetchMain(eleActions.saveConfig, params)
+  callMain(eleActions.saveConfig, { ...params });
 export const openProject = (params) =>
   fetchMain(eleActions.openProject, params)
 export const saveProject = (params) =>
@@ -115,7 +178,6 @@ export const loadImageList = (params) =>
 export const exportFile = (params) =>
   fetchMain(eleActions.exportFile, params)
 
-export const callMain = () => alert('666')
 
 export const openMultiImage = (isDoubleSides) => openImage(isDoubleSides, true)
 export const openImage = async (isDoubleSides, isMultiImage = false) => {

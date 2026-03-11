@@ -1,9 +1,9 @@
 import _ from 'lodash';
 import fs from 'fs';
 import path from 'path';
-import { eleActions } from '../../../shared/constants';
-import { getConfigStore, updateConfigStore } from '../../functions';
+import { getConfigStore, updateConfigStore } from '../functions';
 import { isDev, SimpleStore } from '../functions';
+import { eleActions } from '../../shared/constants';
 
 const getLangFilePath = () => {
   if (isDev) {

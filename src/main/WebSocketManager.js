@@ -1,3 +1,4 @@
+// src/main/WebSocketManager.js
 class WebSocketManager {
   constructor() {
     this.handlers = new Map();
@@ -52,7 +53,10 @@ class WebSocketManager {
       const handler = this.handlers.get(action);
 
       const event = {
-        sender: ws,
+        sender: {
+          // ✅ 修改这里：添加 send 方法
+          send: (channel, data) => this.sendTo(ws, channel, data)
+        },
         reply: (result) => this.sendResponse(ws, requestId, action, true, result),
         replyError: (error) => this.sendError(ws, requestId, action, error)
       };
@@ -94,6 +98,11 @@ class WebSocketManager {
         timestamp: Date.now()
       }));
     }
+  }
+
+  // ✅ 添加 send() 方法（广播给所有客户端）
+  send(channel, data) {
+    this.broadcast(channel, data);
   }
 
   broadcast(action, data) {
