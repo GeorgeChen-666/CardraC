@@ -46,7 +46,7 @@ export const showFileOpenDialog = (params) => new Promise((resolve, reject) => {
       ...params,
       onSelect: async (selectedFiles) => {
         if(params.mode ==='save') {
-          resolve(selectedFiles[0][0])
+          resolve(selectedFiles?.[0]?.[0])
         } else {
           resolve(selectedFiles)
         }
@@ -146,15 +146,15 @@ export const callMain = (key, params = {}, transform = d => d) => new Promise((r
 });
 
 export const reloadLocalImage = (params) =>
-  fetchMain(eleActions.reloadLocalImage, params)
+  callMain(eleActions.reloadLocalImage, params)
 export const checkImage = (params) =>
-  fetchMain(eleActions.checkImage, params)
+  callMain(eleActions.checkImage, params)
 export const clearPreviewCache = () =>
-  fetchMain(eleActions.clearPreviewCache)
+  callMain(eleActions.clearPreviewCache)
 export const getExportPreview = (params) =>
-  fetchMain(eleActions.getExportPreview, params, {format: 'text'})
+  callMain(eleActions.getExportPreview, params)
 export const getExportPageCount = (params) =>
-  fetchMain( eleActions.getExportPageCount, params)
+  callMain( eleActions.getExportPageCount, params)
 export const getTemplate = (params) =>
   callMain(eleActions.getTemplate, { ...params });
 export const setTemplate = (params) =>
@@ -163,21 +163,20 @@ export const editTemplate = (params) =>
   callMain(eleActions.editTemplate, { ...params });
 export const deleteTemplate = (params) =>
   callMain(eleActions.deleteTemplate, { ...params });
-export const version = () =>
-  fetchMain(eleActions.version, null, { method: 'GET', format: 'text' })
 export const loadConfig = (params) =>
   callMain(eleActions.loadConfig, { ...params });
 export const saveConfig = (params) =>
   callMain(eleActions.saveConfig, { ...params });
 export const openProject = (params) =>
-  fetchMain(eleActions.openProject, params)
+  callMain(eleActions.openProject, params)
 export const saveProject = (params) =>
-  fetchMain(eleActions.saveProject, params)
+  callMain(eleActions.saveProject, params)
 export const loadImageList = (params) =>
-  fetchMain(eleActions.loadImageList, params)
+  callMain(eleActions.loadImageList, params)
 export const exportFile = (params) =>
-  fetchMain(eleActions.exportFile, params)
-
+  callMain(eleActions.exportFile, params)
+export const version = (params) =>
+  callMain(eleActions.version, params)
 
 export const openMultiImage = (isDoubleSides) => openImage(isDoubleSides, true)
 export const openImage = async (isDoubleSides, isMultiImage = false) => {

@@ -6,7 +6,6 @@ import { expandPath, fixPath } from './utils';
 
 export const isDev = process.env.NODE_ENV === 'development';
 
-//平替 electron-store
 export class SimpleStore {
   constructor(name = 'config', cwd = null) {
     const appName = process.env.npm_package_name || 'cardrac';

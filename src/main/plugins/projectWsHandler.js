@@ -1,38 +1,35 @@
-const fs = require('fs');
-const path = require('path');
-const { eleActions } = require('../../shared/constants');
-const { getConfigStore, saveDataToFile } = require('../functions');
-const { defaultImageStorage, ImageStorage, OverviewStorage } = require('../file_render/utils');
-const { parser } = require('stream-json');
-const { streamObject } = require('stream-json/streamers/StreamObject');
-const { fixPath, homeDir } = require('../utils');
+import { eleActions } from '../../shared/constants';
+import { getConfigStore, saveDataToFile } from '../functions';
+import fs from 'fs';
+import { defaultImageStorage, ImageStorage, OverviewStorage } from '../file_render/utils';
+import { parser } from 'stream-json';
+import { streamObject } from 'stream-json/streamers/StreamObject';
+import { fixPath, homeDir } from '../utils';
 
-const progressClients = new Map();
 
 const refreshCardStorage = (CardList, globalBackground) => {
   const usedImagePath = new Set();
   CardList.forEach(card => {
-    const { face, back } = card;
-    const facePathKey = face?.path.replaceAll('\\', '');
-    const backPathKey = back?.path.replaceAll('\\', '');
+    const {face,back} = card;
+    const facePathKey  = face?.path.replaceAll('\\','');
+    const backPathKey  = back?.path.replaceAll('\\','');
     usedImagePath.add(facePathKey);
     usedImagePath.add(backPathKey);
   });
 
-  if (globalBackground?.path) {
-    const globalBackPathKey = globalBackground?.path?.replaceAll('\\', '');
+  if(globalBackground?.path) {
+    const globalBackPathKey = globalBackground?.path?.replaceAll('\\','');
     usedImagePath.add(globalBackPathKey);
   }
 
-  Object.keys(OverviewStorage).filter(key => !usedImagePath.has(key)).forEach(key => {
+  OverviewStorage.keys().filter(key => !usedImagePath.has(key)).forEach(key => {
     delete OverviewStorage[key];
   });
 
-  Object.keys(ImageStorage).filter(key => !usedImagePath.has(key)).forEach(key => {
+  ImageStorage.keys().filter(key => !usedImagePath.has(key)).forEach(key => {
     delete ImageStorage[key];
   });
-};
-
+}
 const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
   try {
     const { size } = fs.statSync(filePath);
@@ -145,45 +142,32 @@ const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
   }
 };
 
-const sendProgress = (channelId, progress) => {
-  const client = progressClients.get(channelId);
-  if (client) {
-    client.write(`data: ${JSON.stringify({ progress })}\n\n`);
+
+export default (wsManager) => {
+  const renderLog = (...args) => setTimeout(() => wsManager.send('console', args), 2000) ;
+
+  const filePath = process.argv.find(arg => arg.endsWith('.cpnp'));
+  if (filePath) {
+    setTimeout(() => {
+      loadCpnpFile(filePath, {
+        //onProgress: (v) => mainWindow.webContents.send(progressChannel, v),
+        onFinish: (projectJson) => wsManager.send('open-project-file', projectJson),
+        onError: () => {
+          wsManager.send('notification', {
+            status: 'error',
+            description: "util.invalidFile"
+          });
+          //mainWindow.webContents.send(returnChannel, null);
+        }
+      });
+    }, 1000);
+
   }
-};
 
-const registerProjectAPI = (app, basePath = '/api') => {
-  app.get(`${basePath}/progress/:channelId`, (req, res) => {
-    const { channelId } = req.params;
+  wsManager.on(eleActions.saveProject, async (event, args) => {
+    const { CardList, globalBackground, returnChannel, progressChannel, filePath } = args;
 
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-
-    progressClients.set(channelId, res);
-    console.log(`📡 Progress channel connected: ${channelId}`);
-
-    const heartbeat = setInterval(() => {
-      res.write(': heartbeat\n\n');
-    }, 30000);
-
-    req.on('close', () => {
-      clearInterval(heartbeat);
-      progressClients.delete(channelId);
-      console.log(`📡 Progress channel closed: ${channelId}`);
-    });
-  });
-
-  //保存项目
-  app.post(`${basePath}/${eleActions.saveProject}`, async (req, res) => {
     try {
-      const { CardList, globalBackground, filePath, progressChannel } = req.body;
-
-      if (!filePath) {
-        return res.status(400).json({ error: 'filePath is required' });
-      }
-
       const { Config } = getConfigStore();
       Config.globalBackground = globalBackground;
       const projectData = { Config, CardList };
@@ -191,20 +175,17 @@ const registerProjectAPI = (app, basePath = '/api') => {
       // 清理未使用的图片
       refreshCardStorage(CardList, globalBackground);
 
+      //使用异步版本，等待所有磁盘写入完成
       console.log('📦 Preparing to save project...');
-      progressChannel && sendProgress(progressChannel, 0.1);
+      progressChannel && wsManager.send(progressChannel, 0.1);
 
-      const imageStorageObj = await (ImageStorage.toPlainObjectAsync ?
-        ImageStorage.toPlainObjectAsync() :
-        Promise.resolve({ ...ImageStorage }));
-      progressChannel && sendProgress(progressChannel, 0.5);
+      const imageStorageObj = await ImageStorage.toPlainObjectAsync();
+      progressChannel && wsManager.send(progressChannel, 0.5);
 
-      const overviewStorageObj = await (OverviewStorage.toPlainObjectAsync ?
-        OverviewStorage.toPlainObjectAsync() :
-        Promise.resolve({ ...OverviewStorage }));
-      progressChannel && sendProgress(progressChannel, 0.8);
+      const overviewStorageObj = await OverviewStorage.toPlainObjectAsync();
+      progressChannel && wsManager.send(progressChannel, 0.8);
 
-      // 验证数据完整性
+      //验证数据完整性
       const emptyImageKeys = Object.keys(imageStorageObj).filter(key => {
         const value = imageStorageObj[key];
         return !value || (typeof value === 'object' && Object.keys(value).length === 0);
@@ -221,56 +202,32 @@ const registerProjectAPI = (app, basePath = '/api') => {
         OverviewStorage: overviewStorageObj
       }, filePath);
 
-      progressChannel && sendProgress(progressChannel, 1);
+      progressChannel && wsManager.send(progressChannel, 1);
       console.log('✅ Project saved successfully');
+      wsManager.send(returnChannel, true);
 
-      res.json({ success: true, filePath });
-
-    } catch (err) {
-      console.error('❌ Save project failed:', err);
-      res.status(500).json({
-        success: false,
-        error: err.message
+    } catch (e) {
+      console.error('❌ Save project failed:', e);
+      wsManager.send('notification', {
+        status: 'error',
+        description: "util.operationFailed"
       });
+      wsManager.send(returnChannel, false);
     }
   });
 
-  //加载项目
-  app.post(`${basePath}/${eleActions.openProject}`, async (req, res) => {
-    try {
-      const { filePath, progressChannel } = req.body;
-
-      if (!filePath) {
-        return res.status(400).json({ error: 'filePath is required' });
+  wsManager.on(eleActions.openProject, async (event, args) => {
+    const { returnChannel, progressChannel, filePath } = args;
+    await loadCpnpFile(filePath, {
+      onProgress: (v) => progressChannel && wsManager.send(progressChannel, v),
+      onFinish: (projectJson) => wsManager.send(returnChannel, projectJson),
+      onError: () => {
+        wsManager.send('notification', {
+          status: 'error',
+          description: "util.invalidFile"
+        });
+        wsManager.send(returnChannel, null);
       }
-
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ error: 'File not found' });
-      }
-
-      await loadCpnpFile(filePath, {
-        onProgress: (progress) => {
-          progressChannel && sendProgress(progressChannel, progress);
-        },
-        onFinish: (projectData) => {
-          res.json(projectData);
-        },
-        onError: (error) => {
-          res.status(500).json({
-            success: false,
-            error: error.message || 'Failed to load project'
-          });
-        }
-      });
-
-    } catch (err) {
-      console.error('❌ Open project failed:', err);
-      res.status(500).json({
-        success: false,
-        error: err.message
-      });
-    }
+    });
   });
-};
-
-module.exports = { registerProjectAPI };
+}

@@ -132,7 +132,7 @@ export function EditToolbar() {
         label={t('toolbar.btnExport', {format:'PDF'})}
         icon={<ExportIcon />}
         onClick={async () => {
-          const selectedFile = await showFileOpenDialog({filterExtensions: 'pdf', mode: 'save'});
+          const selectedFile = await showFileOpenDialog({filterExtensions: exportType.pdf, mode: 'save'});
           if(!selectedFile) {
             return;
           }
@@ -142,7 +142,13 @@ export function EditToolbar() {
       <GeneralIconButton
         label={t('toolbar.btnExport', {format:'PNG'})}
         icon={<ExportIcon label={'png'} />}
-        onClick={() => exportFile(exportType.png)}
+        onClick={async () => {
+          const selectedFile = await showFileOpenDialog({filterExtensions: exportType.zip, mode: 'save'});
+          if(!selectedFile) {
+            return;
+          }
+          exportFile({ filePath: selectedFile.realPath, targetFileType: exportType.png })
+        }}
       />
       {/*<GeneralIconButton*/}
       {/*  label={t('toolbar.btnExport')}*/}

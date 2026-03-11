@@ -222,7 +222,7 @@ export const useGlobalStore = create(middlewares((set, get) => ({
   getExportPageCount: (targetFileType) => {
     get().loading(async () => {
       const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList, targetFileType };
-      const { count } = await getExportPageCount(param);
+      const count = await getExportPageCount(param);
       get().mergeGlobal({exportPageCount: count})
     });
   },
