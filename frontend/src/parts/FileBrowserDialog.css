@@ -241,7 +241,7 @@
 
 .grid-file-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(70px, 0));
+    grid-template-columns: repeat(auto-fill, minmax(80px, 0));
     gap: 16px;
     padding: 16px;
     overflow-y: auto;
@@ -371,7 +371,7 @@
 }
 
 .grid-file-item {
-    padding: 10px;
+    padding: 10px 3px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -380,7 +380,7 @@
     transition: background-color 0.2s;
     user-select: none;
     height: 100%;
-    max-height: 90px;
+    max-height: 82px;
 }
 
 .grid-file-item:hover {
