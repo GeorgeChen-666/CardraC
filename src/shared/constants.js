@@ -23,6 +23,8 @@ export const eleActions = Object.freeze({
   editTemplate: 'edit-template',
   deleteTemplate: 'delete-template',
   version: 'version',
+  getDefaultPath: 'get-default-path',
+  setDefaultPath: 'set-default-path',
 });
 
 export const layoutSides = Object.freeze({

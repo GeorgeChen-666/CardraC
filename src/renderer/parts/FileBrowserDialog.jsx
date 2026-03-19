@@ -16,35 +16,13 @@ import { Divider } from '@mui/material';
 import './FileBrowserDialog.css';
 import { FileOrganizer } from './FileOrganizer';
 import { withConfirmation } from '../componments/withConfirmation';
+import { setDefaultPath, getDefaultPath } from '../functions';
 
 console.debug = () => {};
 
 const ConfimButton = withConfirmation(Button)
 
 const API_BASE = 'http://localhost:3333/browse';
-
-const getDefaultPath = async () => {
-  try {
-    const response = await fetch(`${API_BASE}/default-path`);
-    const data = await response.json();
-    return data.path || '';
-  } catch (error) {
-    console.error('Failed to get default path:', error);
-    return '';
-  }
-};
-
-const saveDefaultPath = async (path) => {
-  try {
-    await fetch(`${API_BASE}/default-path`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path })
-    });
-  } catch (error) {
-    console.error('Failed to save default path:', error);
-  }
-};
 
 const CustomNavbar = ({ canGoBack, canGoForward, onBack, onForward }) => {
   return (
@@ -278,7 +256,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
 
   const handleConfirm = () => {
     if (currentPath) {
-      saveDefaultPath(currentPath);
+      setDefaultPath({path: currentPath});
     }
 
     let resultData;

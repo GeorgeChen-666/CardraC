@@ -9,9 +9,8 @@ import {
   getPagedImageListByCardList,
   ImageStorage,
   OverviewStorage,
-  prerenderPage,
 } from '../../file_render/utils';
-import { colorCache, exportFile } from '../../file_render';
+import { colorCache, exportFile, prerenderPage } from '../../file_render';
 import { expandPath, fixPath } from '../../utils';
 
 log.transports.file.level = 'debug';

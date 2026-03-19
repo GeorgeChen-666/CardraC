@@ -38,8 +38,8 @@ const createWindow = () => {
     });
   }
 
-  registerRendererActionHandlers(mainWindow);
-  run();
+  // registerRendererActionHandlers(mainWindow);
+  // run();
 };
 
 // This method will be called when Electron has finished

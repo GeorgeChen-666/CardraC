@@ -177,6 +177,12 @@ export const exportFile = (params) =>
   callMain(eleActions.exportFile, params)
 export const version = (params) =>
   callMain(eleActions.version, params)
+export const getDefaultPath = (params) =>
+  callMain(eleActions.getDefaultPath, params)
+export const setDefaultPath = (params) =>
+  callMain(eleActions.setDefaultPath, params)
+export const getImageContent = (params) =>
+  callMain(eleActions.getImageContent, params)
 
 export const openMultiImage = (isDoubleSides) => openImage(isDoubleSides, true)
 export const openImage = async (isDoubleSides, isMultiImage = false) => {
