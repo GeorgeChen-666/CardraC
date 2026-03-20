@@ -545,13 +545,7 @@ func getImageContentByPath(w http.ResponseWriter, path string, quality string) {
 
 		// 如果缓存中没有，尝试加载
 		if content == nil {
-			// 触发后台加载
-			go func() {
-				_, err := pathToImageData(path, nil)
-				if err != nil {
-					log.Printf("Failed to load image: %s, error: %v", path, err)
-				}
-			}()
+			pathToImageData(path, nil)
 
 			// 等待加载完成（最多10秒）
 			success := shared.WaitCondition(
@@ -570,24 +564,27 @@ func getImageContentByPath(w http.ResponseWriter, path string, quality string) {
 			}
 		}
 	} else {
-		// 低质量：先尝试从缓存获取
+		// 低质量图片：先从缓存获取
 		content = file_render.OverviewStorage.Get(imagePathKey)
 
-		// 如果缓存中没有，生成缩略图
 		if content == nil {
-			expandedPath := utils.ExpandPath(path)
-			compressed, err := utils.ReadCompressedImage(expandedPath, 100)
-			if err != nil {
-				log.Printf("Failed to compress image: %v", err)
-				http.Error(w, "Failed to compress image", http.StatusInternalServerError)
+			// 改为异步处理
+			pathToImageData(path, nil)
+
+			// 等待 1 秒（缩略图应该很快）
+			success := shared.WaitCondition(
+				func() bool {
+					content = file_render.OverviewStorage.Get(imagePathKey)
+					return content != nil
+				},
+				50*time.Millisecond,
+				1*time.Second,
+			)
+
+			if !success {
+				// 返回占位图或错误
+				http.Error(w, "Thumbnail not ready", http.StatusAccepted)
 				return
-			}
-
-			content = compressed
-
-			// 保存到缓存
-			if compressed != "" {
-				file_render.OverviewStorage.Set(imagePathKey, compressed)
 			}
 		}
 	}

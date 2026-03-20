@@ -3,7 +3,7 @@ package plugins
 import (
 	"log"
 	"os"
-	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -22,11 +22,94 @@ type ImageLoadingJob struct {
 }
 
 var (
-	imageStorageLoadingJobs = make(map[string]func() error)
-	pendingList             = make(map[string]bool)
-	pendingListMu           sync.Mutex
-	progressClients         = make(map[string]interface{})
-	progressClientsMu       sync.Mutex
+	imageProcessQueue chan *ImageTask
+	imageProcessOnce  sync.Once
+	maxWorkers        = runtime.NumCPU()
+)
+
+type ImageTask struct {
+	ImagePath  string
+	Params     CompressParams
+	IsOverview bool
+	Callback   func(*ImageData, error)
+	Done       chan struct{}
+}
+
+func initImageWorkerPool() {
+	imageProcessOnce.Do(func() {
+		imageProcessQueue = make(chan *ImageTask, 100) // 缓冲队列
+
+		// 启动固定数量的 workers
+		for i := 0; i < maxWorkers; i++ {
+			go imageWorker()
+		}
+
+		log.Printf("Image worker pool initialized with %d workers", maxWorkers)
+	})
+}
+func imageWorker() {
+	for task := range imageProcessQueue {
+		processImageTask(task)
+	}
+}
+func processImageTask(task *ImageTask) {
+	defer func() {
+		if task.Done != nil {
+			close(task.Done)
+		}
+	}()
+
+	imagePathKey := strings.ReplaceAll(utils.FixPath(task.ImagePath), "\\", "")
+	expandedPath := utils.ExpandPath(task.ImagePath)
+
+	fileInfo, err := os.Stat(expandedPath)
+	if err != nil {
+		if task.Callback != nil {
+			task.Callback(nil, err)
+		}
+		return
+	}
+
+	mtime := fileInfo.ModTime().UnixMilli()
+
+	if task.IsOverview {
+		// 处理缩略图
+		overview, err := utils.ReadCompressedImage(expandedPath, 100)
+		if err != nil {
+			log.Printf("Failed to load overview for %s: %v", task.ImagePath, err)
+		} else {
+			file_render.OverviewStorage.Set(imagePathKey, overview)
+		}
+	} else {
+		// 处理高质量图片
+		compressed, err := utils.ReadCompressedImageWithOptions(expandedPath, utils.ImageOptions{
+			MaxWidth: task.Params.MaxWidth,
+			Quality:  task.Params.Quality,
+		})
+		if err != nil {
+			if task.Callback != nil {
+				task.Callback(nil, err)
+			}
+			return
+		}
+		file_render.ImageStorage.Set(imagePathKey, compressed)
+	}
+
+	file_render.ColorCache.Delete(imagePathKey)
+
+	result := &ImageData{
+		Path:  utils.FixPath(task.ImagePath),
+		Mtime: mtime,
+	}
+
+	if task.Callback != nil {
+		task.Callback(result, nil)
+	}
+}
+
+var (
+	pendingList   = make(map[string]bool)
+	pendingListMu sync.Mutex
 )
 
 // CompressParams 压缩参数
@@ -42,25 +125,24 @@ type ImageData struct {
 	Mtime int64  `json:"mtime"`
 }
 
-// pathToImageData 将路径转换为图片数据
+// pathToImageData
 func pathToImageData(imagePath string, callback func()) (*ImageData, error) {
-	config := storage.GetConfig()
+	initImageWorkerPool()
 
-	// ✅ 根据 config 的实际类型修改
+	config := storage.GetConfig()
 	var cardWidth float64
 	var compressLevel int
 
-	// 如果 config 是 map[string]interface{}
 	if cw, ok := config["cardWidth"].(float64); ok {
 		cardWidth = cw
 	} else {
-		cardWidth = 300 // 默认值
+		cardWidth = 300
 	}
 
 	if cl, ok := config["compressLevel"].(float64); ok {
 		compressLevel = int(cl)
 	} else {
-		compressLevel = 2 // 默认值
+		compressLevel = 2
 	}
 
 	compressParamsList := []CompressParams{
@@ -68,11 +150,6 @@ func pathToImageData(imagePath string, callback func()) (*ImageData, error) {
 		{MaxWidth: int(cardWidth * 12), Quality: 90, MaxDpi: 200},
 		{MaxWidth: int(cardWidth * 9), Quality: 85, MaxDpi: 150},
 		{MaxWidth: int(cardWidth * 6), Quality: 80, MaxDpi: 75},
-	}
-
-	ext := filepath.Ext(imagePath)
-	if ext != "" {
-		ext = ext[1:]
 	}
 
 	imagePathKey := strings.ReplaceAll(utils.FixPath(imagePath), "\\", "")
@@ -94,44 +171,39 @@ func pathToImageData(imagePath string, callback func()) (*ImageData, error) {
 		pendingList[imagePathKey] = true
 		pendingListMu.Unlock()
 
-		imageStorageLoadingJobs[imagePath] = func() error {
-			params := compressParamsList[compressLevel-1]
-			compressed, err := utils.ReadCompressedImageWithOptions(expandedPath, utils.ImageOptions{
-				MaxWidth: params.MaxWidth,
-				Quality:  params.Quality,
-			})
-			if err != nil {
-				return err
-			}
+		params := compressParamsList[compressLevel-1]
 
-			file_render.ImageStorage.Set(imagePathKey, compressed)
-
-			pendingListMu.Lock()
-			delete(pendingList, imagePathKey)
-			pendingListMu.Unlock()
-
-			delete(imageStorageLoadingJobs, imagePath)
-			return nil
+		// 1. 先提交缩略图任务（优先处理）
+		overviewTask := &ImageTask{
+			ImagePath:  imagePath,
+			Params:     CompressParams{MaxWidth: 100, Quality: 85},
+			IsOverview: true,
+			Callback:   nil, // 缩略图不需要回调
 		}
+		imageProcessQueue <- overviewTask
 
-		go imageStorageLoadingJobs[imagePath]()
+		// 2. 再提交高质量图片任务
+		highQualityTask := &ImageTask{
+			ImagePath:  imagePath,
+			Params:     params,
+			IsOverview: false,
+			Callback: func(data *ImageData, err error) {
+				pendingListMu.Lock()
+				delete(pendingList, imagePathKey)
+				pendingListMu.Unlock()
+
+				if callback != nil {
+					callback()
+				}
+			},
+		}
+		imageProcessQueue <- highQualityTask
+
 	} else {
 		pendingListMu.Unlock()
 	}
 
-	overview, err := utils.ReadCompressedImage(expandedPath, 100)
-	if err != nil {
-		log.Printf("Failed to load overview for %s: %v", imagePath, err)
-	} else {
-		file_render.OverviewStorage.Set(imagePathKey, overview)
-	}
-
-	// ✅ 使用 sync.Map 的 Delete 方法
 	file_render.ColorCache.Delete(imagePathKey)
-
-	if callback != nil {
-		callback()
-	}
 
 	return returnObj, nil
 }

@@ -7,7 +7,6 @@ import (
 
 var (
 	configStore     *SimpleStore
-	configStoreMu   sync.Mutex
 	configStoreOnce sync.Once
 )
 
