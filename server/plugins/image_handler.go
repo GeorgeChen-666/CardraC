@@ -1,8 +1,12 @@
 package plugins
 
 import (
+	"crypto/md5"
+	"encoding/base64"
+	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -53,6 +57,8 @@ func imageWorker() {
 	}
 }
 func processImageTask(task *ImageTask) {
+	startTime := time.Now() // 开始计时
+
 	defer func() {
 		if task.Done != nil {
 			close(task.Done)
@@ -79,6 +85,12 @@ func processImageTask(task *ImageTask) {
 			log.Printf("Failed to load overview for %s: %v", task.ImagePath, err)
 		} else {
 			file_render.OverviewStorage.Set(imagePathKey, overview)
+
+			// 保存缩略图到文件
+			saveBase64ToFile(overview, imagePathKey, "overview")
+
+			duration := time.Since(startTime)
+			log.Printf("✅ Overview processed in %dms: %s", duration.Milliseconds(), task.ImagePath)
 		}
 	} else {
 		// 处理高质量图片
@@ -93,6 +105,12 @@ func processImageTask(task *ImageTask) {
 			return
 		}
 		file_render.ImageStorage.Set(imagePathKey, compressed)
+
+		// 保存高质量图到文件
+		saveBase64ToFile(compressed, imagePathKey, "high_quality")
+
+		duration := time.Since(startTime)
+		log.Printf("✅ High quality processed in %dms: %s", duration.Milliseconds(), task.ImagePath)
 	}
 
 	file_render.ColorCache.Delete(imagePathKey)
@@ -105,6 +123,58 @@ func processImageTask(task *ImageTask) {
 	if task.Callback != nil {
 		task.Callback(result, nil)
 	}
+}
+
+// saveBase64ToFile 将base64数据保存为图片文件
+func saveBase64ToFile(base64Data interface{}, imageKey string, quality string) error {
+	// 创建输出目录
+	outputDir := filepath.Join("output", quality)
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		return fmt.Errorf("failed to create output directory: %w", err)
+	}
+
+	// 从base64字符串中提取实际数据
+	base64Str, ok := base64Data.(string)
+	if !ok {
+		return fmt.Errorf("invalid base64 data type")
+	}
+
+	// 移除 data:image/xxx;base64, 前缀
+	parts := strings.Split(base64Str, ",")
+	if len(parts) != 2 {
+		return fmt.Errorf("invalid base64 format")
+	}
+
+	// 解码base64
+	imageData, err := base64.StdEncoding.DecodeString(parts[1])
+	if err != nil {
+		return fmt.Errorf("failed to decode base64: %w", err)
+	}
+
+	// 生成文件名（使用hash避免路径问题）
+	hash := fmt.Sprintf("%x", md5.Sum([]byte(imageKey)))
+
+	// 从base64前缀判断图片格式
+	var ext string
+	if strings.Contains(parts[0], "image/png") {
+		ext = ".png"
+	} else if strings.Contains(parts[0], "image/jpeg") || strings.Contains(parts[0], "image/jpg") {
+		ext = ".jpg"
+	} else if strings.Contains(parts[0], "image/webp") {
+		ext = ".webp"
+	} else {
+		ext = ".jpg" // 默认
+	}
+
+	filename := filepath.Join(outputDir, hash+ext)
+
+	// 写入文件
+	if err := os.WriteFile(filename, imageData, 0644); err != nil {
+		return fmt.Errorf("failed to write file: %w", err)
+	}
+
+	log.Printf("💾 Saved %s image: %s", quality, filename)
+	return nil
 }
 
 var (

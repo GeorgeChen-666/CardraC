@@ -5,6 +5,7 @@ go 1.25.0
 require (
 	github.com/dgraph-io/badger/v4 v4.9.1
 	github.com/disintegration/imaging v1.6.2
+	github.com/ebitengine/purego v0.10.0
 	github.com/fogleman/gg v1.3.0
 	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-gonic/gin v1.12.0
