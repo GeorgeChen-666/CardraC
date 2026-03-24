@@ -91,7 +91,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
       } = newOptions;
 
       onSelectRef.current = onSelect;
-      const defaultPath = await getDefaultPath();
+      const {  path: defaultPath } = await getDefaultPath();
 
       setOptions({
         defaultPath,

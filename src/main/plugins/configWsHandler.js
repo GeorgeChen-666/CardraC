@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { getConfigStore, updateConfigStore } from '../functions';
 import { isDev, SimpleStore } from '../functions';
 import { eleActions } from '../../shared/constants';
@@ -50,6 +51,8 @@ const getLocale = (lang) => {
 };
 
 const printStore = new SimpleStore('print_config');
+const defaultPathStore = new SimpleStore('defaultPathConfig'); // 改为与 fileBrowser.js 一致
+
 export default (wsManager) => {
   wsManager.on(eleActions.saveConfig, (event, args) => {
     const { Global, Config } = args.state;
@@ -58,6 +61,7 @@ export default (wsManager) => {
       updateConfigStore({ Config, Global: _.pick(Global, ['currentLang', 'isShowOverView']) });
     }
   });
+
   wsManager.on(eleActions.loadConfig, (event, args) => {
     const { returnChannel } = args;
     initLanguageJson('en');
@@ -77,10 +81,12 @@ export default (wsManager) => {
 
     wsManager.send(returnChannel, config);
   });
+
   wsManager.on(eleActions.savePrintConfig, (event, args) => {
     const { printConfig } = args;
     printStore.set('printConfig', printConfig);
   });
+
   wsManager.on(eleActions.loadPrintConfig, (event, args) => {
     const { returnChannel } = args;
     const result = printStore.get('printConfig', {
@@ -90,5 +96,37 @@ export default (wsManager) => {
       offsetY: 0,
     })
     wsManager.send(returnChannel, result);
+  });
+
+  // 新增：获取默认路径
+  wsManager.on(eleActions.getDefaultPath, (event, args) => {
+    const { returnChannel } = args;
+    try {
+      const { defaultPath } = defaultPathStore.get();
+      wsManager.send(returnChannel, {
+        path: defaultPath || os.homedir().replace(/\\/g, '/').replace(/^([A-Z]):/, '$1:')
+      });
+    } catch (e) {
+      console.error('Failed to read default path from config:', e);
+      wsManager.send(returnChannel, {
+        path: os.homedir().replace(/\\/g, '/').replace(/^([A-Z]):/, '$1:')
+      });
+    }
+  });
+
+  // 新增：保存默认路径
+  wsManager.on(eleActions.setDefaultPath, (event, args) => {
+    const { path, returnChannel } = args;
+    try {
+      defaultPathStore.set({ defaultPath: path });
+      if (returnChannel) {
+        wsManager.send(returnChannel, { success: true });
+      }
+    } catch (e) {
+      console.error('Failed to save default path to config:', e);
+      if (returnChannel) {
+        wsManager.send(returnChannel, { success: false });
+      }
+    }
   });
 }

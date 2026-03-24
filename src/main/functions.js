@@ -132,7 +132,13 @@ export const readCompressedImage = async (path, options = {}) => {
   } = options;
   try {
     const fileBuffer = fs.readFileSync(expandPath(path));
-    let image = sharp(fileBuffer);
+
+    // ✅ 只改这里：加优化参数
+    let image = sharp(fileBuffer, {
+      sequentialRead: true,
+      failOnError: false
+    });
+
     const metadata = await image.metadata();
     const imageDpi = metadata.density;
     let rotateDegrees = 0;
@@ -146,8 +152,11 @@ export const readCompressedImage = async (path, options = {}) => {
       }
     }
 
+    // ✅ 只改这里：resize 参数改成这种形式
     image = image.rotate(rotateDegrees)
-      .resize({ width: Math.min(metadata.width, maxWidth) })
+      .resize(Math.min(metadata.width, maxWidth), null, {
+        fastShrinkOnLoad: true
+      })
       .withMetadata({ density: Math.min(imageDpi, maxDpi) })
       .toFormat(format, {
         lossless: true,

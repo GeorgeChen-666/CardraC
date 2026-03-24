@@ -39,7 +39,7 @@ const createWindow = () => {
   }
 
   // registerRendererActionHandlers(mainWindow);
-  // run();
+  run();
 };
 
 // This method will be called when Electron has finished

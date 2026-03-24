@@ -33,7 +33,7 @@ OtherWsHandler(wsManager);
 ProjectWsHandler(wsManager);
 ImageWsHandler(wsManager);
 
-export const run = () => server.listen(3334, () => {
+export const run = () => server.listen(3333, () => {
   console.log('✅ HTTP Server: http://localhost:3333/browse');
   console.log('✅ WebSocket Server: ws://localhost:3333/ws');
 });
