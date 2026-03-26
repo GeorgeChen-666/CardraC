@@ -5,7 +5,7 @@ import { defaultImageStorage, ImageStorage, OverviewStorage } from '../file_rend
 import { parser } from 'stream-json';
 import { streamObject } from 'stream-json/streamers/StreamObject';
 import { fixPath, homeDir } from '../utils';
-
+import { pick } from 'stream-json/filters/Pick';
 
 const refreshCardStorage = (CardList, globalBackground) => {
   const usedImagePath = new Set();
@@ -30,98 +30,75 @@ const refreshCardStorage = (CardList, globalBackground) => {
     delete ImageStorage[key];
   });
 }
+
 const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
   try {
     const { size } = fs.statSync(filePath);
-    const readStream = fs.createReadStream(filePath);
+    const readStream = fs.createReadStream(filePath, { highWaterMark: 64 * 1024 });
 
-    // 清空现有存储
-    ImageStorage.clear();
     OverviewStorage.clear();
 
-    // 用于存储非图片数据
     const projectData = {};
     let processedBytes = 0;
-    let imageCount = 0;
     let overviewCount = 0;
+    let lastProgressUpdate = 0;
 
-    // 创建流式 JSON 解析器
+    const homeDirRegex = new RegExp(homeDir.replace(/\\/g, '\\\\'), 'g');
+    const BATCH_SIZE = 50;
+
     const pipeline = readStream
       .pipe(parser())
       .pipe(streamObject());
 
-    // 监听每个 key-value 对
     pipeline.on('data', ({ key, value }) => {
       processedBytes += JSON.stringify(value).length;
-      onProgress && onProgress(Math.min(processedBytes / size, 0.95));
 
-      if (key === 'ImageStorage') {
-        if (value && typeof value === 'object') {
-          Object.entries(value).forEach(([imgKey, imgValue]) => {
-            if (imgValue && typeof imgValue === 'string' && imgValue.length > 0) {
-              const fixedImgKey = imgKey.replace(homeDir.replaceAll('\\', ''), '~')
-              ImageStorage[fixedImgKey] = imgValue;
-              imageCount++;
-
-              if (imageCount % 10 === 0) {
-                console.log(`📦 Loaded ${imageCount} images...`);
-              }
-            } else if (imgValue && typeof imgValue === 'object' && Object.keys(imgValue).length === 0) {
-              console.warn(`⚠️ Skipping empty object for key: ${imgKey}`);
-            } else {
-              console.warn(`⚠️ Invalid value for key: ${imgKey}`, imgValue);
-            }
-          });
-        }
-
-        if (!ImageStorage['_emptyImg']) {
-          ImageStorage['_emptyImg'] = defaultImageStorage['_emptyImg'];
-        }
-
-        console.log(`✅ Loaded ${imageCount} images from ImageStorage`);
+      const now = Date.now();
+      if (now - lastProgressUpdate > 100) {
+        onProgress && onProgress(Math.min(processedBytes / size * 0.6, 0.6));
+        lastProgressUpdate = now;
       }
-      else if (key === 'OverviewStorage') {
-        if (value && typeof value === 'object') {
-          Object.entries(value).forEach(([ovKey, ovValue]) => {
-            if (ovValue && typeof ovValue === 'string' && ovValue.length > 0) {
-              const fixedImgKey = ovKey.replace(homeDir.replaceAll('\\', ''), '~')
-              OverviewStorage[fixedImgKey] = ovValue;
-              overviewCount++;
-            } else {
-              console.warn(`⚠️ Invalid overview value for key: ${ovKey}`);
-            }
-          });
-        }
-        console.log(`✅ Loaded ${overviewCount} overviews from OverviewStorage`);
-      }
-      else if (key === 'CardList') {
-        projectData[key] = value.map(card => ({
+
+      if (key === 'CardList') {
+        projectData.CardList = value.map(card => ({
           ...card,
           face: { ...(card.face || {}), path: fixPath(card.face?.path)},
           back: { ...(card.back || {}), path: fixPath(card.back?.path)},
-        }))
+        }));
       }
       else if (key === 'Config') {
-        projectData[key] = {
+        projectData.Config = {
           ...value,
-          globalBackground: {
-            ...(value.globalBackground || {}),
-            path: fixPath(value.globalBackground?.path)
+          globalBackground: value.globalBackground ? {
+            ...value.globalBackground,
+            path: fixPath(value.globalBackground.path)
+          } : null
+        };
+      }
+      else if (key === 'OverviewStorage') {
+        if (value && typeof value === 'object') {
+          const entries = Object.entries(value);
+
+          for (let i = 0; i < entries.length; i += BATCH_SIZE) {
+            const batch = entries.slice(i, i + BATCH_SIZE);
+
+            batch.forEach(([ovKey, ovValue]) => {
+              if (ovValue && typeof ovValue === 'string' && ovValue.length > 0) {
+                OverviewStorage[ovKey.replace(homeDirRegex, '~')] = ovValue;
+                overviewCount++;
+              }
+            });
           }
         }
-      }
-      else {
-        projectData[key] = value;
+        console.log(`✅ Loaded ${overviewCount} overviews`);
       }
     });
 
-    // 流处理完成
     await new Promise((resolve, reject) => {
       pipeline.on('end', resolve);
       pipeline.on('error', reject);
     });
 
-    // 处理特殊值
     if (projectData.Config?.globalBackground?.path === '_emptyImg') {
       projectData.Config.globalBackground = null;
     }
@@ -131,17 +108,74 @@ const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
       if (c.back?.path === '_emptyImg') c.back = null;
     });
 
-    // 完成
-    onProgress && onProgress(1);
-    console.log(`✅ Project loaded: ${imageCount} images, ${overviewCount} overviews`);
+    onProgress && onProgress(0.6);
+    console.log('✅ Returning project data...');
     onFinish && onFinish(projectData);
 
+    setImmediate(() => {
+      loadImageStorageAsync(filePath, homeDirRegex, BATCH_SIZE, onProgress);
+    });
+
   } catch (e) {
-    console.error('❌ Failed to load project:', e);
+    console.error('❌ Failed:', e);
     onError && onError(e);
   }
 };
 
+async function loadImageStorageAsync(filePath, homeDirRegex, BATCH_SIZE, onProgress) {
+  try {
+    ImageStorage.clear();
+
+    const readStream = fs.createReadStream(filePath, { highWaterMark: 64 * 1024 });
+    let imageCount = 0;
+
+    const pipeline = readStream
+      .pipe(parser())
+      .pipe(streamObject());
+
+    pipeline.on('data', ({ key, value }) => {
+      if (key === 'ImageStorage' && value && typeof value === 'object') {
+        const entries = Object.entries(value);
+
+        for (let i = 0; i < entries.length; i += BATCH_SIZE) {
+          const batch = entries.slice(i, i + BATCH_SIZE);
+
+          batch.forEach(([imgKey, imgValue]) => {
+            if (imgValue && typeof imgValue === 'string' && imgValue.length > 0) {
+              ImageStorage[imgKey.replace(homeDirRegex, '~')] = imgValue;
+              imageCount++;
+
+              if (imageCount % 10 === 0) {
+                console.log(`📦 Background: ${imageCount} images...`);
+                onProgress && onProgress(0.6 + (imageCount / entries.length) * 0.4);
+              }
+            } else if (imgValue && typeof imgValue === 'object' && Object.keys(imgValue).length === 0) {
+              console.warn(`⚠️ Skipping empty object: ${imgKey}`);
+            } else {
+              console.warn(`⚠️ Invalid value: ${imgKey}`);
+            }
+          });
+        }
+
+        if (!ImageStorage['_emptyImg']) {
+          ImageStorage['_emptyImg'] = defaultImageStorage['_emptyImg'];
+        }
+
+        console.log(`✅ Background complete: ${imageCount} images`);
+      }
+    });
+
+    await new Promise((resolve, reject) => {
+      pipeline.on('end', resolve);
+      pipeline.on('error', reject);
+    });
+
+    onProgress && onProgress(1);
+
+  } catch (e) {
+    console.error('❌ Background loading failed:', e);
+  }
+}
 
 export default (wsManager) => {
   const renderLog = (...args) => setTimeout(() => wsManager.send('console', args), 2000) ;
