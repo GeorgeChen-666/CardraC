@@ -140,7 +140,7 @@ export const readCompressedImage = async (path, options = {}) => {
     });
 
     const metadata = await image.metadata();
-    const imageDpi = metadata.density;
+    const imageDpi = metadata.density || 72;
     let rotateDegrees = 0;
     if (metadata.orientation) {
       if ([5, 6, 7, 8].includes(metadata.orientation)) {

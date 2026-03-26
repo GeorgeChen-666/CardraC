@@ -213,8 +213,8 @@ export const FileOrganizer = forwardRef(({
 
   const FileSlot = ({ file, label, isNextToFill }) => (
     <Box sx={{
-      width: 100,
-      height: 100,
+      width: 60,
+      height: 60,
       border: '2px solid',
       borderColor: isNextToFill ? 'primary.main' : 'divider',
       borderRadius: 1,
@@ -257,17 +257,17 @@ export const FileOrganizer = forwardRef(({
   );
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%', minWidth: 0 }}>
+    <Box sx={{p: 0, display: 'flex', alignItems: 'center', gap: 2, width: '100%', minWidth: 0 }}>
       <Box
         ref={scrollRef}
         sx={{
+          p: 0,
           display: 'flex',
           flex: 1,
           minWidth: 0,
           overflowX: 'auto',
           overflowY: 'hidden',
-          gap: 2,
-          py: 1,
+          gap: 0,
           scrollSnapType: 'x mandatory',
           '&::-webkit-scrollbar': { height: '8px' },
           '&::-webkit-scrollbar-thumb': { backgroundColor: '#888', borderRadius: '4px' }
@@ -281,17 +281,18 @@ export const FileOrganizer = forwardRef(({
             <Box
               key={i}
               sx={{
+                p: '4px',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                minWidth: isDoubleSides ? 220 : 110,
+                minWidth: isDoubleSides ? 130 : 66,
                 flexShrink: 0,
-                gap: 1,
+                gap: '4px',
                 scrollSnapAlign: 'start'
               }}
             >
               {showFileIcon && (
-                <Box sx={{ display: 'flex', gap: 1, p: 1, border: '1px dashed', borderColor: 'divider', borderRadius: 1 }}>
+                <Box sx={{ display: 'flex', gap: '4px', p: '4px', border: '1px dashed', borderColor: 'divider', borderRadius: 1 }}>
                   <FileSlot file={pair.front} label={isDoubleSides ? '正面' : null} isNextToFill={false} />
                   {isDoubleSides && (
                     <FileSlot
@@ -311,7 +312,7 @@ export const FileOrganizer = forwardRef(({
                     textAlign: 'center',
                     fontSize: '11px',
                     color: 'white',
-                    width: 100,
+                    width: 60,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -331,7 +332,7 @@ export const FileOrganizer = forwardRef(({
                       textAlign: 'center',
                       fontSize: '11px',
                       color: 'white',
-                      width: 100,
+                      width: 60,
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
@@ -347,7 +348,7 @@ export const FileOrganizer = forwardRef(({
                       textAlign: 'center',
                       fontSize: '11px',
                       color: 'white',
-                      width: 100,
+                      width: 60,
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
