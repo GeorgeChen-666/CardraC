@@ -1,8 +1,7 @@
 import { eleActions, emptyImg } from '../shared/constants';
-import { fixPath } from '../main/utils';
 import { wsAdapter } from './wsAdapter';
+import { fixPath, isDev } from '../shared/functions';
 
-export const isDev = process?.env?.NODE_ENV === 'development';
 
 function isPromise(obj) {
   return !!obj && typeof obj.then === 'function' && typeof obj.catch === 'function';

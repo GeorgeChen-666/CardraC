@@ -2,9 +2,8 @@ const { eleActions} = require('../../shared/constants');
 const {
   ImageStorage,
   OverviewStorage,
-} = require('../file_render/utils');
-const { fixPath } = require('../utils');
-const { waitCondition } = require('../../shared/functions');
+} = require('../services/store');
+const { waitCondition, fixPath } = require('../../shared/functions');
 
 
 

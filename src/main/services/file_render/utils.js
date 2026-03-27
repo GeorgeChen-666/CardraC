@@ -1,22 +1,5 @@
-import { emptyImg, layoutSides } from '../../shared/constants';
-import { SmartStorage } from '../utils';
-import { fixFloat } from '../../shared/functions';
-
-export const defaultImageStorage = {
-  '_emptyImg': emptyImg.path,
-};
-
-export const ImageStorage = new SmartStorage('ImageStorage', {
-  maxMemorySize: 50,  // 内存中最多保留 50 张高质量图片
-});
-
-export const OverviewStorage = new SmartStorage('OverviewStorage');
-
-// 初始化默认图片
-ImageStorage['_emptyImg'] = defaultImageStorage['_emptyImg'];
-OverviewStorage['_emptyImg'] = defaultImageStorage['_emptyImg'];
-
-
+import { emptyImg, layoutSides } from '../../../shared/constants';
+import { fixFloat } from '../../../shared/functions';
 
 export const getCutRectangleList = (Config, { maxWidth, maxHeight }, ignoreBleed = true, isBack = false) => {
   const {
@@ -178,7 +161,6 @@ export const getCutRectangleList = (Config, { maxWidth, maxHeight }, ignoreBleed
   return centerRects(list, maxWidth, maxHeight, offsetX, offsetY);
 };
 
-
 function centerRects(rects, pageWidth, pageHeight, offsetX = 0, offsetY = 0) {
   let minX = Math.min(...rects.map(r => r.x));
   let minY = Math.min(...rects.map(r => r.y));
@@ -197,7 +179,6 @@ function centerRects(rects, pageWidth, pageHeight, offsetX = 0, offsetY = 0) {
     height: fixFloat(rect.height),
   }));
 }
-
 
 export const getPagedImageListByCardList = (state, Config) => {
   if (!state.CardList || state.CardList.length === 0) {
@@ -521,15 +502,3 @@ export const isNeedRotation = (Config, isBack) => {
   return landscape && flipWay === 1 || !landscape && flipWay === 2;
 };
 
-// 在文件顶部添加缓存
-export const PreviewStorage = new SmartStorage('PreviewStorage', {
-  maxMemorySize: 10,
-});
-const previewTasks = new Map(); // 存储进行中的任务
-
-
-
-export const clearPrerenderCache = () => {
-  PreviewStorage.clear();
-  previewTasks.clear();
-}

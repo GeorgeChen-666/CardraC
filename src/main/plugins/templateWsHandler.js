@@ -1,6 +1,7 @@
-import { getConfigStore } from '../functions';
-import { SimpleStore } from '../functions';
+
 import { eleActions } from '../../shared/constants';
+import { SimpleStore } from '../core/SimpleStore';
+import { getConfigStore } from '../services/store';
 
 const templateStore = new SimpleStore('templates')
 

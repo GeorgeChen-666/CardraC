@@ -1,10 +1,8 @@
 import { app, BrowserWindow, shell, protocol } from 'electron';
 import { registerRendererActionHandlers } from './ele_action';
-import { OverviewStorage } from './file_render/utils';
-import { ImageStorage } from './file_render/utils';
-import { waitCondition } from '../shared/functions';
+import { OverviewStorage, ImageStorage } from './services/store';
+import { isDev, waitCondition } from '../shared/functions';
 import { run } from './server';
-import { isDev } from './functions';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {

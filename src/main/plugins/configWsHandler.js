@@ -1,18 +1,9 @@
 import _ from 'lodash';
 import fs from 'fs';
-import path from 'path';
-import os from 'os';
-import { getConfigStore, updateConfigStore } from '../functions';
-import { isDev, SimpleStore } from '../functions';
 import { eleActions } from '../../shared/constants';
-
-const getLangFilePath = () => {
-  if (isDev) {
-    return path.join(process.cwd(), 'locales');
-  } else {
-    return path.join(process.resourcesPath, 'locales');
-  }
-};
+import { getLangFilePath, homeDir } from '../../shared/functions';
+import { defaultPathStore, printStore, getConfigStore, updateConfigStore } from '../services/store';
+import { SimpleStore } from '../core/SimpleStore';
 
 const initLanguageJson = (lang) => {
   const langFilePath = getLangFilePath();
@@ -49,9 +40,6 @@ const getLocale = (lang) => {
   }
   return {};
 };
-
-const printStore = new SimpleStore('print_config');
-const defaultPathStore = new SimpleStore('defaultPathConfig'); // 改为与 fileBrowser.js 一致
 
 export default (wsManager) => {
   wsManager.on(eleActions.saveConfig, (event, args) => {
@@ -104,12 +92,12 @@ export default (wsManager) => {
     try {
       const { defaultPath } = defaultPathStore.get();
       wsManager.send(returnChannel, {
-        path: defaultPath || os.homedir().replace(/\\/g, '/').replace(/^([A-Z]):/, '$1:')
+        path: defaultPath || homeDir
       });
     } catch (e) {
       console.error('Failed to read default path from config:', e);
       wsManager.send(returnChannel, {
-        path: os.homedir().replace(/\\/g, '/').replace(/^([A-Z]):/, '$1:')
+        path: homeDir
       });
     }
   });

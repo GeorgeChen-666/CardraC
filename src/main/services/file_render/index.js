@@ -1,16 +1,15 @@
-import { fixFloat, waitCondition } from '../../shared/functions';
-import { getPendingList } from '../ele_action/handlers/ImageActions';
-import { getBorderAverageColors, getConfigStore } from '../functions';
+import { fixFloat, waitCondition } from '../../../shared/functions';
+import { getBorderAverageColors } from '../../functions';
 import {
   adjustBackPageImageOrder,
   getCutRectangleList,
   getPagedImageListByCardList,
   isNeedRotation,
-  PreviewStorage,
 } from './utils';
-import { layoutSides } from '../../shared/constants';
-import { ImageStorage } from './utils';
+import { layoutSides } from '../../../shared/constants';
+import { getConfigStore, ImageStorage, PreviewStorage } from '../store';
 import { SVGAdapter } from './adapter/SVGAdapter';
+import { getPendingList } from '../../plugins/imageWsHandler';
 
 export const colorCache = new Map();
 const imageAverageColorSet = new Map();

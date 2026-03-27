@@ -1,9 +1,9 @@
-export interface ImageCacheOptions {
+export interface SmartCacheOptions {
   maxMemorySize?: number;
 }
 
-export class ImageCache {
-  constructor(name: string, options?: ImageCacheOptions);
+export class SmartCache {
+  constructor(name: string, options?: SmartCacheOptions);
 
   get(key: string): Promise<string | undefined>;
   set(key: string, value: string): Promise<void>;

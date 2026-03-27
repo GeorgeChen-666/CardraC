@@ -6,14 +6,13 @@ import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import { useTranslation } from 'react-i18next';
-import { ConfigOverview } from './ConfigOverview';
 import { LayoutForm } from './LayoutForm';
 import './styles.css';
 import { CardForm } from './CardForm';
 import { MarkFrom } from './MarkFrom';
 import useAutoCalc from './useAutoCalc';
 import { TemplateMenu } from './TemplateMenu';
-import { ConfigOverviewNew } from './ConfigOverviewNew';
+import { ConfigOverview } from './ConfigOverview';
 import { useGlobalStore } from '../../../../state/store';
 
 const CustomTabPanel = ({ children, value, index }) => (
@@ -72,7 +71,7 @@ export const SetupDialog = forwardRef(({},ref) => {
     </DialogTitle>
     <DialogContent sx={{height: '450px'}}>
       {/*<ConfigOverview />*/}
-      <ConfigOverviewNew />
+      <ConfigOverview />
       <Box
         sx={{ flexGrow: 1, display: 'flex' }}
       >

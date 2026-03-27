@@ -1,11 +1,11 @@
 import { eleActions } from '../../shared/constants';
-import { getConfigStore, saveDataToFile } from '../functions';
+import { saveDataToFile } from '../functions';
 import fs from 'fs';
-import { defaultImageStorage, ImageStorage, OverviewStorage } from '../file_render/utils';
+import { defaultImageStorage, getConfigStore, ImageStorage, OverviewStorage } from '../services/store';
 import { parser } from 'stream-json';
 import { streamObject } from 'stream-json/streamers/StreamObject';
-import { fixPath, homeDir } from '../utils';
-import { pick } from 'stream-json/filters/Pick';
+import { fixPath, homeDir } from '../../shared/functions';
+
 
 const refreshCardStorage = (CardList, globalBackground) => {
   const usedImagePath = new Set();

@@ -1,12 +1,13 @@
-import { exportFile } from '../file_render';
-import { getConfigStore, saveDataToFile } from '../functions';
-import { getPagedImageListByCardList } from '../file_render/utils';
+import { exportFile } from '../services/file_render';
+import { saveDataToFile } from '../functions';
+import { getPagedImageListByCardList } from '../services/file_render/utils';
 import { eleActions, exportType, layoutSides } from '../../shared/constants';
-import { SharpAdapter } from '../file_render/adapter/SharpAdapter';
-import { JsPDFAdapter } from '../file_render/adapter/JsPdfAdapter';
+import { SharpAdapter } from '../services/file_render/adapter/SharpAdapter';
+import { JsPDFAdapter } from '../services/file_render/adapter/JsPdfAdapter';
 import JSZip from 'jszip';
 const packageJson = require('/package.json');
-import { SVGAdapter } from '../file_render/adapter/SVGAdapter';
+import { SVGAdapter } from '../services/file_render/adapter/SVGAdapter';
+import { getConfigStore } from '../services/store';
 
 export default (wsManager) => {
   wsManager.on(eleActions.exportFile, async (event, args) => {

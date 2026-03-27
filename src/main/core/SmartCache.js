@@ -2,25 +2,13 @@ import Keyv from 'keyv';
 import KeyvSqlite from '@keyv/sqlite';
 import path from 'path';
 import fs from 'fs';
-import os from 'os';
+import { getAppDataPath } from '../../shared/functions';
 
-const getAppDataPath = () => {
-  const platform = os.platform();
-  const home = os.homedir();
-  if (platform === 'win32') {
-    return process.env.APPDATA || path.join(home, 'AppData', 'Roaming');
-  } else if (platform === 'darwin') {
-    return path.join(home, 'Library', 'Application Support');
-  } else {
-    return process.env.XDG_CONFIG_HOME || path.join(home, '.config');
-  }
-};
-
-export class ImageCache {
+export class SmartCache {
   constructor(name, options = {}) {
     this.name = name;
     this.pid = process.pid;
-    this.maxMemorySize = options.maxMemorySize || 1000;
+    this.maxMemorySize = options.maxMemorySize || 50; // 默认 50 个
 
     const appDataPath = getAppDataPath();
     const cacheDir = path.join(appDataPath, 'cardrac', 'cache', name);
@@ -31,10 +19,10 @@ export class ImageCache {
 
     const dbPath = path.join(cacheDir, `pid-${this.pid}.db`);
 
-    // ✅ 内存缓存使用 Map（同步）
     this.memoryCache = new Map();
 
-    // ✅ 磁盘缓存（异步）
+    this.frequencyMap = new Map();
+
     this.diskCache = new Keyv({
       store: new KeyvSqlite(`sqlite://${dbPath}`),
       ttl: 1000 * 60 * 60 * 24
@@ -47,19 +35,13 @@ export class ImageCache {
     this.cleanupOldCaches();
     this.registerCleanup();
 
-    // ✅ 后台加载磁盘数据到内存
-    this.loadFromDiskInBackground();
-
     return new Proxy(this, {
       get: (target, prop) => {
         if (prop === 'toJSON') return () => target.toPlainObject();
         if (typeof target[prop] === 'function') return target[prop].bind(target);
-
-        // ✅ 方括号访问 - 同步从内存读取
         return target.getSync(prop);
       },
       set: (target, prop, value) => {
-        // ✅ 方括号赋值 - 同步写入内存，异步写入磁盘
         target.setSync(prop, value);
         return true;
       },
@@ -77,64 +59,121 @@ export class ImageCache {
     });
   }
 
-  // ✅ 同步获取（仅内存）
-  getSync(key) {
-    return this.memoryCache.get(key);
+  getAverageFrequency() {
+    if (this.frequencyMap.size === 0) return 1;
+    const total = Array.from(this.frequencyMap.values()).reduce((sum, freq) => sum + freq, 0);
+    return Math.ceil(total / this.frequencyMap.size);
   }
 
-  // ✅ 异步获取（内存 + 磁盘）
+  evictLFU() {
+    let minFreq = Infinity;
+    let leastFreqKey = null;
+
+    for (const [key, freq] of this.frequencyMap.entries()) {
+      if (freq < minFreq) {
+        minFreq = freq;
+        leastFreqKey = key;
+      }
+    }
+
+    if (leastFreqKey) {
+      this.memoryCache.delete(leastFreqKey);
+      this.frequencyMap.delete(leastFreqKey);
+      console.log(`🗑️ LFU 淘汰: ${leastFreqKey} (访问次数: ${minFreq})`);
+    }
+  }
+
+  getSync(key) {
+    if (this.memoryCache.has(key)) {
+      // 增加访问次数
+      this.frequencyMap.set(key, (this.frequencyMap.get(key) || 0) + 1);
+      return this.memoryCache.get(key);
+    }
+    return undefined;
+  }
+
   async get(key) {
     if (this.memoryCache.has(key)) {
+      // 增加访问次数
+      this.frequencyMap.set(key, (this.frequencyMap.get(key) || 0) + 1);
       return this.memoryCache.get(key);
     }
 
     const value = await this.diskCache.get(key);
     if (value !== undefined) {
+      // 检查容量
+      if (this.memoryCache.size >= this.maxMemorySize) {
+        this.evictLFU();
+      }
+
       this.memoryCache.set(key, value);
       this.allKeys.add(key);
+
+      const avgFreq = this.getAverageFrequency();
+      this.frequencyMap.set(key, avgFreq);
+      console.log(`📥 从磁盘加载: ${key}, 初始热度: ${avgFreq}`);
     }
     return value;
   }
 
-  // ✅ 同步设置（立即写入内存，后台写入磁盘）
   setSync(key, value) {
     this.allKeys.add(key);
+
+    if (!this.memoryCache.has(key) && this.memoryCache.size >= this.maxMemorySize) {
+      this.evictLFU();
+    }
+
     this.memoryCache.set(key, value);
 
-    // 后台异步写入磁盘（不阻塞）
+    if (!this.frequencyMap.has(key)) {
+      const avgFreq = this.getAverageFrequency();
+      this.frequencyMap.set(key, avgFreq);
+      console.log(`📝 新增数据: ${key}, 初始热度: ${avgFreq}`);
+    }
+
     this.diskCache.set(key, value).catch(err => {
       console.error(`Failed to write ${key} to disk:`, err);
     });
   }
 
-  // ✅ 异步设置（等待磁盘写入完成）
   async set(key, value) {
     this.allKeys.add(key);
+
+    if (!this.memoryCache.has(key) && this.memoryCache.size >= this.maxMemorySize) {
+      this.evictLFU();
+    }
+
     this.memoryCache.set(key, value);
+
+    if (!this.frequencyMap.has(key)) {
+      const avgFreq = this.getAverageFrequency();
+      this.frequencyMap.set(key, avgFreq);
+    }
+
     await this.diskCache.set(key, value);
   }
 
-  // ✅ 同步删除
   deleteSync(key) {
     this.allKeys.delete(key);
     this.memoryCache.delete(key);
+    this.frequencyMap.delete(key);
 
-    // 后台异步删除磁盘数据
     this.diskCache.delete(key).catch(err => {
       console.error(`Failed to delete ${key} from disk:`, err);
     });
   }
 
-  // ✅ 异步删除
   async delete(key) {
     this.allKeys.delete(key);
     this.memoryCache.delete(key);
+    this.frequencyMap.delete(key);
     await this.diskCache.delete(key);
   }
 
   async clear() {
     this.allKeys.clear();
     this.memoryCache.clear();
+    this.frequencyMap.clear();
     await this.diskCache.clear();
   }
 
@@ -150,14 +189,17 @@ export class ImageCache {
     return this.allKeys.size;
   }
 
-  // ✅ 后台加载磁盘数据到内存
-  async loadFromDiskInBackground() {
-    try {
-      // 这里可以根据需要实现预加载逻辑
-      // 例如：加载最近使用的 N 个条目
-    } catch (err) {
-      console.error('Failed to load from disk:', err);
-    }
+  getFrequencyStats() {
+    const stats = {
+      total: this.frequencyMap.size,
+      average: this.getAverageFrequency(),
+      min: Math.min(...this.frequencyMap.values()),
+      max: Math.max(...this.frequencyMap.values()),
+      details: Array.from(this.frequencyMap.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10) // 前 10 个热点
+    };
+    return stats;
   }
 
   cleanupOldCaches() {
@@ -210,6 +252,14 @@ export class ImageCache {
     const obj = {};
     for (const key of this.allKeys) {
       obj[key] = this.memoryCache.get(key);
+    }
+    return obj;
+  }
+
+  async toPlainObjectAsync() {
+    const obj = {};
+    for (const key of this.allKeys) {
+      obj[key] = await this.get(key);
     }
     return obj;
   }

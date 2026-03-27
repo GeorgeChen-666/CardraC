@@ -1,28 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { readCompressedImage, SimpleStore } = require('../functions');
-const { fixPath, expandPath } = require('../utils');
-const { OverviewStorage } = require('../file_render/utils'); //引入压缩函数
+const { readCompressedImage } = require('../functions');
+const { fixPath } = require('../../shared/functions');
+const { OverviewStorage } = require('../services/store');
 
-const defaultPathStore = new SimpleStore('defaultPathConfig')
-const getDefaultPath = () => {
-  try {
-    const { defaultPath } = defaultPathStore.get();
-    return defaultPath || os.homedir().replace(/\\/g, '/').replace(/^([A-Z]):/, '$1:');
-  } catch (e) {
-    console.error('Failed to read default path from config:', e);
-    return os.homedir().replace(/\\/g, '/').replace(/^([A-Z]):/, '$1:');
-  }
-};
-
-const setDefaultPath = (pathToSave) => {
-  try {
-    defaultPathStore.set({ defaultPath:pathToSave });
-  } catch (e) {
-    console.error('Failed to save default path to config:', e);
-  }
-};
 
 const isHidden = (filePath) => {
   const fileName = path.basename(filePath);
@@ -220,17 +202,6 @@ const browse = (drivePath, query = {}, basePath = '/browse') => {
 };
 
 const registerRoutes = (app, basePath = '/browse') => {
-  // 获取默认路径
-  app.get(`${basePath}/default-path`, (req, res) => {
-    res.json({ path: getDefaultPath() });
-  });
-
-  // 保存默认路径
-  app.post(`${basePath}/default-path`, (req, res) => {
-    const { path } = req.body;
-    setDefaultPath(path);
-    res.json({ success: true });
-  });
 
   app.get(basePath, (req, res) => {
     const result = listDrives(req.query, basePath);

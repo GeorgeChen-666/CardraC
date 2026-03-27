@@ -1,11 +1,11 @@
 import * as http from 'node:http';
-import { wsManager } from './WebSocketManager';
+import { wsManager } from './core/WebSocketManager';
 import ConfigWsHandler from './plugins/configWsHandler'
 import TemplateWsHandler from './plugins/templateWsHandler'
 import OtherWsHandler from './plugins/otherWsHandler'
 import ProjectWsHandler from './plugins/projectWsHandler'
 import ImageWsHandler from './plugins/imageWsHandler'
-import { initConfigStore } from './functions';
+import { initConfigStore } from './services/store';
 
 const express = require('express');
 const cors = require('cors');
