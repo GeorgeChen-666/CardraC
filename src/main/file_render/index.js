@@ -1,9 +1,16 @@
 import { fixFloat, waitCondition } from '../../shared/functions';
 import { getPendingList } from '../ele_action/handlers/ImageActions';
 import { getBorderAverageColors, getConfigStore } from '../functions';
-import { adjustBackPageImageOrder, getCutRectangleList, getPagedImageListByCardList, isNeedRotation } from './utils';
+import {
+  adjustBackPageImageOrder,
+  getCutRectangleList,
+  getPagedImageListByCardList,
+  isNeedRotation,
+  PreviewStorage,
+} from './utils';
 import { layoutSides } from '../../shared/constants';
 import { ImageStorage } from './utils';
+import { SVGAdapter } from './adapter/SVGAdapter';
 
 export const colorCache = new Map();
 const imageAverageColorSet = new Map();
@@ -369,6 +376,7 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
   return doc.finalize();
 }
 
+const previewTasks = new Map();
 // 预渲染函数
 export async function prerenderPage(pageIndex, state, Config, renderFunc, renderFuncId, quality = 'low') {
   const cacheKey = `${renderFuncId}-${pageIndex}`;
