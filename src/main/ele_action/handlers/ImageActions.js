@@ -1,6 +1,6 @@
 import { dialog, ipcMain } from 'electron';
 import fs from 'fs';
-import { eleActions, layoutSides } from '../../../shared/constants';
+import { eleActions, imageCacheType, layoutSides } from '../../../shared/constants';
 import { expandPath, fixPath, invokeRenderer } from '../../utils';
 import { taskPool } from '../../core/TaskPool';
 import { readCompressedImage } from '../../functions';
@@ -11,39 +11,30 @@ import { getPagedImageListByCardList } from '../../services/file_render/utils';
 const pendingList = new Set();
 export const getPendingList = () => pendingList;
 
-// ✅ 定义缩略图任务（最高优先级 100，直接赋值）
-const compressThumbnail = taskPool.task(
-  async (imagePath, imagePathKey, options={ maxWidth: 100 }) => {
-    const result = await readCompressedImage(imagePath, options);
-    OverviewStorage[imagePathKey] = result;
-    return result;
-  },
-  {
-    tag: 'thumbnails',
-    priority: 100
-  }
-);
-
-const compressHighQuality = taskPool.task(
-  async (imagePath, imagePathKey, options) => {
-    const result = await readCompressedImage(imagePath, options);
-    ImageStorage[imagePathKey] = result;
-    return result;
-  },
-  {
-    tag: 'high-quality',
-    priority: 10
-  }
-);
-
-// ✅ 监听进度（可选）
-taskPool.onTagProgress('thumbnails', ({ stats }) => {
-  console.log(`🖼️ Thumbnails: ${stats.completed}/${stats.total} (${stats.running} running)`);
+const compressThumbnail = taskPool.task(readCompressedImage, {
+  tag: imageCacheType.thumbnails,
+  priority: 100,
+  uniqueKey: (args) => args[0]
 });
 
-taskPool.onTagProgress('high-quality', ({ stats }) => {
-  console.log(`📦 High-quality: ${stats.completed}/${stats.total} (${stats.running} running)`);
+const compressHighQuality = taskPool.task(readCompressedImage, {
+  tag: imageCacheType.highQuality,
+  priority: 10,
+  uniqueKey: (args) => args[0]
 });
+
+
+
+
+// taskPool.onBeforeStartByTag(imageCacheType.highQuality, (task) => {
+//   task.waitFor(async () => {
+//     const state = await cachedCallRender_200('get_render_state');
+//     const pathList = extractImagePaths(state);
+//     if (!pathList.includes(task.args[0])) {
+//       task.cancel();
+//     }
+//   });
+// });
 
 const pathToImageData = async (imagePath, cb) => {
   const { Config } = getConfigStore();
@@ -61,32 +52,35 @@ const pathToImageData = async (imagePath, cb) => {
   const { mtime } = fs.statSync(expandPath(imagePath));
   const returnObj = { path: fixPath(imagePath), mtime: mtime.getTime() };
 
-  // ✅ 高质量压缩（后台执行，不阻塞）
-  if (!pendingList.has(imagePathKey)) {
-    pendingList.add(imagePathKey);
+  const fixedImagePath = expandPath(imagePath);
 
-    const taskId = compressHighQuality(
-      expandPath(imagePath),
-      imagePathKey,
-      {
-        format: ext,
-        ...compressParamsList[compressLevel - 1]
-      }
+  if(!await ImageStorage[imagePathKey]) {
+    const taskIdHigh = compressHighQuality(
+      fixedImagePath,
+      { format: ext, ...compressParamsList[compressLevel - 1] }
     );
-
-    // 后台等待完成
-    taskPool.waitTask(taskId)
-      .then(() => {
-        pendingList.delete(imagePathKey);
+    taskPool.waitTask(taskIdHigh)
+      .then(result => {
+        ImageStorage[imagePathKey] = result;
       })
-      .catch(err => {
-        console.error(`Failed to compress high-quality image: ${imagePath}`, err);
-        pendingList.delete(imagePathKey);
+      .catch(error => {
+        console.log(`❌ Task error: ${error}`);
       });
   }
 
-  const thumbTaskId = compressThumbnail(expandPath(imagePath), imagePathKey);
-  await taskPool.waitTask(thumbTaskId);
+  if(!await OverviewStorage[imagePathKey]) {
+    const taskIdLow = compressThumbnail(
+      fixedImagePath,
+      { maxWidth: 100 }
+    )
+    taskPool.waitTask(taskIdLow)
+      .then(result => {
+        OverviewStorage[imagePathKey] = result;
+      })
+      .catch(error => {
+        console.log(`❌ Task error: ${error}`);
+      });
+  }
 
   colorCache.delete(imagePathKey);
   cb && cb();

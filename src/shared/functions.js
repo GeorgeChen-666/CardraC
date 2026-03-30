@@ -1,13 +1,29 @@
+
+
 export const waitTime = async timeout => new Promise(resolve => setTimeout(resolve, timeout));
-export const waitCondition = async (Condition = () => true, timeout = 500, totalWaitingTime  = 30000) => new Promise(resolve => {
+export const waitCondition = async (Condition = () => true, timeout = 500, totalWaitingTime = 30000) => new Promise((resolve) => {
   const startTime = new Date().getTime();
-  const timer = setInterval(() => {
+
+  const checkCondition = async () => {
     const nowTime = new Date().getTime();
-    if(Condition() || nowTime - startTime > totalWaitingTime) {
+
+    try {
+      const result = await Condition();
+
+      if (result || nowTime - startTime > totalWaitingTime) {
+        clearInterval(timer);
+        resolve();
+      }
+    } catch (err) {
+      console.error('waitCondition error:', err);
       clearInterval(timer);
       resolve();
     }
-  }, timeout);
+  };
+
+  const timer = setInterval(checkCondition, timeout);
+
+  checkCondition();
 });
 
 export const fixFloat = num => num ?? parseFloat(num?.toFixed?.(2));
@@ -122,3 +138,52 @@ export const expandPath = (filePath) => {
 
   return filePath;
 };
+
+export function generateUUID() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+export function extractImagePaths(state) {
+  const imagePaths = new Set();
+
+  // 1. 提取 CardList 中的图片
+  if (state.CardList && Array.isArray(state.CardList)) {
+    state.CardList.forEach(card => {
+      // 提取 face
+      if (card.face?.path) {
+        imagePaths.add(card.face.path);
+      }
+
+      // 提取 back（处理数组和对象两种情况）
+      if (card.back) {
+        if (Array.isArray(card.back)) {
+          card.back.forEach(item => {
+            if (item.face?.path) imagePaths.add(item.face.path);
+            if (item.back?.path) imagePaths.add(item.back.path);
+          });
+        } else if (card.back.path) {
+          imagePaths.add(card.back.path);
+        }
+      }
+
+      // 提取自定义背景（如果有）
+      if (card.config?.globalBackground?.path) {
+        imagePaths.add(card.config.globalBackground.path);
+      }
+    });
+  }
+
+  // 2. 提取全局背景
+  if (state.Config?.globalBackground?.path) {
+    imagePaths.add(state.Config.globalBackground.path);
+  }
+
+  return Array.from(imagePaths);
+}

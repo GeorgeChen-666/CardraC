@@ -1,7 +1,7 @@
 import electron, { app, BrowserWindow, shell, protocol } from 'electron';
 import { registerRendererActionHandlers } from './ele_action';
 import { ImageStorage, OverviewStorage } from './services/store';
-import { isDev } from '../shared/functions';
+import { isDev, waitCondition } from '../shared/functions';
 
 if (typeof electron === 'string') {
   throw new TypeError('Not running in an Electron environment!');
@@ -87,8 +87,9 @@ app.whenReady().then(() => {
       let foundPath = null;
 
       for (const variant of pathVariants) {
-        if (storage[variant]) {
-          imageData = storage[variant];
+        const storageEntity = await storage[variant]
+        if (storageEntity) {
+          imageData = storageEntity;
           foundPath = variant;
           break;
         }
@@ -96,10 +97,11 @@ app.whenReady().then(() => {
 
       if (!imageData) {
         await waitCondition(
-          () => {
+          async () => {
             for (const variant of pathVariants) {
-              if (storage[variant]) {
-                imageData = storage[variant];
+              const storageEntity = await storage[variant]
+              if (storageEntity) {
+                imageData = storageEntity;
                 foundPath = variant;
                 return true;
               }

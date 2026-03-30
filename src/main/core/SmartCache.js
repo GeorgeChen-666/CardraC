@@ -1,3 +1,4 @@
+// SmartCache.js
 import Keyv from 'keyv';
 import KeyvSqlite from '@keyv/sqlite';
 import path from 'path';
@@ -8,47 +9,74 @@ export class SmartCache {
   constructor(name, options = {}) {
     this.name = name;
     this.pid = process.pid;
-    this.maxMemorySize = options.maxMemorySize || 50; // 默认 50 个
-
+    this.maxMemorySize = options.maxMemorySize || 500;
     const appDataPath = getAppDataPath();
     const cacheDir = path.join(appDataPath, 'cardrac', 'cache', name);
-
     if (!fs.existsSync(cacheDir)) {
       fs.mkdirSync(cacheDir, { recursive: true });
     }
-
     const dbPath = path.join(cacheDir, `pid-${this.pid}.db`);
-
     this.memoryCache = new Map();
-
     this.frequencyMap = new Map();
-
     this.diskCache = new Keyv({
       store: new KeyvSqlite(`sqlite://${dbPath}`),
       ttl: 1000 * 60 * 60 * 24
     });
-
     this.allKeys = new Set();
     this.dbPath = dbPath;
     this.cacheDir = cacheDir;
-
     this.cleanupOldCaches();
     this.registerCleanup();
 
+    const internalProps = new Set([
+      'name', 'pid', 'maxMemorySize', 'memoryCache', 'frequencyMap',
+      'diskCache', 'allKeys', 'dbPath', 'cacheDir',
+      'get', 'set', 'delete', 'clear', 'has', 'keys', 'size',
+      'getAverageFrequency', 'evictLFU', 'cleanupOldCaches',
+      'isProcessRunning', 'registerCleanup', 'toPlainObject',
+      'toPlainObjectAsync', 'getFrequencyStats'
+    ]);
+
     return new Proxy(this, {
       get: (target, prop) => {
+        // ✅ 特殊处理
         if (prop === 'toJSON') return () => target.toPlainObject();
-        if (typeof target[prop] === 'function') return target[prop].bind(target);
-        return target.getSync(prop);
+
+        // ✅ 如果是内部属性或方法，直接返回
+        if (internalProps.has(prop) || typeof target[prop] === 'function') {
+          return typeof target[prop] === 'function'
+            ? target[prop].bind(target)
+            : target[prop];
+        }
+
+        // ✅ 返回 Promise
+        return target.get(prop);
       },
+
       set: (target, prop, value) => {
-        target.setSync(prop, value);
+        // ✅ 如果是内部属性，直接设置
+        if (internalProps.has(prop)) {
+          target[prop] = value;
+          return true;
+        }
+
+        // ✅ 调用异步 set，但不等待
+        target.set(prop, value).catch(err => {
+          console.error(`Error in proxy set:`, err);
+        });
+
         return true;
       },
+
       deleteProperty: (target, prop) => {
-        target.deleteSync(prop);
+        // ✅ 调用异步 delete，但不等待
+        target.delete(prop).catch(err => {
+          console.error(`Error in proxy delete:`, err);
+        });
+
         return true;
       },
+
       has: (target, prop) => target.has(prop),
       ownKeys: (target) => Array.from(target.allKeys),
       getOwnPropertyDescriptor: (target, prop) => {
@@ -68,99 +96,52 @@ export class SmartCache {
   evictLFU() {
     let minFreq = Infinity;
     let leastFreqKey = null;
-
     for (const [key, freq] of this.frequencyMap.entries()) {
       if (freq < minFreq) {
         minFreq = freq;
         leastFreqKey = key;
       }
     }
-
     if (leastFreqKey) {
       this.memoryCache.delete(leastFreqKey);
       this.frequencyMap.delete(leastFreqKey);
-      console.log(`🗑️ LFU 淘汰: ${leastFreqKey} (访问次数: ${minFreq})`);
+      console.log(`💾 LFU 淘汰到磁盘: ${leastFreqKey} (访问次数: ${minFreq})`);
     }
-  }
-
-  getSync(key) {
-    if (this.memoryCache.has(key)) {
-      // 增加访问次数
-      this.frequencyMap.set(key, (this.frequencyMap.get(key) || 0) + 1);
-      return this.memoryCache.get(key);
-    }
-    return undefined;
   }
 
   async get(key) {
     if (this.memoryCache.has(key)) {
-      // 增加访问次数
       this.frequencyMap.set(key, (this.frequencyMap.get(key) || 0) + 1);
       return this.memoryCache.get(key);
     }
 
     const value = await this.diskCache.get(key);
+
     if (value !== undefined) {
-      // 检查容量
       if (this.memoryCache.size >= this.maxMemorySize) {
         this.evictLFU();
       }
-
       this.memoryCache.set(key, value);
       this.allKeys.add(key);
-
       const avgFreq = this.getAverageFrequency();
       this.frequencyMap.set(key, avgFreq);
       console.log(`📥 从磁盘加载: ${key}, 初始热度: ${avgFreq}`);
     }
+
     return value;
-  }
-
-  setSync(key, value) {
-    this.allKeys.add(key);
-
-    if (!this.memoryCache.has(key) && this.memoryCache.size >= this.maxMemorySize) {
-      this.evictLFU();
-    }
-
-    this.memoryCache.set(key, value);
-
-    if (!this.frequencyMap.has(key)) {
-      const avgFreq = this.getAverageFrequency();
-      this.frequencyMap.set(key, avgFreq);
-      console.log(`📝 新增数据: ${key}, 初始热度: ${avgFreq}`);
-    }
-
-    this.diskCache.set(key, value).catch(err => {
-      console.error(`Failed to write ${key} to disk:`, err);
-    });
   }
 
   async set(key, value) {
     this.allKeys.add(key);
-
     if (!this.memoryCache.has(key) && this.memoryCache.size >= this.maxMemorySize) {
       this.evictLFU();
     }
-
     this.memoryCache.set(key, value);
-
     if (!this.frequencyMap.has(key)) {
       const avgFreq = this.getAverageFrequency();
       this.frequencyMap.set(key, avgFreq);
     }
-
     await this.diskCache.set(key, value);
-  }
-
-  deleteSync(key) {
-    this.allKeys.delete(key);
-    this.memoryCache.delete(key);
-    this.frequencyMap.delete(key);
-
-    this.diskCache.delete(key).catch(err => {
-      console.error(`Failed to delete ${key} from disk:`, err);
-    });
   }
 
   async delete(key) {
@@ -178,7 +159,7 @@ export class SmartCache {
   }
 
   has(key) {
-    return this.memoryCache.has(key);
+    return this.allKeys.has(key);
   }
 
   keys() {
@@ -197,7 +178,7 @@ export class SmartCache {
       max: Math.max(...this.frequencyMap.values()),
       details: Array.from(this.frequencyMap.entries())
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 10) // 前 10 个热点
+        .slice(0, 10)
     };
     return stats;
   }
@@ -239,27 +220,37 @@ export class SmartCache {
         });
       } catch (err) {}
     };
-
     let called = false;
     const safe = () => { if (!called) { called = true; cleanup(); } };
-
     process.on('exit', safe);
     process.on('SIGINT', () => { safe(); process.exit(0); });
     process.on('SIGTERM', () => { safe(); process.exit(0); });
   }
 
-  toPlainObject() {
+  toPlainObject(fast = true) {
     const obj = {};
     for (const key of this.allKeys) {
-      obj[key] = this.memoryCache.get(key);
+      if (this.memoryCache.has(key)) {
+        obj[key] = this.memoryCache.get(key);
+      } else if (fast) {
+        obj[key] = "==disk data==";
+      } else {
+        obj[key] = undefined;
+      }
     }
     return obj;
   }
 
-  async toPlainObjectAsync() {
+  async toPlainObjectAsync(fast = true) {
     const obj = {};
     for (const key of this.allKeys) {
-      obj[key] = await this.get(key);
+      if (this.memoryCache.has(key)) {
+        obj[key] = this.memoryCache.get(key);
+      } else if (fast) {
+        obj[key] = "==disk data==";
+      } else {
+        obj[key] = await this.get(key);
+      }
     }
     return obj;
   }

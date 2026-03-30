@@ -1,4 +1,3 @@
-import { fixFloat, waitCondition } from '../../../shared/functions';
 import { getBorderAverageColors } from '../../functions';
 import {
   adjustBackPageImageOrder,
@@ -10,6 +9,7 @@ import { layoutSides } from '../../../shared/constants';
 import { getConfigStore, ImageStorage, PreviewStorage } from '../store';
 import { SVGAdapter } from './adapter/SVGAdapter';
 import { getPendingList } from '../../ele_action/handlers/ImageActions';
+import { fixFloat, waitCondition } from '../../../shared/functions';
 
 export const colorCache = new Map();
 const imageAverageColorSet = new Map();

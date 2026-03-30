@@ -105,3 +105,8 @@ export const emptyImg = {
     '12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg==',
   ext: 'png',
 };
+
+export const imageCacheType = Object.freeze({
+  thumbnails: 'thumbnails',
+  highQuality: 'high-quality'
+})

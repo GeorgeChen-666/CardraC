@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useState } from 'react';
+import React, { memo, useEffect, useMemo, useState } from 'react';
 import Card from '@mui/material/Card';
 import '../CardList/styles.css';
 import { useDrag, useDrop } from 'react-dnd';
@@ -279,7 +279,6 @@ export default memo(({ data, dialogCardSettingRef, index, sharedPreviewRef, curr
               path={data?.face?.path}
               isBackEditing={isBackEditing}
               isFace={true}
-              isHighQuality={isFaceHQ}
             />
             {isShowBack && (
               <CardImage
@@ -287,7 +286,6 @@ export default memo(({ data, dialogCardSettingRef, index, sharedPreviewRef, curr
                 path={data?.back?.path}
                 isBackEditing={isBackEditing}
                 isFace={false}
-                isHighQuality={isBackHQ}
               />
             )}
           </Stack>
