@@ -11,9 +11,6 @@ import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
 import { useGlobalStore } from '../../../state/store';
 import { PageNavigator } from './PageNavigator';
-import { callMain } from '../../../functions';
-import { eleActions } from '../../../../shared/constants';
-import { PrintDrawer } from './Print/PrintDrawer';
 
 
 export const PreviewToolbar = ({ previewRef }) => {

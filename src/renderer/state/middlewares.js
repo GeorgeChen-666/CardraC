@@ -1,8 +1,8 @@
 // src/renderer/state/middlewares.js
-import { isDev } from '../functions';
 import { actionLogger } from './logger';
 import { subscribeWithSelector } from 'zustand/middleware';
 import LZString from 'lz-string';
+import { isDev } from '../../shared/functions';
 
 const historyMiddleware = (config) => (set, get, api) => {
   const wrappedSet = (partial, replace) => {

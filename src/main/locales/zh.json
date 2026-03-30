@@ -60,7 +60,7 @@
   },
   "cardEditor": {
     "spicalConfig": "独立设置",
-    "lblHere": "至于此处...",
+    "lblHere": "将选中的{{count}}项，移至于此处...",
     "btnRemove": "移除",
     "addEmpty" : "添加空卡",
     "face": "卡面...",

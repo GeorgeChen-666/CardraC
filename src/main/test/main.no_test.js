@@ -11,10 +11,10 @@ vi.mock('./ele_action/functions', () => ({
   })
 }));
 
-import { getCutRectangleList, getPagedImageListByCardList, adjustBackPageImageOrder, isNeedRotation, ImageStorage  } from '../ele_action/handlers/file_render/utils';
+import { getCutRectangleList, getPagedImageListByCardList, adjustBackPageImageOrder, isNeedRotation, ImageStorage  } from '../services/file_render/utils';
 import { layoutSides, initialState } from '../../shared/constants';
-import { ShadowAdapter } from '../ele_action/handlers/file_render/adapter/ShadowAdapter';
-import { exportFile } from '../ele_action/handlers/file_render';
+import { ShadowAdapter } from '../services/file_render/adapter/ShadowAdapter';
+import { exportFile } from '../services/file_render';
 
 // 辅助函数：重置配置为初始状态
 const resetConfig = () => {

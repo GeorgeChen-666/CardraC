@@ -75,7 +75,7 @@ interface StoreState {
   progress: (v: number) => void;
 
   // Project methods
-  openProject: () => void;
+  openProject: (filePath: any | string) => void;
   saveProject: () => void;
   exportFile: (targetFileType: string) => void;
   printPages: (params: { pageList: any[]; printConfig: any }) => void;
@@ -84,7 +84,7 @@ interface StoreState {
   getExportPreview: (pageIndex: number) => Promise<any>;
 
   // Card methods
-  cardAdd: (images: any[]) => void;
+  cardAdd: (images: unknown) => void;
   cardEditById: (newState: Partial<Card> & { id: string }) => void;
   cardRemoveByIds: (ids: string[]) => void;
   cardSelect: (selectedId: string) => void;

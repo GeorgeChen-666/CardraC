@@ -60,7 +60,7 @@
   },
   "cardEditor": {
     "spicalConfig": "Spical Config",
-    "lblHere": "Here...",
+    "lblHere": "{{count}} Cards To Here...",
     "btnRemove": "Remove image",
     "addEmpty" : "Add Empty",
     "face": "Face...",

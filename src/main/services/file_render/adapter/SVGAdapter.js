@@ -1,6 +1,6 @@
 // SVGAdapter.js
 import { IAdapter } from './IAdapter';
-import { ImageStorage, OverviewStorage } from '../utils';
+import { ImageStorage, OverviewStorage } from '../../store';
 
 const displayScale = 10;
 

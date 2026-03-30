@@ -13,8 +13,7 @@ import Paper from '@mui/material/Paper';
 import './style.css'
 
 import { useTranslation } from 'react-i18next';
-import { eleActions } from '../../../../../shared/constants';
-import { callMain } from '../../../../functions';
+import { checkImage, openImage } from '../../../../functions';
 import { useGlobalStore } from '../../../../state/store';
 import IconButton from '@mui/material/IconButton';
 
@@ -80,8 +79,16 @@ export const ReloadDialog = forwardRef(({},ref) => {
                 <TableCell>
                   <IconButton onClick={async () => {
                     const path = row.path;
-                    const getFileName = path => decodeURI(new URL(path).pathname.split('/').pop());
-                    const newPath = await callMain(eleActions.getImagePath);
+                    const getFileName = path => {
+                      try {
+                        const url = new URL(path);
+                        return decodeURIComponent(url.pathname.split('/').pop());
+                      } catch (e) {
+                        return path.replace(/\\/g, '/').split('/').pop();
+                      }
+                    };
+                    const result = await openImage();
+                    const newPath = result?.[0]?.face?.path;
                     if(newPath) {
                       setNewImagePath(last => ({...last, [path]: newPath}));
                       const pathFileName = getFileName(path);
@@ -90,7 +97,7 @@ export const ReloadDialog = forwardRef(({},ref) => {
                         const replaceTo = newPath.replace(pathFileName, '');
                         const emptyInvalidImages = invalidImages.filter(p => !Object.keys(newImagePath).includes(p));
                         const newPathList = emptyInvalidImages.map(p => p.replace(replaceFrom, replaceTo));
-                        const result = await callMain(eleActions.checkImage, { pathList: newPathList });
+                        const result = await checkImage({ pathList: newPathList })
                         newPathList.forEach((p, index) => {
                           if(!result.includes(p)) {
                             setNewImagePath(last => ({...last, [emptyInvalidImages[index]]: p}));

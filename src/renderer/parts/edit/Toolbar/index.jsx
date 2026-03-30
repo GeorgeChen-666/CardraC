@@ -17,7 +17,7 @@ import { AboutDialog } from './About/AboutDialog';
 import { SetupDialog } from './Setup/SetupDialog';
 import { ChatDialog } from './Chat/ChatDialog';
 import Switch from '@mui/material/Switch';
-import { getImageSrc, openImage } from '../../../functions';
+import { getImageSrc, openImage, showFileOpenDialog } from '../../../functions';
 import { exportType, layoutSides, initialState } from '../../../../shared/constants';
 import { CompressSelectButton } from './CompressSelectButton';
 import { BulkOperationButton } from './BulkOperationButton';
@@ -79,12 +79,24 @@ export function EditToolbar() {
       <GeneralIconButton
         label={t('toolbar.btnOpen')}
         icon={<FindInPageIcon />}
-        onClick={() => openProject()}
+        onClick={async () => {
+          const selectedFiles = await showFileOpenDialog({filterExtensions: 'cpnp'});
+          if(selectedFiles.length === 0) {
+            return;
+          }
+          openProject({ filePath: selectedFiles[0][0].realPath })
+        }}
       />
       <GeneralIconButton
         label={t('toolbar.btnSave')}
         icon={<SaveIcon />}
-        onClick={() => saveProject()}
+        onClick={async () => {
+          const selectedFile = await showFileOpenDialog({filterExtensions: 'cpnp', mode: 'save'});
+          if(!selectedFile) {
+            return;
+          }
+          saveProject({ filePath: selectedFile.realPath })
+        }}
       />
       <GeneralIconButton
         disabled={!canUndo}
@@ -99,13 +111,14 @@ export function EditToolbar() {
         onClick={() => historyRedo()}
       />
       <span style={{ color: '#666', padding: '4px' }}>|</span>
-      {Config.sides() === layoutSides.doubleSides && (
+      {[layoutSides.doubleSides, layoutSides.foldInHalf].includes(Config.sides()) && (
         <GeneralIconButton
           label={t('toolbar.btnGlobalBackground')}
-          icon={<img src={getImageSrc(globalBackground, { version : imageVersion})} width={'30px'} height={'30px'} alt='' />}
+          icon={<img src={getImageSrc(globalBackground, { version : imageVersion})} width={'21px'} height={'21px'} alt='' />}
           onClick={async () => {
-            const filePath = await openImage('setGlobalBack');
-            mergeConfig({ globalBackground: filePath });
+            const selectedFiles = await openImage();
+
+            mergeConfig({ globalBackground: selectedFiles?.[0]?.face });
           }}
           onMouseOver={() => imageViewerRef.current?.update?.(globalBackground?.path)}
           onMouseLeave={() => imageViewerRef.current?.close?.()}
@@ -118,12 +131,24 @@ export function EditToolbar() {
       <GeneralIconButton
         label={t('toolbar.btnExport', {format:'PDF'})}
         icon={<ExportIcon />}
-        onClick={() => exportFile(exportType.pdf)}
+        onClick={async () => {
+          const selectedFile = await showFileOpenDialog({filterExtensions: exportType.pdf, mode: 'save'});
+          if(!selectedFile) {
+            return;
+          }
+          exportFile({ filePath: selectedFile.realPath, targetFileType: exportType.pdf })
+        }}
       />
       <GeneralIconButton
         label={t('toolbar.btnExport', {format:'PNG'})}
         icon={<ExportIcon label={'png'} />}
-        onClick={() => exportFile(exportType.png)}
+        onClick={async () => {
+          const selectedFile = await showFileOpenDialog({filterExtensions: exportType.zip, mode: 'save'});
+          if(!selectedFile) {
+            return;
+          }
+          exportFile({ filePath: selectedFile.realPath, targetFileType: exportType.png })
+        }}
       />
       {/*<GeneralIconButton*/}
       {/*  label={t('toolbar.btnExport')}*/}

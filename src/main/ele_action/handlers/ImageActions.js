@@ -1,56 +1,93 @@
-import { dialog, ipcMain, protocol } from 'electron';
-import log from 'electron-log';
+import { dialog, ipcMain } from 'electron';
 import fs from 'fs';
-
-import { getConfigStore, readCompressedImage } from '../functions';
 import { eleActions, layoutSides } from '../../../shared/constants';
-import {
-  clearPrerenderCache,
-  getPagedImageListByCardList,
-  ImageStorage,
-  OverviewStorage,
-  prerenderPage,
-} from './file_render/utils';
-import { colorCache, exportFile } from './file_render';
 import { expandPath, fixPath, invokeRenderer } from '../../utils';
+import { taskPool } from '../../core/TaskPool';
+import { readCompressedImage } from '../../functions';
+import { clearPrerenderCache, getConfigStore, ImageStorage, OverviewStorage } from '../../services/store';
+import { colorCache, exportFile, prerenderPage } from '../../services/file_render';
+import { getPagedImageListByCardList } from '../../services/file_render/utils';
 
-log.transports.file.level = 'debug';
-log.transports.console.level = 'debug';
-
-const ImageStorageLoadingJobs = {};
 const pendingList = new Set();
 export const getPendingList = () => pendingList;
 
-const pathToImageData = async (path, cb) => {
+// ✅ 定义缩略图任务（最高优先级 100，直接赋值）
+const compressThumbnail = taskPool.task(
+  async (imagePath, imagePathKey, options={ maxWidth: 100 }) => {
+    const result = await readCompressedImage(imagePath, options);
+    OverviewStorage[imagePathKey] = result;
+    return result;
+  },
+  {
+    tag: 'thumbnails',
+    priority: 100
+  }
+);
+
+const compressHighQuality = taskPool.task(
+  async (imagePath, imagePathKey, options) => {
+    const result = await readCompressedImage(imagePath, options);
+    ImageStorage[imagePathKey] = result;
+    return result;
+  },
+  {
+    tag: 'high-quality',
+    priority: 10
+  }
+);
+
+// ✅ 监听进度（可选）
+taskPool.onTagProgress('thumbnails', ({ stats }) => {
+  console.log(`🖼️ Thumbnails: ${stats.completed}/${stats.total} (${stats.running} running)`);
+});
+
+taskPool.onTagProgress('high-quality', ({ stats }) => {
+  console.log(`📦 High-quality: ${stats.completed}/${stats.total} (${stats.running} running)`);
+});
+
+const pathToImageData = async (imagePath, cb) => {
   const { Config } = getConfigStore();
   const cardWidth = Config.cardWidth;
   const compressLevel = Config.compressLevel || 2;
   const compressParamsList = [
-    { maxWidth: cardWidth * 15, quality: 100 },
-    { maxWidth: cardWidth * 12, quality: 90 },
-    { maxWidth: cardWidth * 9, quality: 80 },
-    { maxWidth: cardWidth * 6, quality: 70 },
+    { maxWidth: cardWidth * 15, quality: 100, maxDpi: 300 },
+    { maxWidth: cardWidth * 12, quality: 90, maxDpi: 200 },
+    { maxWidth: cardWidth * 9, quality: 85, maxDpi: 150 },
+    { maxWidth: cardWidth * 6, quality: 80, maxDpi: 75 },
   ];
 
-  const ext = path.split('.').pop();
-  const imagePathKey = fixPath(path).replaceAll('\\', '');
-  const { mtime } = fs.statSync(expandPath(path));
-  const returnObj = { path: fixPath(path), mtime: mtime.getTime() };
+  const ext = imagePath.split('.').pop();
+  const imagePathKey = fixPath(imagePath).replaceAll('\\', '');
+  const { mtime } = fs.statSync(expandPath(imagePath));
+  const returnObj = { path: fixPath(imagePath), mtime: mtime.getTime() };
 
-  if (!(imagePathKey in ImageStorage) && !pendingList.has(imagePathKey)) {
+  // ✅ 高质量压缩（后台执行，不阻塞）
+  if (!pendingList.has(imagePathKey)) {
     pendingList.add(imagePathKey);
-    ImageStorageLoadingJobs[path] = async () => {
-      ImageStorage[imagePathKey] = await readCompressedImage(expandPath(path), {
+
+    const taskId = compressHighQuality(
+      expandPath(imagePath),
+      imagePathKey,
+      {
         format: ext,
         ...compressParamsList[compressLevel - 1]
+      }
+    );
+
+    // 后台等待完成
+    taskPool.waitTask(taskId)
+      .then(() => {
+        pendingList.delete(imagePathKey);
+      })
+      .catch(err => {
+        console.error(`Failed to compress high-quality image: ${imagePath}`, err);
+        pendingList.delete(imagePathKey);
       });
-      pendingList.delete(imagePathKey);
-      delete ImageStorageLoadingJobs[path];
-    };
-    ImageStorageLoadingJobs[path]();
   }
 
-  OverviewStorage[imagePathKey] = await readCompressedImage(expandPath(path), { maxWidth: 100 });
+  const thumbTaskId = compressThumbnail(expandPath(imagePath), imagePathKey);
+  await taskPool.waitTask(thumbTaskId);
+
   colorCache.delete(imagePathKey);
   cb && cb();
   return returnObj;
@@ -67,7 +104,7 @@ export default (mainWindow) => {
   });
 
   ipcMain.handle(eleActions.getExportPreview, async (event, args) => {
-    const { pageIndex, CardList, globalBackground } = args;
+    const { pageIndex, CardList, globalBackground, returnChannel } = args;
     const { Config } = getConfigStore();
     const state = { CardList, globalBackground };
 
@@ -94,14 +131,24 @@ export default (mainWindow) => {
         });
       }
     }
-
-    return result;
+    mainWindow.webContents.send(returnChannel, result);
   });
 
-  ipcMain.handle(eleActions.clearPreviewCache, async () => {
+  ipcMain.on(eleActions.clearPreviewCache, async (event, args) => {
+    const { returnChannel } = args;
     clearPrerenderCache();
     console.log('Preview cache cleared');
-    return { success: true };
+    mainWindow.webContents.send(returnChannel, { success: true });
+  });
+
+  ipcMain.on(eleActions.loadImageList, async (event, args) => {
+    const { returnChannel, imageList } = args;
+    imageList.forEach(imageData => {
+      pathToImageData(imageData.path).catch(err => {
+        console.error(`Failed to load image in background: ${imageData.path}`, err);
+      });
+    });
+    mainWindow.webContents.send(returnChannel, { success: true });
   });
 
   ipcMain.handle(eleActions.getImageContent, async (event, path) => {
@@ -184,31 +231,25 @@ export default (mainWindow) => {
 
     let totalCount = 0;
     let currentCount = 0;
+    const alreadyKnownKey = new Set();
 
     const reloadImage = (args, cb) => {
       if (!args) return false;
 
-      const { path, mtime: cardMtime } = args;
-      const imagePathKey = path.replaceAll('\\', '');
+      const { path: imagePath, mtime: cardMtime } = args;
+      const imagePathKey = fixPath(imagePath)?.replaceAll?.('\\', '');
 
       try {
-        const { mtime } = fs.statSync(expandPath(path));
+        const { mtime } = fs.statSync(expandPath(imagePath));
 
-        if (cardMtime !== mtime.getTime() || !(imagePathKey in ImageStorage)) {
+        if (cardMtime !== mtime.getTime() || !alreadyKnownKey.has(imagePathKey)) {
           totalCount++;
+          alreadyKnownKey.add(imagePathKey);
           reloadImageJobs.push((async () => {
             if (isTerminated) return;
-
             cb && cb(mtime.getTime());
-
+            await pathToImageData(imagePath);
             if (isTerminated) return;
-
-            delete ImageStorage[imagePathKey];
-            delete OverviewStorage[imagePathKey];
-            await pathToImageData(path);
-
-            if (isTerminated) return;
-
             currentCount++;
             mainWindow.webContents.send(progressChannel, currentCount / totalCount);
           })());

@@ -1,23 +1,5 @@
-import { emptyImg, layoutSides } from '../../../../shared/constants';
-import { SVGAdapter } from './adapter/SVGAdapter';
-import { SmartStorage } from '../../../utils';
-import { fixFloat } from '../../../../shared/functions';
-
-export const defaultImageStorage = {
-  '_emptyImg': emptyImg.path,
-};
-
-export const ImageStorage = new SmartStorage('ImageStorage', {
-  maxMemorySize: 50,  // 内存中最多保留 50 张高质量图片
-});
-
-export const OverviewStorage = new SmartStorage('OverviewStorage');
-
-// 初始化默认图片
-ImageStorage['_emptyImg'] = defaultImageStorage['_emptyImg'];
-OverviewStorage['_emptyImg'] = defaultImageStorage['_emptyImg'];
-
-
+import { emptyImg, layoutSides } from '../../../shared/constants';
+import { fixFloat } from '../../../shared/functions';
 
 export const getCutRectangleList = (Config, { maxWidth, maxHeight }, ignoreBleed = true, isBack = false) => {
   const {
@@ -179,7 +161,6 @@ export const getCutRectangleList = (Config, { maxWidth, maxHeight }, ignoreBleed
   return centerRects(list, maxWidth, maxHeight, offsetX, offsetY);
 };
 
-
 function centerRects(rects, pageWidth, pageHeight, offsetX = 0, offsetY = 0) {
   let minX = Math.min(...rects.map(r => r.x));
   let minY = Math.min(...rects.map(r => r.y));
@@ -198,7 +179,6 @@ function centerRects(rects, pageWidth, pageHeight, offsetX = 0, offsetY = 0) {
     height: fixFloat(rect.height),
   }));
 }
-
 
 export const getPagedImageListByCardList = (state, Config) => {
   if (!state.CardList || state.CardList.length === 0) {
@@ -522,61 +502,3 @@ export const isNeedRotation = (Config, isBack) => {
   return landscape && flipWay === 1 || !landscape && flipWay === 2;
 };
 
-// 在文件顶部添加缓存
-export const PreviewStorage = new SmartStorage('PreviewStorage', {
-  maxMemorySize: 10,
-});
-const previewTasks = new Map(); // 存储进行中的任务
-
-
-// 预渲染函数
-export async function prerenderPage(pageIndex, state, Config, renderFunc, renderFuncId, quality = 'low') {
-  const cacheKey = `${renderFuncId}-${pageIndex}`;
-  const cachedResult = PreviewStorage[cacheKey];
-  if (cachedResult) {
-    console.log(`📦 Page ${pageIndex + 1}: Loaded from cache`);
-    return cachedResult;
-  }
-
-  if (previewTasks.has(cacheKey)) {
-    console.log(`⏳ Page ${pageIndex + 1}: Waiting for existing render task`);
-    return previewTasks.get(cacheKey);
-  }
-
-  const task = (async () => {
-    //开始计时
-    const startTime = performance.now();
-    console.log(`🎨 Page ${pageIndex + 1}: Starting render...`);
-
-    try {
-      const doc = new SVGAdapter(Config, quality, true);
-      const svgString = await renderFunc(doc, state, [pageIndex]);
-
-      const base64Svg = Buffer.from(svgString, 'utf-8').toString('base64');
-      const result = `data:image/svg+xml;base64,${base64Svg}`;
-
-      //结束计时
-      const endTime = performance.now();
-      const duration = (endTime - startTime).toFixed(2);
-      console.log(`Page ${pageIndex + 1}: Rendered in ${duration}ms`);
-
-      PreviewStorage[cacheKey] = result;
-      return result;
-    } catch (error) {
-      //错误也记录时间
-      const endTime = performance.now();
-      const duration = (endTime - startTime).toFixed(2);
-      console.error(`Page ${pageIndex + 1}: Failed after ${duration}ms`, error);
-      throw error;
-    } finally {
-      previewTasks.delete(cacheKey);
-    }
-  })();
-
-  previewTasks.set(cacheKey, task);
-  return task;
-}
-export const clearPrerenderCache = () => {
-  PreviewStorage.clear();
-  previewTasks.clear();
-}

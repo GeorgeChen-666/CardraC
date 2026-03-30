@@ -2,7 +2,6 @@ import * as React from 'react';
 import './styles.css';
 import { useGlobalStore } from '../../state/store';
 import { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 'react';
-import { clearPreviewCache } from '../../functions';
 import { PrintDrawer } from './ToolBar/Print/PrintDrawer';
 import { decodeSvg } from '../../../shared/functions';
 
@@ -318,7 +317,6 @@ export const PrintPreview = forwardRef((props, ref) => {
   useEffect(() => {
     setReady(true);
     return async () => {
-      await clearPreviewCache();
       setReady(false);
     };
   }, []);

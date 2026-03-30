@@ -15,6 +15,7 @@ export const BulkOperationButton = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   const [repeat, setRepeat] = useState(1);
+  const dialogCardSettingRef = window.dialogCardSettingRef;
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
   };
@@ -29,8 +30,8 @@ export const BulkOperationButton = () => {
     selectedCardsFillBackWithEach,
     selectedCardsSwap,
   } = useGlobalStore.getState();
-  const { Global } = useGlobalStore.selectors;
-  const selectionLength = useGlobalStore(state => state.CardList.filter(c => c.selected).length);
+  const selectionIds = useGlobalStore(state => state.CardList.filter(c => c.selected).map(c => c.id));
+  const selectionLength = selectionIds.length;
   return (<>
     <Button
       sx={{ visibility: selectionLength === 0 ? 'hidden' : 'visible', marginLeft: '20px' }}
@@ -91,6 +92,12 @@ export const BulkOperationButton = () => {
         selectedCardsSwap();
       }}>
         {t('toolbar.bulkMenu.menuSwap')}
+      </MenuItem>
+      <MenuItem onClick={() => {
+        handleClose();
+        dialogCardSettingRef?.current?.openDialog(selectionIds);
+      }}>
+        {t('cardEditor.spicalConfig')}
       </MenuItem>
     </Menu>
   </>);

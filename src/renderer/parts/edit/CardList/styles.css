@@ -39,6 +39,7 @@
 .CardMain {
     padding: 5px;
     position: relative;
+    height: 164px;
 }
 .CardListContainer {
     flex-grow: 1;

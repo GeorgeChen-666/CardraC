@@ -6,16 +6,18 @@ import Button from '@mui/material/Button';
 import React from 'react';
 import { useGlobalStore } from '../../../state/store';
 import { openMultiImage } from '../../../functions';
+import { layoutSides } from '../../../../shared/constants';
 
 export default () => {
   const { t } = useTranslation();
   const {
-    openImage, cardAdd
+    openImage, cardAdd, Config
   } = useGlobalStore.getState();
+  const isDoubleSides = Config.sides === layoutSides.doubleSides || Config.sides === layoutSides.foldInHalf
   return <Card className={'Card'}>
     <IconButton className={'AddCardButton'}
                 onClick={async () => {
-                  const imageData = await openMultiImage('CardAddByFaces');
+                  const imageData = await openMultiImage(isDoubleSides);
                   cardAdd(imageData);
                 }}>
       <AddIcon fontSize="inherit" />
@@ -25,7 +27,7 @@ export default () => {
         fullWidth
         onClick={(e) => {
           e.stopPropagation();
-          cardAdd([null])
+          cardAdd([{}])
         }}
       >
         {t('cardEditor.addEmpty')}

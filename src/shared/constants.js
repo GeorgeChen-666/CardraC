@@ -7,6 +7,7 @@ export const eleActions = Object.freeze({
   loadPrintConfig: 'load-print-config',
   savePrintConfig: 'save-print-config',
   checkImage: 'check-image',
+  loadImageList: 'load-image-list',
   getImagePath: 'get-image-path',
   getImageContent: 'get-image-content',
   getExportPageCount: 'get-export-page-count',
@@ -17,6 +18,15 @@ export const eleActions = Object.freeze({
   getPrinters: 'get-printers',
   adjustGuidePrint: 'adjust-guide-print',
   printPages: 'print-pages',
+  getTemplate: 'get-template',
+  setTemplate: 'set-template',
+  editTemplate: 'edit-template',
+  deleteTemplate: 'delete-template',
+  version: 'version',
+  getDefaultPath: 'get-default-path',
+  setDefaultPath: 'set-default-path',
+  listDrives: 'list-drives',
+  browsePath: 'browse-path'
 });
 
 export const layoutSides = Object.freeze({

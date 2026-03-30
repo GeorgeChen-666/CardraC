@@ -49,14 +49,11 @@ export const CardImage = memo(({ imageSrc, path, isBackEditing, isFace }) => {
         <div style={{
           width: size,
           height: size,
-          background: '#ffebee',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#c62828',
           fontSize: '12px'
         }}>
-          ❌
         </div>
       ) : (
         //直接渲染图片，浏览器自动处理加载

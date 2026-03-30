@@ -1,37 +1,47 @@
 import { app, ipcMain } from 'electron';
 import _ from 'lodash';
 import fs from 'fs';
-import path from 'path';
-import Store from 'electron-store';
 import { eleActions } from '../../../shared/constants';
-import { getConfigStore, updateConfigStore } from '../functions';
+import { defaultPathStore, getConfigStore, printStore, updateConfigStore } from '../../services/store';
+import { getLangFilePath, homeDir } from '../../../shared/functions';
+import { SimpleStore } from '../../core/SimpleStore';
 
-const getLocalesDir = () => {
-  if (app.isPackaged) {
-    //打包后：exe目录/resources/locales
-    return path.join(process.resourcesPath, 'locales');
-  } else {
-    //开发环境
-    return path.join(app.getAppPath(), 'locales');
+const initLanguageJson = (lang) => {
+  const langFilePath = getLangFilePath();
+  const langStore = new SimpleStore(lang, langFilePath);
+  const defaultLangStore = require(`../../locales/${lang}.json`);
+  langStore.set(_.merge(defaultLangStore, langStore.get()));
+};
+
+//获取所有可用语言
+const getAvailableLanguages = () => {
+  try {
+    const langFilePath = getLangFilePath();
+    if (!fs.existsSync(langFilePath)) {
+      return [];
+    }
+
+    return fs.readdirSync(langFilePath)
+      .filter(file => file.endsWith('.json'))
+      .map(file => file.replace('.json', ''))
+      .filter(lang => lang);
+  } catch (e) {
+    console.error('Failed to get available languages:', e);
+    return [];
   }
 };
 
-
-const initLanguageJson = (lang) => {
-  const localesDir = getLocalesDir();
-  // 确保目录存在
-  if (!fs.existsSync(localesDir)) {
-    fs.mkdirSync(localesDir, { recursive: true });
+const getLocale = (lang) => {
+  try {
+    const langFilePath = getLangFilePath();
+    const langStore = new SimpleStore(lang, langFilePath);
+    return langStore.get();
+  } catch (e) {
+    console.error(`Failed to read locale ${lang}:`, e);
   }
-  const en = new Store({
-    name: lang,
-    cwd: localesDir
-  });
+  return {};
+};
 
-  const defaultLangStore = require(`../locales/${lang}.json`);
-  en.set(_.merge(defaultLangStore, en.store));
-}
-const printStore = new Store({ name: 'print_config' });
 export default (mainWindow) => {
   ipcMain.on(eleActions.saveConfig, (event, args) => {
     const { Global, Config } = args.state;
@@ -48,22 +58,13 @@ export default (mainWindow) => {
     const config = getConfigStore();
     config.Global = config.Global || {};
 
-    const localesDir = getLocalesDir();
+    // 获取可用语言列表
+    config.Global.availableLangs = getAvailableLanguages();
 
-    if (!fs.existsSync(localesDir)) {
-      fs.mkdirSync(localesDir, { recursive: true });
-    }
-
-    config.Global.availableLangs = fs.readdirSync(localesDir)
-      .map(p => p?.split('.')?.[0] || '')
-      .filter(p => !!p);
-
+    // 加载所有语言包
     config.Global.locales = {};
     config.Global.availableLangs.forEach(lang => {
-      config.Global.locales[lang] = new Store({
-        name: lang,
-        cwd: localesDir
-      }).get();
+      config.Global.locales[lang] = getLocale(lang);
     });
 
     mainWindow.webContents.send(returnChannel, config);
@@ -81,5 +82,36 @@ export default (mainWindow) => {
         offsetY: 0,
       })
     mainWindow.webContents.send(returnChannel, result);
+  });
+  // 新增：获取默认路径
+  ipcMain.on(eleActions.getDefaultPath, (event, args) => {
+    const { returnChannel } = args;
+    try {
+      const { defaultPath } = defaultPathStore.get();
+      mainWindow.webContents.send(returnChannel, {
+        path: defaultPath || homeDir
+      });
+    } catch (e) {
+      console.error('Failed to read default path from config:', e);
+      mainWindow.webContents.send(returnChannel, {
+        path: homeDir
+      });
+    }
+  });
+
+  // 新增：保存默认路径
+  ipcMain.on(eleActions.setDefaultPath, (event, args) => {
+    const { path, returnChannel } = args;
+    try {
+      defaultPathStore.set({ defaultPath: path });
+      if (returnChannel) {
+        mainWindow.webContents.send(returnChannel, { success: true });
+      }
+    } catch (e) {
+      console.error('Failed to save default path to config:', e);
+      if (returnChannel) {
+        mainWindow.webContents.send(returnChannel, { success: false });
+      }
+    }
   });
 }

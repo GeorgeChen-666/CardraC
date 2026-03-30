@@ -1,10 +1,7 @@
 import sharp from 'sharp';
-import Store from 'electron-store';
 import path from 'path';
-const { Buffer } = require('buffer');
 import fs from 'fs';
-import { app, BrowserWindow } from 'electron';
-import { expandPath, fixPath } from '../utils';
+import { expandPath } from '../shared/functions';
 
 export async function getBorderAverageColors(base64String, borderWidth = 5) {
   try {
@@ -13,7 +10,6 @@ export async function getBorderAverageColors(base64String, borderWidth = 5) {
     const metadata = await baseImage.metadata();
     const { width, height, channels } = metadata;
 
-    //一次性获取所有像素数据
     const { data } = await baseImage.raw().toBuffer({ resolveWithObject: true });
 
     const pixelsPerChannel = channels || 3;
@@ -22,15 +18,13 @@ export async function getBorderAverageColors(base64String, borderWidth = 5) {
     let totalR = 0, totalG = 0, totalB = 0;
     let pixelCount = 0;
 
-    //遍历所有像素，只统计边框区域
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        // 判断是否在边框区域
         const isInBorder =
-          y < actualBorderWidth ||                    // 上边框
-          y >= height - actualBorderWidth ||          // 下边框
-          x < actualBorderWidth ||                    // 左边框
-          x >= width - actualBorderWidth;             // 右边框
+          y < actualBorderWidth ||
+          y >= height - actualBorderWidth ||
+          x < actualBorderWidth ||
+          x >= width - actualBorderWidth;
 
         if (isInBorder) {
           const index = (y * width + x) * pixelsPerChannel;
@@ -54,18 +48,26 @@ export async function getBorderAverageColors(base64String, borderWidth = 5) {
   }
 }
 
-
 export const readCompressedImage = async (path, options = {}) => {
   options.format = options.format === 'jpg' ? 'jpeg' : 'png';
   const {
     maxWidth = 1000,
     quality = 80,
-    format= 'webp'
+    format= 'webp',
+    maxDpi = 300,
+    returnFormat = 'base64'
   } = options;
   try {
-    let image = sharp(expandPath(path));
-    const metadata = await image.metadata();
+    const fileBuffer = fs.readFileSync(expandPath(path));
 
+    // ✅ 只改这里：加优化参数
+    let image = sharp(fileBuffer, {
+      sequentialRead: true,
+      failOnError: false
+    });
+
+    const metadata = await image.metadata();
+    const imageDpi = metadata.density || 72;
     let rotateDegrees = 0;
     if (metadata.orientation) {
       if ([5, 6, 7, 8].includes(metadata.orientation)) {
@@ -77,12 +79,24 @@ export const readCompressedImage = async (path, options = {}) => {
       }
     }
 
+    // ✅ 只改这里：resize 参数改成这种形式
     image = image.rotate(rotateDegrees)
-      .resize({ width: Math.min(metadata.width, maxWidth) });
-    image = (image[format])({ lossless: true, force: true, quality });
+      .resize(Math.min(metadata.width, maxWidth), null, {
+        fastShrinkOnLoad: true
+      })
+      .withMetadata({ density: Math.min(imageDpi, maxDpi) })
+      .toFormat(format, {
+        lossless: true,
+        force: true,
+        quality
+      });
     const ext = 'webp';
-    const base64String = (await image.toBuffer()).toString('base64');
-    return `data:image/${ext};base64,${base64String}`;
+    const buffer = await image.toBuffer()
+    if(returnFormat === 'base64') {
+      const base64String = (buffer).toString('base64');
+      return `data:image/${ext};base64,${base64String}`;
+    }
+    return buffer;
   } catch (e) {
     return null;
   }
@@ -113,6 +127,8 @@ export const saveDataToFile = async (data, filePath) => {
 
   if (Buffer.isBuffer(data)) {
     buffer = data;
+  } else if (data instanceof ArrayBuffer) {
+    buffer = Buffer.from(data);
   } else if (typeof data === 'object' && data instanceof Blob) {
     buffer = Buffer.from(await data.arrayBuffer());
   } else if (typeof data === 'string') {
@@ -125,40 +141,15 @@ export const saveDataToFile = async (data, filePath) => {
 
   await fs.writeFileSync(filePath, buffer);
 };
+
 export const base64ToBuffer = (base64Data) => {
   const buffer = Buffer.from(base64Data, 'base64');
   const decodedString = buffer.toString('binary');
   return decodedString;
 };
 
-let store = null;
-export const updateConfigStore = (value) => {
-  getConfigStore();
-  store.set(value);
-}
-export const initConfigStore = async () => {
-  return new Promise((resolve, reject) => {
-    try {
-      if (!store) {
-        store = new Store();
-        resolve();
-      }
-    } catch (e) {
-      //APPDATA npm_package_name process
-      const {APPDATA, npm_package_name} = process.env;
-      const configPath = path.join(APPDATA, npm_package_name, 'config.json');
-      fs.unlink(configPath, () => {
-        store = new Store();
-        resolve();
-      });
-    }
-  })
-}
 
-export const getConfigStore = () => {
 
-  return store.get() || {};
-}
 
 /**
  * 打印 PNG Buffer 数组

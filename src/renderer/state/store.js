@@ -2,21 +2,22 @@ import * as yup from 'yup';
 import { eleActions, flipWay, initialState, layoutSides } from '../../shared/constants';
 import { create } from 'zustand';
 import {
-  loadConfig,
-  regUpdateProgress,
   callMain,
-  immutableMerge,
+  exportFile,
   fillByObjectValue,
-  onOpenProjectFile, isDev,
+  getExportPageCount,
+  getExportPreview,
+  immutableMerge,
+  loadConfig,
+  openProject,
+  reloadLocalImage,
+  saveConfig,
+  saveProject,
 } from '../functions';
 import _ from 'lodash';
 import { i18nInstance, initI18n } from '../i18n';
-import { actionLogger } from './logger';
-import { notificationFailed, notificationSuccess, triggerNotification } from '../parts/Notification';
+import { notificationSuccess, triggerNotification } from '../parts/Notification';
 import { shallow } from 'zustand/shallow';
-import { ipcRenderer } from 'electron';
-import LZString from 'lz-string';
-import { subscribeWithSelector } from 'zustand/middleware';
 import { middlewares } from './middlewares';
 
 
@@ -159,9 +160,9 @@ export const useGlobalStore = create(middlewares((set, get) => ({
     get().mergeState({ Config: initialState.Config, CardList: [] });
     get().historyReset();
   },
-  openProject: () => {
+  openProject: (params) => {
     get().loading(async () => {
-      const projectData = await callMain(eleActions.openProject);
+      const projectData = await openProject(params);
       if (projectData) {
         const { isValid, config: validatedData } = await validateAndFixConfig({
           ...projectData,
@@ -172,17 +173,19 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       }
     });
   },
-  saveProject: () => {
+  saveProject: (params) => {
     get().loading(async () => {
-      const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList };
-      const rs = await callMain(eleActions.saveProject, param);
+      const rs = await saveProject({
+        ...params,
+        ...{ globalBackground: get().Config.globalBackground, CardList: get().CardList }
+      });
       rs && notificationSuccess();
     });
   },
-  exportFile: (targetFileType) => {
+  exportFile: (params) => {
     get().loading(async () => {
-      const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList, targetFileType };
-      const isSuccess = await callMain(eleActions.exportFile, param);
+      const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList, ...params };
+      const isSuccess = await exportFile(param);
       isSuccess && notificationSuccess();
     });
   },
@@ -196,7 +199,7 @@ export const useGlobalStore = create(middlewares((set, get) => ({
   reloadLocalImage: () => {
     get().loading(async () => {
       const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList };
-      const stateData = await callMain(eleActions.reloadLocalImage, param);
+      const stateData = await reloadLocalImage(param);
       if (stateData && !stateData.isAborted) {
         const imageVersion = Date.now();
         get().mergeState({
@@ -219,24 +222,23 @@ export const useGlobalStore = create(middlewares((set, get) => ({
   getExportPageCount: (targetFileType) => {
     get().loading(async () => {
       const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList, targetFileType };
-      const exportPageCount = await callMain(eleActions.getExportPageCount, param);
-      get().mergeGlobal({exportPageCount})
+      const count = await getExportPageCount(param);
+      get().mergeGlobal({exportPageCount: count})
     });
   },
   getExportPreview: (pageIndex, isSilence = false) => {
-    const callMainGetExportPreview = async () => {
+    const getPreview = async () => {
       const param = {
         globalBackground: get().Config.globalBackground,
         CardList: get().CardList,
         pageIndex
       };
-      const content = await ipcRenderer.invoke(eleActions.getExportPreview, param);
-      return content;
+      return await getExportPreview(param);
     }
     if(isSilence) {
       return new Promise((resolve, reject) => {
         try {
-          callMainGetExportPreview().then(content => {
+          getPreview().then(content => {
             resolve(content);
           })
         } catch (error) {
@@ -247,7 +249,7 @@ export const useGlobalStore = create(middlewares((set, get) => ({
     return new Promise((resolve, reject) => {
       get().loading(async () => {
         try {
-          const content = await callMainGetExportPreview();
+          const content = await getPreview();
           resolve(content);
         } catch (error) {
           reject(error);
@@ -260,8 +262,8 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       ...state,
       CardList: state.CardList.concat(images.map(p => ({
         id: crypto.randomUUID(),
-        face: p,
-        back: null,
+        face: p.face,
+        back: p.back,
         repeat: 1,
       })))
     }));
@@ -361,7 +363,6 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       }
     });
   },
-
   dragHoverMove: (to) => {
     set(state => {
       const id = 'dragTarget';
@@ -433,46 +434,58 @@ export const useGlobalStore = create(middlewares((set, get) => ({
   },
   selectedCardsEdit: (newState) => {
     get().setWithHistory(state => {
-      const selection = state.CardList.filter(c => c.selected);
-      selection.forEach(c => {
-        fillByObjectValue(c, newState);
+      const newCardList = state.CardList.map(c => {
+        if (!c.selected) return c;
+        return fillByObjectValue(c, newState);
       });
-      state.CardList = state.CardList.map(c => selection.includes(c) ? { ...c } : c);
-      return {...state};
+      return { ...state, CardList: newCardList };
     });
   },
   selectedCardsFillBackWithEach: (backImageList) => {
     get().setWithHistory(state => {
-      const selection = state.CardList.filter(c => c.selected);
-      selection.forEach((c, index) => {
-        c.back = backImageList?.[index];
+      let imageIndex = 0;
+      const newCardList = state.CardList.map(c => {
+        if (!c.selected) return c;  // 未选中的保持原引用
+        const newBack = backImageList?.[imageIndex];
+        imageIndex++;
+        //创建新对象（不修改原对象）
+        return { ...c, back: newBack };
       });
-      state.CardList = state.CardList.map(c => selection.includes(c) ? { ...c } : c);
-      return {...state};
+
+      return { ...state, CardList: newCardList };
     });
   },
   selectedCardsSwap: () => {
     get().setWithHistory(state => {
-      const selection = state.CardList.filter(c => c.selected);
-      selection.forEach(c => ([c.face, c.back] = [c.back, c.face]));
-      state.CardList = state.CardList.map(c => selection.includes(c) ? { ...c } : c);
-      return {...state};
+      //直接在 map 中创建新对象
+      const newCardList = state.CardList.map(c => {
+        if (!c.selected) return c;
+        //创建新对象，交换 face 和 back
+        return {
+          ...c,
+          face: c.back,
+          back: c.face
+        };
+      });
+      return { ...state, CardList: newCardList };
     });
   },
   editCardsConfig: (ids, config) => {
     get().setWithHistory(state => {
-      const editedCards = state.CardList.filter(c => ids.includes(c.id));
-      editedCards.forEach(c => {
-        if(Object.values(config?.bleed || {}).filter(e => !!e).length > 0) {
-          c.config = config;
-        } else {
-          delete c.config;
-        }
+      const idsSet = new Set(ids);
+      const hasValidBleed = Object.values(config?.bleed || {}).some(e => !!e);
+
+      const newCardList = state.CardList.map(c => {
+        if (!idsSet.has(c.id)) return c;
+        return hasValidBleed
+          ? { ...c, config }
+          : { ...c, config: undefined };
       });
-      state.CardList = state.CardList.map(c => ids.includes(c.id) ? { ...c } : c);
-      return {...state};
+
+      return { ...state, CardList: newCardList };
     });
   }
+
 })));
 
 function createSelectors(storeHook) {
@@ -508,15 +521,15 @@ useGlobalStore.subscribe(
   (state) => ({ Config: state.Config, Global: state.Global }),
   (newState, prevState) => {
     if (newState.Config !== prevState.Config || newState.Global !== prevState.Global) {
-      callMain(eleActions.saveConfig, { state: newState });
+      saveConfig({ state: newState })
     }
   },
   { equalityFn: shallow }
 );
 const state = useGlobalStore.getState();
-onOpenProjectFile((data) => {
-  state.fillState(data);
-});
+// onOpenProjectFile((data) => {
+//   state.fillState(data);
+// });
 
 let config = await loadConfig();
 await initI18n(config.Global);
@@ -533,5 +546,5 @@ if (!isValid) {
 
 const newStateData = _.pick(validatedConfig, ['Global', 'Config']);
 state.fillState(newStateData);
-callMain(eleActions.saveConfig, { state: newStateData });
-regUpdateProgress(state.progress);
+saveConfig({ state: newStateData });
+// regUpdateProgress(state.progress);

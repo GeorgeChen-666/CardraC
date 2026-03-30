@@ -12,10 +12,18 @@ const mainBorder = {
 
 export const defaultTheme = createTheme({
   components: {
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundColor: '#2B2D30 !important',
+          color: 'inherit !important',
+        }
+      }
+    },
     MuiCard: {
       styleOverrides: {
         root: {
-          backgroundColor: 'rgba(115,115,115,.6)'
+          backgroundColor: 'rgba(115,115,115,.6)!important'
         }
       }
     },
