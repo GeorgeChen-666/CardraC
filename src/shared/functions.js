@@ -110,16 +110,24 @@ export const getLangFilePath = () => {
     return joinPath(process.resourcesPath, 'locales');
   }
 };
+
+export const filePathToImageKey = path => path?.replaceAll?.('\\', '')?.replaceAll?.('/', '');
+
 /**
  * 将绝对路径压缩为使用 ~ 的相对路径
  */
-export const fixPath = (filePath, homeDir) => {
+export const fixPath = (filePath) => {
   if (!filePath || typeof filePath !== 'string') return filePath;
   if (!homeDir) return filePath;
-  const normalizedPath = normalizePath(filePath);
-  const normalizedHome = normalizePath(homeDir);
-  if (normalizedPath.toLowerCase().startsWith(normalizedHome.toLowerCase())) {
+  const normalizedPath = joinPath(filePath);
+  const normalizedHome = joinPath(homeDir);
+  const normalizedHomeKey = filePathToImageKey(normalizedHome)
+  if (normalizedPath.startsWith(normalizedHome)) {
     const relativePath = normalizedPath.substring(normalizedHome.length);
+    return '~' + relativePath;
+  }
+  if (normalizedPath.startsWith(normalizedHomeKey)) {
+    const relativePath = normalizedPath.substring(normalizedHomeKey.length);
     return '~' + relativePath;
   }
   return filePath;

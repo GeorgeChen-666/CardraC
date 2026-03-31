@@ -4,8 +4,7 @@ import fs from 'fs';
 import { parser } from 'stream-json';
 import { streamObject } from 'stream-json/streamers/StreamObject';
 import { defaultImageStorage, getConfigStore, ImageStorage, OverviewStorage } from '../../services/store';
-import { homeDir } from '../../../shared/functions';
-import { fixPath } from '../../utils';
+import { filePathToImageKey, fixPath, homeDir } from '../../../shared/functions';
 import { saveDataToFile } from '../../functions';
 
 
@@ -13,14 +12,14 @@ const refreshCardStorage = (CardList, globalBackground) => {
   const usedImagePath = new Set();
   CardList.forEach(card => {
     const {face,back} = card;
-    const facePathKey  = face?.path.replaceAll('\\','');
-    const backPathKey  = back?.path.replaceAll('\\','');
+    const facePathKey  = filePathToImageKey(face?.path);
+    const backPathKey  = filePathToImageKey(back?.path);
     usedImagePath.add(facePathKey);
     usedImagePath.add(backPathKey);
   });
 
   if(globalBackground?.path) {
-    const globalBackPathKey = globalBackground?.path?.replaceAll('\\','');
+    const globalBackPathKey = filePathToImageKey(globalBackground?.path);
     usedImagePath.add(globalBackPathKey);
   }
 
@@ -85,8 +84,9 @@ const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
             const batch = entries.slice(i, i + BATCH_SIZE);
 
             batch.forEach(([ovKey, ovValue]) => {
+              const fixedOvKey = fixPath(ovKey);
               if (ovValue && typeof ovValue === 'string' && ovValue.length > 0) {
-                OverviewStorage[ovKey.replace(homeDirRegex, '~')] = ovValue;
+                OverviewStorage[fixedOvKey] = ovValue;
                 overviewCount++;
               }
             });
@@ -135,7 +135,7 @@ async function loadImageStorageAsync(filePath, homeDirRegex, BATCH_SIZE, onProgr
       .pipe(parser())
       .pipe(streamObject());
 
-    pipeline.on('data', ({ key, value }) => {
+    pipeline.on('data', async ({ key, value }) => {
       if (key === 'ImageStorage' && value && typeof value === 'object') {
         const entries = Object.entries(value);
 
@@ -144,7 +144,8 @@ async function loadImageStorageAsync(filePath, homeDirRegex, BATCH_SIZE, onProgr
 
           batch.forEach(([imgKey, imgValue]) => {
             if (imgValue && typeof imgValue === 'string' && imgValue.length > 0) {
-              ImageStorage[imgKey.replace(homeDirRegex, '~')] = imgValue;
+              const fixedImgKey = fixPath(imgKey);
+              ImageStorage[fixedImgKey] = imgValue;
               imageCount++;
 
               if (imageCount % 10 === 0) {
@@ -159,7 +160,7 @@ async function loadImageStorageAsync(filePath, homeDirRegex, BATCH_SIZE, onProgr
           });
         }
 
-        if (!ImageStorage['_emptyImg']) {
+        if (!await ImageStorage['_emptyImg']) {
           ImageStorage['_emptyImg'] = defaultImageStorage['_emptyImg'];
         }
 
@@ -215,10 +216,10 @@ export default (mainWindow) => {
       console.log('📦 Preparing to save project...');
       progressChannel && mainWindow.webContents.send(progressChannel, 0.1);
 
-      const imageStorageObj = await ImageStorage.toPlainObjectAsync();
+      const imageStorageObj = await ImageStorage.toPlainObjectAsync(false);
       progressChannel && mainWindow.webContents.send(progressChannel, 0.5);
 
-      const overviewStorageObj = await OverviewStorage.toPlainObjectAsync();
+      const overviewStorageObj = await OverviewStorage.toPlainObjectAsync(false);
       progressChannel && mainWindow.webContents.send(progressChannel, 0.8);
 
       //验证数据完整性

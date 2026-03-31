@@ -1,12 +1,12 @@
 import { dialog, ipcMain } from 'electron';
 import fs from 'fs';
 import { eleActions, imageCacheType, layoutSides } from '../../../shared/constants';
-import { expandPath, fixPath, invokeRenderer } from '../../utils';
 import { taskPool } from '../../core/TaskPool';
 import { readCompressedImage } from '../../functions';
 import { clearPrerenderCache, getConfigStore, ImageStorage, OverviewStorage } from '../../services/store';
 import { colorCache, exportFile, prerenderPage } from '../../services/file_render';
 import { getPagedImageListByCardList } from '../../services/file_render/utils';
+import { expandPath, filePathToImageKey, fixPath } from '../../../shared/functions';
 
 const pendingList = new Set();
 export const getPendingList = () => pendingList;
@@ -47,8 +47,8 @@ const pathToImageData = async (imagePath, cb) => {
     { maxWidth: cardWidth * 6, quality: 80, maxDpi: 75 },
   ];
 
-  const ext = imagePath.split('.').pop();
-  const imagePathKey = fixPath(imagePath).replaceAll('\\', '');
+  const ext = 'webp';//imagePath.split('.').pop();
+  const imagePathKey = filePathToImageKey(fixPath(imagePath));
   const { mtime } = fs.statSync(expandPath(imagePath));
   const returnObj = { path: fixPath(imagePath), mtime: mtime.getTime() };
 
@@ -97,7 +97,7 @@ export default (mainWindow) => {
     mainWindow.webContents.send(returnChannel, isFoldInHalf ? pagedImageList.length / 2 : pagedImageList.length);
   });
 
-  ipcMain.handle(eleActions.getExportPreview, async (event, args) => {
+  ipcMain.on(eleActions.getExportPreview, async (event, args) => {
     const { pageIndex, CardList, globalBackground, returnChannel } = args;
     const { Config } = getConfigStore();
     const state = { CardList, globalBackground };
@@ -146,7 +146,7 @@ export default (mainWindow) => {
   });
 
   ipcMain.handle(eleActions.getImageContent, async (event, path) => {
-    const imagePathKey = path.replaceAll('\\', '');
+    const imagePathKey = filePathToImageKey(path);
     return ImageStorage[imagePathKey];
   });
 
@@ -231,7 +231,7 @@ export default (mainWindow) => {
       if (!args) return false;
 
       const { path: imagePath, mtime: cardMtime } = args;
-      const imagePathKey = fixPath(imagePath)?.replaceAll?.('\\', '');
+      const imagePathKey = filePathToImageKey(fixPath(imagePath));
 
       try {
         const { mtime } = fs.statSync(expandPath(imagePath));

@@ -207,8 +207,8 @@ export default memo(({ data, dialogCardSettingRef, index, sharedPreviewRef, curr
   const { onOpen, MenuElement } = useMenuState(menuItems);
 
   //缓存图片 URL
-  const faceUrl = useMemo(() => getImageSrc(data?.face, { version: imageVersion }), [data?.face?.path, data?.face?.mtime]);
-  const backUrl = useMemo(() => getImageSrc(data?.back, { version: imageVersion }), [data?.back?.path, data?.back?.mtime]);
+  const faceUrl = useMemo(() => getImageSrc(data?.face, { version: imageVersion }), [data?.face?.path, data?.face?.mtime, imageVersion]);
+  const backUrl = useMemo(() => getImageSrc(data?.back, { version: imageVersion }), [data?.back?.path, data?.back?.mtime, imageVersion]);
 
   //缓存计算结果
   const isShowBack = useMemo(() =>

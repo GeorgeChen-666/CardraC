@@ -1,6 +1,7 @@
 // SVGAdapter.js
 import { IAdapter } from './IAdapter';
 import { ImageStorage, OverviewStorage } from '../../store';
+import { filePathToImageKey } from '../../../../shared/functions';
 
 const displayScale = 10;
 
@@ -84,7 +85,7 @@ export class SVGAdapter extends IAdapter {
   }
 
   drawImage({ data, x, y, width, height, rotation = 0 }) {
-    const imagePathKey = encodeURIComponent(data.path.replaceAll('\\', ''));
+    const imagePathKey = encodeURIComponent(filePathToImageKey(data.path));
 
     let imageSource;
     if (this.useAppLinks) {

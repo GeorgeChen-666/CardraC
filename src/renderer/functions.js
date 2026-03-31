@@ -4,6 +4,7 @@ import { eleActions, emptyImg } from '../shared/constants';
 import { i18nInstance } from './i18n';
 import { triggerNotification } from './parts/Notification';
 import { useGlobalStore } from './state/store';
+import { filePathToImageKey, fixPath } from '../shared/functions';
 
 
 
@@ -19,7 +20,7 @@ export const isObject = data => typeof data === 'object' && data?.constructor ==
 
 export const getImageSrc = (imageData, {quality = 'low', version = 1}) =>
   imageData?.path
-    ? `cardrac://image/${imageData.path.replaceAll('\\', '')}?quality=${quality}&version=${version}`
+    ? `cardrac://image/${filePathToImageKey(fixPath(imageData.path))}?quality=${quality}&version=${version}`
     : emptyImg.path;
 
 export const fillByObjectValue = (source, value) => {

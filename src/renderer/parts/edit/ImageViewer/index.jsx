@@ -5,6 +5,7 @@ import Card from '@mui/material/Card';
 import { CardMedia } from '@mui/material';
 import Box from '@mui/material/Box';
 import { getImageSrc } from '../../../functions';
+import { filePathToImageKey } from '../../../../shared/functions';
 
 export const ImageViewer = forwardRef((props, ref) => {
   const { Global } = useGlobalStore.selectors;
@@ -38,7 +39,7 @@ export const ImageViewer = forwardRef((props, ref) => {
       }
     },
   }));
-  const imageKey = path?.replaceAll?.('\\', '');
+  const imageKey = filePathToImageKey(path);
   useEffect(() => {
     if(!imageKey) {
       setIsOpen(false);

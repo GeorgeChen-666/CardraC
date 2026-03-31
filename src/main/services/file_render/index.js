@@ -9,7 +9,7 @@ import { layoutSides } from '../../../shared/constants';
 import { getConfigStore, ImageStorage, PreviewStorage } from '../store';
 import { SVGAdapter } from './adapter/SVGAdapter';
 import { getPendingList } from '../../ele_action/handlers/ImageActions';
-import { fixFloat, waitCondition } from '../../../shared/functions';
+import { filePathToImageKey, fixFloat, waitCondition } from '../../../shared/functions';
 
 export const colorCache = new Map();
 const imageAverageColorSet = new Map();
@@ -232,7 +232,7 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
         if(Config.marginFilling) {
           try {
             doc.setLineStyle({width:0, color: 0});
-            const averageColor = imageAverageColorSet.get(image.path?.replaceAll('\\', ''));
+            const averageColor = imageAverageColorSet.get(filePathToImageKey(image.path));
             const xOffset = fixFloat(scaledMarginX / 2);
             const yOffset = fixFloat(scaledMarginY / 2);
             const rectFill = {
@@ -255,7 +255,7 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
         }
 
         try {
-          const base64String = ImageStorage[image.path?.replaceAll('\\', '')];
+          const base64String = await ImageStorage[filePathToImageKey(image.path)];
           doc.drawImage({
             data: { base64: base64String, ext: image.ext, path: image.path },
             x: rect.x,
@@ -379,7 +379,7 @@ const previewTasks = new Map();
 // 预渲染函数
 export async function prerenderPage(pageIndex, state, Config, renderFunc, renderFuncId, quality = 'low') {
   const cacheKey = `${renderFuncId}-${pageIndex}`;
-  const cachedResult = PreviewStorage[cacheKey];
+  const cachedResult = await PreviewStorage[cacheKey];
   if (cachedResult) {
     console.log(`📦 Page ${pageIndex + 1}: Loaded from cache`);
     return cachedResult;

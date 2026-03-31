@@ -76,37 +76,14 @@ app.whenReady().then(() => {
       }
       const storage = quality === 'low' ? OverviewStorage : ImageStorage;
 
-      const pathVariants = [
-        imagePath,
-        imagePath.replace(/\//g, '\\'),
-        imagePath.replace(/\\/g, '/'),
-        imagePath.replaceAll('\\', ''),
-      ];
 
-      let imageData = null;
-      let foundPath = null;
-
-      for (const variant of pathVariants) {
-        const storageEntity = await storage[variant]
-        if (storageEntity) {
-          imageData = storageEntity;
-          foundPath = variant;
-          break;
-        }
-      }
+      let imageData = await storage[imagePath];
 
       if (!imageData) {
         await waitCondition(
           async () => {
-            for (const variant of pathVariants) {
-              const storageEntity = await storage[variant]
-              if (storageEntity) {
-                imageData = storageEntity;
-                foundPath = variant;
-                return true;
-              }
-            }
-            return false;
+            imageData = await storage[imagePath]
+            return !!imageData;
           },
           50,
           3000
