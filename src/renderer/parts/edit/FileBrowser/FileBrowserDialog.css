@@ -436,4 +436,55 @@
     overflow-y: auto;
 }
 
+/* src/renderer/parts/FileBrowserDialog.css */
+
+.windows-address-bar {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background-color: #3c3c3c;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 2px;
+    padding: 4px 8px;
+    overflow: hidden;
+    white-space: nowrap;
+    gap: 4px;
+    min-width: 0; /* ✅ 允许收缩 */
+}
+
+.breadcrumb-button {
+    min-width: auto !important;
+    max-width: 150px !important;
+    padding: 4px 8px !important;
+    text-transform: none !important;
+    font-size: 13px !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-shrink: 0; /* ✅ 不压缩按钮 */
+}
+
+.breadcrumb-button:hover {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.breadcrumb-separator {
+    margin: 0 4px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.breadcrumb-dropdown-button {
+    min-width: 32px !important;
+    padding: 4px !important;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.breadcrumb-dropdown-button:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
 

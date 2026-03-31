@@ -9,7 +9,7 @@ import { useGlobalStore } from '../state/store';
 import { PreviewToolbar } from './preview/ToolBar';
 import { PrintPreview } from './preview/PrintPreview';
 import { useRef } from 'react';
-import { FileBrowserDialog } from './FileBrowserDialog';
+import { FileBrowserDialog } from './edit/FileBrowser/FileBrowserDialog';
 
 export const Main = () => {
   const { Global } = useGlobalStore.selectors;

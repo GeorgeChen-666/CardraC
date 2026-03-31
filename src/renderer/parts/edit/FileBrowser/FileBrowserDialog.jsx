@@ -17,8 +17,9 @@ import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import { Divider } from '@mui/material';
 import './FileBrowserDialog.css';
 import { FileOrganizer } from './FileOrganizer';
-import { withConfirmation } from '../componments/withConfirmation';
-import { setDefaultPath, getDefaultPath, listDrives, browsePath } from '../functions';
+import { withConfirmation } from '../../../componments/withConfirmation';
+import { setDefaultPath, getDefaultPath, listDrives, browsePath } from '../../../functions';
+import { BreadcrumbBar } from './BreadcrumbBar';
 
 console.debug = () => {};
 
@@ -110,7 +111,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
   const [inputFileName, setInputFileName] = useState('');
-  const [viewMode, setViewMode] = useState('list');
+  const [viewMode, setViewMode] = useState('grid');
   const [options, setOptions] = useState({
     multiSelect: false,
     filterExtensions: null,
@@ -450,6 +451,15 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
       </div>
   );
 
+  const handleNavigate = useCallback((targetPath) => {
+    if (targetPath !== currentPath) {
+      historyStack.current.push(currentPath);
+      forwardStack.current = [];
+      updateHistoryState();
+    }
+    loadFiles(targetPath, getCurrentExtension(), false);
+  }, [currentPath, loadFiles, getCurrentExtension, updateHistoryState]);
+
   return (
       <Dialog
           open={open}
@@ -497,33 +507,17 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
             </div>
 
             {/* 地址栏 */}
-            <div className="windows-address-bar">
-              {folderChain.map((folder, index) => (
-                  <React.Fragment key={folder.id}>
-                    <Button
-                        sx={{ minWidth: '32px' }}
-                        size="small"
-                        onClick={() => {
-                          const targetPath = folder.id === 'root' ? '' : folder.id;
-                          if (targetPath !== currentPath) {
-                            historyStack.current.push(currentPath);
-                            forwardStack.current = [];
-                            updateHistoryState();
-                          }
-                          loadFiles(targetPath, getCurrentExtension(), false);
-                        }}
-                        className="breadcrumb-button"
-                    >
-                      {folder.name}
-                    </Button>
-                    {index < folderChain.length - 1 && <span className="breadcrumb-separator">›</span>}
-                  </React.Fragment>
-              ))}
-            </div>
+            <BreadcrumbBar
+              folderChain={folderChain}
+              currentPath={currentPath}
+              onNavigate={handleNavigate}
+              maxVisible={4}
+            />
 
             {/* ✅ 添加视图切换按钮 */}
             <div className="windows-view-buttons">
               <IconButton
+                disabled={viewMode === 'list'}
                   size="small"
                   onClick={() => setViewMode('list')}
                   color={viewMode === 'list' ? 'primary' : 'default'}
@@ -532,6 +526,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
                 <ViewListIcon fontSize="small" />
               </IconButton>
               <IconButton
+                disabled={viewMode === 'grid'}
                   size="small"
                   onClick={() => setViewMode('grid')}
                   color={viewMode === 'grid' ? 'primary' : 'default'}

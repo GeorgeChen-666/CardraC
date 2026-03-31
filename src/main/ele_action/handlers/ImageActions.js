@@ -217,6 +217,8 @@ export default (mainWindow) => {
 
     const reloadImageJobs = [];
     colorCache.clear();
+    OverviewStorage.clear()
+    ImageStorage.clear()
     let isTerminated = false;
 
     cancelChannel && ipcMain.once(cancelChannel, () => {
