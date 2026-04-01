@@ -19,6 +19,7 @@ import { i18nInstance, initI18n } from '../i18n';
 import { notificationSuccess, triggerNotification } from '../parts/Notification';
 import { shallow } from 'zustand/shallow';
 import { middlewares } from './middlewares';
+import { setGlobalStore } from '../global';
 
 
 const stateSchema = yup.object({
@@ -143,7 +144,9 @@ export const useGlobalStore = create(middlewares((set, get) => ({
   loading: async (cb, text = i18nInstance.t('util.operating')) => {
     try {
       get().mergeGlobal({ isLoading: true, loadingText: text });
-      cb && await cb();
+      if(cb) {
+        return await cb()
+      }
     } finally {
       setTimeout(() => get().mergeGlobal({ isLoading: false, isInProgress: false }), 0);
       setTimeout(() => get().mergeGlobal({ loadingText: '' }), 200);
@@ -526,6 +529,8 @@ useGlobalStore.subscribe(
   },
   { equalityFn: shallow }
 );
+
+setGlobalStore(useGlobalStore);
 const state = useGlobalStore.getState();
 // onOpenProjectFile((data) => {
 //   state.fillState(data);

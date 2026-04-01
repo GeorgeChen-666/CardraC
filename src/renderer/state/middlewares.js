@@ -219,7 +219,14 @@ const loggerMiddleware = (config) => (set, get, api) => {
   if (!isDev) return config(set, get, api);
 
   return actionLogger(config, ({ action, params, prev, next }) => {
-    console.groupCollapsed(`[Zustand Action] ${action}`, ...params);
+    const fixedParams = params.map(param => {
+      if (typeof param === 'function') {
+        return param.name || 'anonymous';
+      } else {
+        return param;
+      }
+    })
+    console.groupCollapsed(`[Zustand Action] ${action}`, ...fixedParams);
     console.log('Prev state:', prev);
     console.log('Next state:', next);
     console.groupEnd();

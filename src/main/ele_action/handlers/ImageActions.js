@@ -6,7 +6,7 @@ import { readCompressedImage } from '../../functions';
 import { clearPrerenderCache, getConfigStore, ImageStorage, OverviewStorage } from '../../services/store';
 import { colorCache, exportFile, prerenderPage } from '../../services/file_render';
 import { getPagedImageListByCardList } from '../../services/file_render/utils';
-import { expandPath, filePathToImageKey, fixPath } from '../../../shared/functions';
+import { expandPath, filePathToImageKey, fixPath, waitTime } from '../../../shared/functions';
 
 const pendingList = new Set();
 export const getPendingList = () => pendingList;
@@ -46,7 +46,7 @@ const compressHighQuality = taskPool.task(taskFn(ImageStorage), {
 //   });
 // });
 
-const pathToImageData = async (imagePath, cb) => {
+const pathToImageData = (imagePath, cb) => {
   const { Config } = getConfigStore();
   const cardWidth = Config.cardWidth;
   const compressLevel = Config.compressLevel || 2;
@@ -64,19 +64,21 @@ const pathToImageData = async (imagePath, cb) => {
 
   const fixedImagePath = expandPath(imagePath);
 
-  if(!await ImageStorage[imagePathKey]) {
+  if(!OverviewStorage.keys().includes(imagePathKey)) {
+    compressThumbnail(
+      fixedImagePath,
+      { maxWidth: 100 }
+    )
+  }
+
+  if(!ImageStorage.keys().includes(imagePathKey)) {
     compressHighQuality(
       fixedImagePath,
       { format: ext, ...compressParamsList[compressLevel - 1] }
     );
   }
 
-  if(!await OverviewStorage[imagePathKey]) {
-    compressThumbnail(
-      fixedImagePath,
-      { maxWidth: 100 }
-    )
-  }
+
 
   colorCache.delete(imagePathKey);
   cb && cb();
@@ -133,75 +135,31 @@ export default (mainWindow) => {
 
   ipcMain.on(eleActions.loadImageList, async (event, args) => {
     const { returnChannel, progressChannel, imageList } = args;
-    const startStats = taskPool.getStatsByTag(imageCacheType.thumbnails);
-    const expectedTotal = imageList.length;
     imageList.forEach(imageData => {
-      pathToImageData(imageData.path).catch(err => {
-        console.error(`Failed to load image in background: ${imageData.path}`, err);
-      });
+      try {
+        pathToImageData(imageData.path)
+      } catch (e) {
+        console.error(`Failed to load image in background: ${imageData.path}`, e);
+      }
     });
     let pollInterval;
     if (progressChannel) {
+      taskPool.clearCompletedStatsByTag(imageCacheType.thumbnails)
+      const startStats = taskPool.getStatsByTag(imageCacheType.thumbnails);
+      const expectedTotal = startStats.total;
       pollInterval = setInterval(() => {
         const stats = taskPool.getStatsByTag(imageCacheType.thumbnails);
-        const completed = stats.completed + stats.failed + stats.cancelled - startStats.completed - startStats.failed - startStats.cancelled;
+        const completed = stats.completed + stats.failed + stats.cancelled;
         const progress = Math.min(completed / expectedTotal, 1);
-
+        console.log('progress', progress, `${completed}/${expectedTotal}`, stats)
         mainWindow.webContents.send(progressChannel, progress);
-
-        if (progress >= 1) {
+        if (progress >= 1 || expectedTotal === 0) {
           clearInterval(pollInterval);
         }
       }, 100);
     }
     await taskPool.waitTasksByTag(imageCacheType.thumbnails);
     mainWindow.webContents.send(returnChannel, { success: true });
-  });
-
-  ipcMain.handle(eleActions.getImageContent, async (event, path) => {
-    const imagePathKey = filePathToImageKey(path);
-    return ImageStorage[imagePathKey];
-  });
-
-  ipcMain.on(eleActions.getImagePath, async (event, args) => {
-    const { properties = [], returnChannel } = args;
-    const result = await dialog.showOpenDialog(mainWindow, {
-      filters: [
-        { name: 'Image File', extensions: ['jpg', 'png', 'gif'] }
-      ],
-      properties: ['openFile', ...properties],
-    });
-
-    if (result.canceled) {
-      mainWindow.webContents.send(returnChannel, '');
-    } else {
-      mainWindow.webContents.send(returnChannel, result.filePaths[0]);
-    }
-  });
-
-  ipcMain.on(eleActions.openImage, async (event, args) => {
-    const { properties = [], returnChannel, progressChannel } = args;
-
-    const result = await dialog.showOpenDialog(mainWindow, {
-      filters: [
-        { name: 'Image File', extensions: ['jpg', 'png', 'gif'] }
-      ],
-      properties: ['openFile', ...properties],
-    });
-
-    if (result.canceled) {
-      mainWindow.webContents.send(returnChannel, []);
-    } else {
-      const toRenderData = [];
-      let current = 0;
-      for (const path of result.filePaths) {
-        toRenderData.push(pathToImageData(path, () => {
-          current++;
-          mainWindow.webContents.send(progressChannel, current / result.filePaths.length);
-        }));
-      }
-      mainWindow.webContents.send(returnChannel, await Promise.all(toRenderData));
-    }
   });
 
   ipcMain.on(eleActions.checkImage, async (event, args) => {
@@ -261,7 +219,7 @@ export default (mainWindow) => {
           reloadImageJobs.push((async () => {
             if (isTerminated) return;
             cb && cb(mtime.getTime());
-            await pathToImageData(imagePath);
+            pathToImageData(imagePath);
             if (isTerminated) return;
             currentCount++;
             mainWindow.webContents.send(progressChannel, currentCount / totalCount);

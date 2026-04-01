@@ -4,7 +4,7 @@ import { generateUUID } from '../../shared/functions';
 
 export class TaskPool {
   constructor(options = {}) {
-    this.maxConcurrent = options.maxWorkers ?? Math.max(1, os.cpus().length - 1);
+    this.maxConcurrent = options.maxWorkers ?? Math.max(1, os.cpus().length - 2);
     this.tasks = new Map();
     this.tagIndex = new Map();
     this.tagStats = new Map();
@@ -538,13 +538,66 @@ export class TaskPool {
     return { tag, ...stats };
   }
 
-  async waitTasksByTag(tag) {
-    const taskIds = this.tagIndex.get(tag);
-    if (!taskIds) return [];
-    return await Promise.allSettled(Array.from(taskIds).map(id => this.waitTask(id)));
+  async waitTasksByTag(tag, options = {}) {
+    const { timeout = 60000 } = options;
+    const startTime = Date.now();
+
+    return new Promise((resolve, reject) => {
+      const checkCompletion = () => {
+        const stats = this.getStatsByTag(tag);
+        if (stats.pending === 0 && stats.running === 0) {
+          const taskIds = this.tagIndex.get(tag);
+          if (taskIds && taskIds.size > 0) {
+            Promise.allSettled(Array.from(taskIds).map(id => this.waitTask(id)))
+              .then(resolve)
+              .catch(reject);
+          } else {
+            resolve([]);
+          }
+          return;
+        }
+        if (Date.now() - startTime > timeout) {
+          reject(new Error(`Timeout waiting for tag: ${tag}`));
+          return;
+        }
+        setImmediate(checkCompletion);
+      };
+
+      checkCompletion();
+    });
   }
 
   getStats() { return { ...this.stats }; }
+
+  clearCompletedStatsByTag(tag) {
+    const stats = this.tagStats.get(tag);
+    if (!stats) {
+      this.tagStats.set(tag, {
+        total: 0,
+        pending: 0,
+        running: 0,
+        completed: 0,
+        failed: 0,
+        cancelled: 0
+      });
+      return;
+    }
+    const activeTasks = stats.pending + stats.running;
+    this.tagStats.set(tag, {
+      total: activeTasks,
+      pending: stats.pending,
+      running: stats.running,
+      completed: 0,
+      failed: 0,
+      cancelled: 0
+    });
+    console.log(`🧹 Cleared completed stats for tag: ${tag} (kept ${activeTasks} active tasks)`);
+  }
+
+  clearAllTagStats() {
+    this.tagStats.clear();
+    console.log('🧹 Cleared all tag stats');
+  }
 
   getAllTagStats() {
     const tagStats = {};

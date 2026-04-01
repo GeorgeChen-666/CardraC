@@ -1,10 +1,7 @@
 import { ipcRenderer } from 'electron';
 import { eleActions, emptyImg } from '../shared/constants';
-// import { Actions, store } from './store';
-import { i18nInstance } from './i18n';
-import { triggerNotification } from './parts/Notification';
-import { useGlobalStore } from './state/store';
 import { filePathToImageKey, fixPath } from '../shared/functions';
+import { getGlobalState } from './global';
 
 
 
@@ -103,7 +100,7 @@ export const callMain = (key, params = {}, transform = d => d) => new Promise((r
       ipcRenderer.off(progressKey, onMainProgress);
     }
   };
-  ipcRenderer.once(progressKey, onMainProgress);
+  ipcRenderer.on(progressKey, onMainProgress);
 
   const onDone = (event, data) => {
     ipcRenderer.off(progressKey, onMainProgress);
@@ -188,7 +185,14 @@ export const openImage = async (isDoubleSides, isMultiImage = false) => {
 
   if (allFiles.length > 0) {
     try {
-      const result = await loadImageList({ imageList: allFiles })
+      const result = await getGlobalState().loading(() => loadImageList({
+        imageList: allFiles,
+        onProgress: (v) => {
+          console.log('onProgress', v)
+          getGlobalState().progress(v)
+        }
+      }))
+
       console.log('Background loading started:', result);
 
       if (!result.success) {
