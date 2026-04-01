@@ -11,13 +11,23 @@ import { expandPath, filePathToImageKey, fixPath } from '../../../shared/functio
 const pendingList = new Set();
 export const getPendingList = () => pendingList;
 
-const compressThumbnail = taskPool.task(readCompressedImage, {
+const taskFn = (storage) => {
+  return async (task, ...args) => {
+    if(task.cancelled) return Promise.resolve(null);
+    const compressedResult = await readCompressedImage(...args);
+    if(task.cancelled) return Promise.resolve(null);
+    const imagePathKey = filePathToImageKey(fixPath(args[0]));
+    storage[imagePathKey] = compressedResult
+  }
+}
+
+const compressThumbnail = taskPool.task(taskFn(OverviewStorage), {
   tag: imageCacheType.thumbnails,
   priority: 100,
   uniqueKey: (args) => args[0]
 });
 
-const compressHighQuality = taskPool.task(readCompressedImage, {
+const compressHighQuality = taskPool.task(taskFn(ImageStorage), {
   tag: imageCacheType.highQuality,
   priority: 10,
   uniqueKey: (args) => args[0]
@@ -55,31 +65,17 @@ const pathToImageData = async (imagePath, cb) => {
   const fixedImagePath = expandPath(imagePath);
 
   if(!await ImageStorage[imagePathKey]) {
-    const taskIdHigh = compressHighQuality(
+    compressHighQuality(
       fixedImagePath,
       { format: ext, ...compressParamsList[compressLevel - 1] }
     );
-    taskPool.waitTask(taskIdHigh)
-      .then(result => {
-        ImageStorage[imagePathKey] = result;
-      })
-      .catch(error => {
-        console.log(`❌ Task error: ${error}`);
-      });
   }
 
   if(!await OverviewStorage[imagePathKey]) {
-    const taskIdLow = compressThumbnail(
+    compressThumbnail(
       fixedImagePath,
       { maxWidth: 100 }
     )
-    taskPool.waitTask(taskIdLow)
-      .then(result => {
-        OverviewStorage[imagePathKey] = result;
-      })
-      .catch(error => {
-        console.log(`❌ Task error: ${error}`);
-      });
   }
 
   colorCache.delete(imagePathKey);
@@ -136,12 +132,29 @@ export default (mainWindow) => {
   });
 
   ipcMain.on(eleActions.loadImageList, async (event, args) => {
-    const { returnChannel, imageList } = args;
+    const { returnChannel, progressChannel, imageList } = args;
+    const startStats = taskPool.getStatsByTag(imageCacheType.thumbnails);
+    const expectedTotal = imageList.length;
     imageList.forEach(imageData => {
       pathToImageData(imageData.path).catch(err => {
         console.error(`Failed to load image in background: ${imageData.path}`, err);
       });
     });
+    let pollInterval;
+    if (progressChannel) {
+      pollInterval = setInterval(() => {
+        const stats = taskPool.getStatsByTag(imageCacheType.thumbnails);
+        const completed = stats.completed + stats.failed + stats.cancelled - startStats.completed - startStats.failed - startStats.cancelled;
+        const progress = Math.min(completed / expectedTotal, 1);
+
+        mainWindow.webContents.send(progressChannel, progress);
+
+        if (progress >= 1) {
+          clearInterval(pollInterval);
+        }
+      }, 100);
+    }
+    await taskPool.waitTasksByTag(imageCacheType.thumbnails);
     mainWindow.webContents.send(returnChannel, { success: true });
   });
 
@@ -217,8 +230,12 @@ export default (mainWindow) => {
 
     const reloadImageJobs = [];
     colorCache.clear();
+
+    taskPool.cancelTasksByTag(imageCacheType.thumbnails)
+    taskPool.cancelTasksByTag(imageCacheType.highQuality)
     OverviewStorage.clear()
     ImageStorage.clear()
+
     let isTerminated = false;
 
     cancelChannel && ipcMain.once(cancelChannel, () => {
