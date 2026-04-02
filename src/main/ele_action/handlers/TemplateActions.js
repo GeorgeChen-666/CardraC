@@ -1,10 +1,11 @@
 import { ipcMain } from 'electron';
 import Store from 'electron-store';
 import { getConfigStore } from '../../services/store';
+import { eleActions } from '../../../shared/constants';
 
 export default (mainWindow) => {
   const templateStore = new Store({name: 'templates'});
-  ipcMain.on('set-template', async (event, args) => {
+  ipcMain.on(eleActions.setTemplate, async (event, args) => {
     const { templateName: TemplateName } = args;
 
     const { Config } = getConfigStore()
@@ -18,7 +19,7 @@ export default (mainWindow) => {
     templateStore.set(newStore);
     mainWindow.webContents.send(args.returnChannel);
   });
-  ipcMain.on('edit-template', async (event, args) => {
+  ipcMain.on(eleActions.editTemplate, async (event, args) => {
     const { id, templateName: TemplateName } = args;
     const lastStore = templateStore.get();
     const editingItem = (lastStore.templates || []).find(t=> t.id === id);
@@ -28,14 +29,14 @@ export default (mainWindow) => {
     }
     mainWindow.webContents.send(args.returnChannel);
   });
-  ipcMain.on('delete-template', async (event, args) => {
+  ipcMain.on(eleActions.deleteTemplate, async (event, args) => {
     const { id } = args;
     const lastStore = templateStore.get();
     const newStore =  { templates: (lastStore.templates || []).filter(t=> t.id !== id) }
     templateStore.set(newStore);
     mainWindow.webContents.send(args.returnChannel);
   });
-  ipcMain.on('get-template', async (event, args) => {
+  ipcMain.on(eleActions.getTemplate, async (event, args) => {
     const lastStore = templateStore.get();
     mainWindow.webContents.send(args.returnChannel, (lastStore.templates || []));
   });

@@ -9,7 +9,7 @@ import { clearPreviewCache } from '../functions';
 export const Footer = () => {
   const { t } = useTranslation();
   const fileLength = useGlobalStore(state => state.CardList.length);
-  const cardLength = useGlobalStore(state => _.sum(state.CardList.map(c => c.repeat || 1)));
+  const cardLength = useGlobalStore(state => _.sum(state.CardList.map(c => parseInt(c.repeat) || 1)));
 
   const { mergeGlobal } = useGlobalStore.getState();
   const { Global } = useGlobalStore.selectors;
