@@ -70,7 +70,7 @@ const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
             else if (parentKey === 'OverviewStorage') {
               Object.entries(obj.data).forEach(([ovKey, ovValue]) => {
                 if (ovValue && typeof ovValue === 'string' && ovValue.length > 0) {
-                  OverviewStorage[ovKey] = ovValue;
+                  OverviewStorage[fixPath(ovKey)] = ovValue;
                   overviewCount++;
                 }
               });
@@ -140,7 +140,7 @@ const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
               currentKey) {
 
               if (value && typeof value === 'string' && value.length > 0) {
-                ImageStorage[currentKey] = actualValue;
+                ImageStorage[fixPath(currentKey)] = actualValue;
                 imageCount++;
 
                 if (imageCount % 50 === 0) {
