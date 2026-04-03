@@ -1,4 +1,4 @@
-import { dialog, ipcMain } from 'electron';
+import { ipcMain } from 'electron';
 import fs from 'fs';
 import { eleActions, imageCacheType, layoutSides } from '../../../shared/constants';
 import { taskPool } from '../../core/TaskPool';
@@ -6,10 +6,8 @@ import { readCompressedImage } from '../../functions';
 import { clearPrerenderCache, getConfigStore, ImageStorage, OverviewStorage } from '../../services/store';
 import { colorCache, exportFile, prerenderPage } from '../../services/file_render';
 import { getPagedImageListByCardList } from '../../services/file_render/utils';
-import { expandPath, filePathToImageKey, fixPath, waitTime } from '../../../shared/functions';
-
-const pendingList = new Set();
-export const getPendingList = () => pendingList;
+import { expandPath, filePathToImageKey, fixPath } from '../../../shared/functions';
+import { refreshCardStorage } from '../functions';
 
 const taskFn = (storage) => {
   return async (task, ...args) => {
@@ -46,7 +44,7 @@ const compressHighQuality = taskPool.task(taskFn(ImageStorage), {
 //   });
 // });
 
-const pathToImageData = (imagePath, cb) => {
+const pathToImageData = (imagePath, force = false) => {
   const { Config } = getConfigStore();
   const cardWidth = Config.cardWidth;
   const compressLevel = Config.compressLevel || 2;
@@ -64,14 +62,14 @@ const pathToImageData = (imagePath, cb) => {
 
   const fixedImagePath = expandPath(imagePath);
 
-  if(!OverviewStorage.keys().includes(imagePathKey)) {
+  if(!OverviewStorage.keys().includes(imagePathKey) || force) {
     compressThumbnail(
       fixedImagePath,
       { maxWidth: 100 }
     )
   }
 
-  if(!ImageStorage.keys().includes(imagePathKey)) {
+  if(!ImageStorage.keys().includes(imagePathKey) || force) {
     compressHighQuality(
       fixedImagePath,
       { format: ext, ...compressParamsList[compressLevel - 1] }
@@ -81,7 +79,6 @@ const pathToImageData = (imagePath, cb) => {
 
 
   colorCache.delete(imagePathKey);
-  cb && cb();
   return returnObj;
 };
 
@@ -142,23 +139,12 @@ export default (mainWindow) => {
         console.error(`Failed to load image in background: ${imageData.path}`, e);
       }
     });
-    let pollInterval;
-    if (progressChannel) {
-      taskPool.clearCompletedStatsByTag(imageCacheType.thumbnails)
-      const startStats = taskPool.getStatsByTag(imageCacheType.thumbnails);
-      const expectedTotal = startStats.total;
-      pollInterval = setInterval(() => {
-        const stats = taskPool.getStatsByTag(imageCacheType.thumbnails);
-        const completed = stats.completed + stats.failed + stats.cancelled;
-        const progress = Math.min(completed / expectedTotal, 1);
-        console.log('progress', progress, `${completed}/${expectedTotal}`, stats)
-        mainWindow.webContents.send(progressChannel, progress);
-        if (progress >= 1 || expectedTotal === 0) {
-          clearInterval(pollInterval);
-        }
-      }, 100);
-    }
-    await taskPool.waitTasksByTag(imageCacheType.thumbnails);
+
+    await taskPool.waitTasksByTag(imageCacheType.thumbnails, {
+      progressCallback: progressChannel
+        ? (p) => progressChannel && mainWindow.webContents.send(progressChannel, p)
+        : null
+    });
     mainWindow.webContents.send(returnChannel, { success: true });
   });
 
@@ -186,51 +172,33 @@ export default (mainWindow) => {
     const { Config } = getConfigStore();
     Config.globalBackground = globalBackground;
 
-    const reloadImageJobs = [];
     colorCache.clear();
 
     taskPool.cancelTasksByTag(imageCacheType.thumbnails)
     taskPool.cancelTasksByTag(imageCacheType.highQuality)
-    OverviewStorage.clear()
-    ImageStorage.clear()
+    // 清理未使用的图片
+    refreshCardStorage(CardList, globalBackground);
 
     let isTerminated = false;
 
     cancelChannel && ipcMain.once(cancelChannel, () => {
       isTerminated = true;
+      taskPool.cancelTasksByTag(imageCacheType.thumbnails);
+      taskPool.cancelTasksByTag(imageCacheType.highQuality);
     });
 
-    let totalCount = 0;
-    let currentCount = 0;
     const alreadyKnownKey = new Set();
 
     const reloadImage = (args, cb) => {
-      if (!args) return false;
-
+      if (!args) return;
       const { path: imagePath, mtime: cardMtime } = args;
       const imagePathKey = filePathToImageKey(fixPath(imagePath));
-
-      try {
-        const { mtime } = fs.statSync(expandPath(imagePath));
-
-        if (cardMtime !== mtime.getTime() || !alreadyKnownKey.has(imagePathKey)) {
-          totalCount++;
-          alreadyKnownKey.add(imagePathKey);
-          reloadImageJobs.push((async () => {
-            if (isTerminated) return;
-            cb && cb(mtime.getTime());
-            pathToImageData(imagePath);
-            if (isTerminated) return;
-            currentCount++;
-            mainWindow.webContents.send(progressChannel, currentCount / totalCount);
-          })());
-          return true;
-        } else {
-          throw new Error();
-        }
-      } catch (e) {
+      const { mtime } = fs.statSync(expandPath(imagePath));
+      if (cardMtime !== mtime.getTime() || !alreadyKnownKey.has(imagePathKey)) {
+        alreadyKnownKey.add(imagePathKey);
+        pathToImageData(imagePath, true);
+        cb && cb(mtime)
       }
-      return false;
     };
 
     CardList.forEach((card, index) => {
@@ -246,8 +214,11 @@ export default (mainWindow) => {
       Config.globalBackground.mtime = newMtime;
     });
 
-    await Promise.all(reloadImageJobs);
-
+    await taskPool.waitTasksByTag(imageCacheType.highQuality, {
+      progressCallback: progressChannel
+        ? (p) => progressChannel && mainWindow.webContents.send(progressChannel, p)
+        : null
+    });
     if (isTerminated) {
       mainWindow.webContents.send(returnChannel, {
         isAborted: true

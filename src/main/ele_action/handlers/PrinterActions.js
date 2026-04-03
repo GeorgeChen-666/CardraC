@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron';
 import { eleActions, initialState, layoutSides } from '../../../shared/constants';
 import { exportFile, prerenderPage } from '../../services/file_render';
-import { printPNGs } from '../../functions';
+import { printSVGs } from '../../functions';
 import { clearPrerenderCache, getConfigStore } from '../../services/store';
 
 
@@ -56,7 +56,7 @@ export default (mainWindow) => {
     try {
       clearPrerenderCache();
       const result = await Promise.all([...pageList.map(v => prerenderPage(v - 1, state, Config, exportFile, 'exportFile', 'high'))]);
-      const rs = await printPNGs('', result, {
+      const rs = await printSVGs('', result, {
         pageWidthMm: Config.pageWidth,
         pageHeightMm: Config.pageHeight,
         landscape: Config.landscape,

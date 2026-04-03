@@ -4,33 +4,12 @@ import fs from 'fs';
 import { parser } from 'stream-json';
 import { chain } from 'stream-chain';
 import { defaultImageStorage, getConfigStore, ImageStorage, OverviewStorage } from '../../services/store';
-import { filePathToImageKey, fixPath } from '../../../shared/functions';
+import { fixPath } from '../../../shared/functions';
 import { taskPool } from '../../core/TaskPool';
+import { refreshCardStorage } from '../functions';
 
 
-const refreshCardStorage = (CardList, globalBackground) => {
-  const usedImagePath = new Set();
-  CardList.forEach(card => {
-    const {face,back} = card;
-    const facePathKey  = filePathToImageKey(face?.path);
-    const backPathKey  = filePathToImageKey(back?.path);
-    usedImagePath.add(facePathKey);
-    usedImagePath.add(backPathKey);
-  });
 
-  if(globalBackground?.path) {
-    const globalBackPathKey = filePathToImageKey(globalBackground?.path);
-    usedImagePath.add(globalBackPathKey);
-  }
-
-  OverviewStorage.keys().filter(key => !usedImagePath.has(key)).forEach(key => {
-    delete OverviewStorage[key];
-  });
-
-  ImageStorage.keys().filter(key => !usedImagePath.has(key)).forEach(key => {
-    delete ImageStorage[key];
-  });
-}
 const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
   try {
     const { size } = fs.statSync(filePath);
@@ -147,6 +126,13 @@ const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
           if (stack.length > 0) {
             const parent = stack[stack.length - 1];
 
+            // ✅ 类型转换
+            let actualValue = value;
+            if (name === 'numberValue') actualValue = Number(value);
+            else if (name === 'trueValue') actualValue = true;
+            else if (name === 'falseValue') actualValue = false;
+            else if (name === 'nullValue') actualValue = null;
+
             // ✅ ImageStorage 的值直接赋值
             if (stack.length === 2 &&
               stack[0].type === 'object' &&
@@ -154,7 +140,7 @@ const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
               currentKey) {
 
               if (value && typeof value === 'string' && value.length > 0) {
-                ImageStorage[currentKey] = value;
+                ImageStorage[currentKey] = actualValue;
                 imageCount++;
 
                 if (imageCount % 50 === 0) {
@@ -165,10 +151,10 @@ const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
             }
             // ✅ 普通值添加到父对象
             else if (parent.type === 'object' && currentKey) {
-              parent.data[currentKey] = value;
+              parent.data[currentKey] = actualValue;
               currentKey = null;
             } else if (parent.type === 'array') {
-              parent.data.push(value);
+              parent.data.push(actualValue);
             }
           }
           break;

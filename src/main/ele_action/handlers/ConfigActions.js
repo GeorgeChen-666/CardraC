@@ -2,7 +2,7 @@ import { app, ipcMain } from 'electron';
 import _ from 'lodash';
 import fs from 'fs';
 import { eleActions } from '../../../shared/constants';
-import { defaultPathStore, getConfigStore, printStore, updateConfigStore } from '../../services/store';
+import { defaultPathStore, getConfigStore, printStore, templateStore, updateConfigStore } from '../../services/store';
 import { getLangFilePath, homeDir } from '../../../shared/functions';
 import { SimpleStore } from '../../core/SimpleStore';
 
@@ -113,5 +113,41 @@ export default (mainWindow) => {
         mainWindow.webContents.send(returnChannel, { success: false });
       }
     }
+  });
+
+  ipcMain.on(eleActions.setTemplate, async (event, args) => {
+    const { templateName: TemplateName } = args;
+
+    const { Config } = getConfigStore()
+    delete Config.globalBackground;
+    const lastStore = templateStore.get();
+    const newStore = { templates: [...(lastStore.templates || []).filter(t=> t.TemplateName !== TemplateName), {
+        id: new Date().getTime(),
+        TemplateName,
+        Config
+      }]}
+    templateStore.set(newStore);
+    mainWindow.webContents.send(args.returnChannel);
+  });
+  ipcMain.on(eleActions.editTemplate, async (event, args) => {
+    const { id, templateName: TemplateName } = args;
+    const lastStore = templateStore.get();
+    const editingItem = (lastStore.templates || []).find(t=> t.id === id);
+    if(editingItem) {
+      editingItem.TemplateName = TemplateName;
+      templateStore.set(lastStore);
+    }
+    mainWindow.webContents.send(args.returnChannel);
+  });
+  ipcMain.on(eleActions.deleteTemplate, async (event, args) => {
+    const { id } = args;
+    const lastStore = templateStore.get();
+    const newStore =  { templates: (lastStore.templates || []).filter(t=> t.id !== id) }
+    templateStore.set(newStore);
+    mainWindow.webContents.send(args.returnChannel);
+  });
+  ipcMain.on(eleActions.getTemplate, async (event, args) => {
+    const lastStore = templateStore.get();
+    mainWindow.webContents.send(args.returnChannel, (lastStore.templates || []));
   });
 }

@@ -34,7 +34,7 @@ export const clearPrerenderCache = () => {
 
 export const printStore = new SimpleStore('print_config');
 export const defaultPathStore = new SimpleStore('defaultPathConfig');
-
+export const templateStore = new SimpleStore('templates');
 let store = null;
 
 export const updateConfigStore = (value) => {

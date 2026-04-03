@@ -33,13 +33,13 @@ export default (mainWindow) => {
         }
       })();
       progressChannel && mainWindow.webContents.send(progressChannel, 0.3);
-      const blob = await exportFile(doc, state);
+      const result = await exportFile(doc, state);
       progressChannel && mainWindow.webContents.send(progressChannel, 0.5);
-      let returnContent = blob;
-      if(Array.isArray(blob) && blob.length > 1) {
+      let returnContent = result;
+      if(Array.isArray(result) && result.length > 1) {
         const zip = new JSZip();
 
-        blob.forEach((page, pageNumber) => {
+        result.forEach((page, pageNumber) => {
           const fileName = `page${pageNumber}.${targetFileType}`;
           zip.file(fileName, page.buffer || page);
         });

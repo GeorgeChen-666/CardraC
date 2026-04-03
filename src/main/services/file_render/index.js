@@ -5,11 +5,11 @@ import {
   getPagedImageListByCardList,
   isNeedRotation,
 } from './utils';
-import { layoutSides } from '../../../shared/constants';
+import { imageCacheType, layoutSides } from '../../../shared/constants';
 import { getConfigStore, ImageStorage, PreviewStorage } from '../store';
 import { SVGAdapter } from './adapter/SVGAdapter';
-import { getPendingList } from '../../ele_action/handlers/ImageActions';
-import { filePathToImageKey, fixFloat, waitCondition } from '../../../shared/functions';
+import { filePathToImageKey, fixFloat } from '../../../shared/functions';
+import { taskPool } from '../../core/TaskPool';
 
 export const colorCache = new Map();
 const imageAverageColorSet = new Map();
@@ -40,7 +40,7 @@ const loadImageAverageColor = async () => {
 
 
 export const exportFile = async (doc, state, pagesToRender = null) => {
-  await waitCondition(() => getPendingList?.()?.size === 0);
+  // await taskPool.waitTasksByTag(imageCacheType.highQuality);
   const { Config } = getConfigStore();
 
   const {avoidDislocation, sides, lineWeight, cutlineColor, foldLineType, offsetX, offsetY, marginX, marginY, bleedX, bleedY, pageNumber, columns, rows, printOffsetX = 0, printOffsetY = 0} = Config;

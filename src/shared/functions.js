@@ -1,5 +1,3 @@
-
-
 export const waitTime = async timeout => new Promise(resolve => setTimeout(resolve, timeout));
 export const waitCondition = async (Condition = () => true, timeout = 500, totalWaitingTime = 30000) => new Promise((resolve) => {
   const startTime = new Date().getTime();
@@ -121,7 +119,7 @@ export const fixPath = (filePath) => {
   if (!homeDir) return filePath;
   const normalizedPath = joinPath(filePath);
   const normalizedHome = joinPath(homeDir);
-  const normalizedHomeKey = filePathToImageKey(normalizedHome)
+  const normalizedHomeKey = filePathToImageKey(normalizedHome);
   if (normalizedPath.startsWith(normalizedHome)) {
     const relativePath = normalizedPath.substring(normalizedHome.length);
     return '~' + relativePath;
@@ -158,40 +156,22 @@ export function generateUUID() {
   });
 }
 
-export function extractImagePaths(state) {
-  const imagePaths = new Set();
+export function extractImages(state) {
+  const imagePaths = new Map();
 
-  // 1. 提取 CardList 中的图片
   if (state.CardList && Array.isArray(state.CardList)) {
     state.CardList.forEach(card => {
-      // 提取 face
       if (card.face?.path) {
-        imagePaths.add(card.face.path);
+        !imagePaths.has(card.face.path) && imagePaths.set(card.face.path, card.face);
       }
-
-      // 提取 back（处理数组和对象两种情况）
-      if (card.back) {
-        if (Array.isArray(card.back)) {
-          card.back.forEach(item => {
-            if (item.face?.path) imagePaths.add(item.face.path);
-            if (item.back?.path) imagePaths.add(item.back.path);
-          });
-        } else if (card.back.path) {
-          imagePaths.add(card.back.path);
-        }
-      }
-
-      // 提取自定义背景（如果有）
-      if (card.config?.globalBackground?.path) {
-        imagePaths.add(card.config.globalBackground.path);
+      if (card.back?.path) {
+        !imagePaths.has(card.back.path) && imagePaths.set(card.back.path, card.back);
       }
     });
   }
-
-  // 2. 提取全局背景
   if (state.Config?.globalBackground?.path) {
-    imagePaths.add(state.Config.globalBackground.path);
+    !imagePaths.has(state.Config.globalBackground.path) && imagePaths.set(state.Config.globalBackground.path, state.Config.globalBackground);
   }
 
-  return Array.from(imagePaths);
+  return [...imagePaths.values()];
 }
