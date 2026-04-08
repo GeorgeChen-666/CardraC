@@ -127,8 +127,8 @@ export const reloadLocalImage = (params) =>
   callMain(eleActions.reloadLocalImage, params)
 export const checkImage = (params) =>
   callMain(eleActions.checkImage, params)
-export const clearPreviewCache = () =>
-  callMain(eleActions.clearPreviewCache)
+export const clearPreviewCache = (params) =>
+  callMain(eleActions.clearPreviewCache, params)
 export const getExportPreview = (params) =>
   callMain(eleActions.getExportPreview, params)
 export const getExportPageCount = (params) =>

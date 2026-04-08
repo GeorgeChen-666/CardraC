@@ -105,6 +105,7 @@ export class SVGAdapter extends IAdapter {
     }
     const transformed = this.applyTransform(adjustedX, adjustedY);
     this.currentPage.elements.push({
+      id: data.id,
       type: 'image',
       href: imageSource,
       x: transformed.x,
@@ -179,6 +180,7 @@ export class SVGAdapter extends IAdapter {
 
         return `<image 
     href="${el.href}" 
+    id="${el.id}"
     x="${el.x * s}" 
     y="${el.y * s}" 
     width="${el.width * s}" 

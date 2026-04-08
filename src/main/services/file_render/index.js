@@ -16,14 +16,14 @@ const imageAverageColorSet = new Map();
 
 const loadImageAverageColor = async () => {
   imageAverageColorSet.clear();
-  const jobs = Object.keys(ImageStorage).map(key => {
+  const jobs = ImageStorage.keys().map(key => {
     return (async () => {
       if(!imageAverageColorSet.has(key)) {
         try {
           if (colorCache.has(key)) {
             imageAverageColorSet.set(key, colorCache.get(key));
           } else {
-            const averageColor = await getBorderAverageColors(ImageStorage[key]);
+            const averageColor = await getBorderAverageColors(await ImageStorage[key]);
             imageAverageColorSet.set(key, averageColor);
             colorCache.set(key, averageColor);
           }
@@ -257,7 +257,7 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
         try {
           const base64String = await ImageStorage[filePathToImageKey(image.path)];
           doc.drawImage({
-            data: { base64: base64String, ext: image.ext, path: image.path },
+            data: { base64: base64String, ext: image.ext, path: image.path, id: image.id },
             x: rect.x,
             y: rect.y,
             width: rect.width,

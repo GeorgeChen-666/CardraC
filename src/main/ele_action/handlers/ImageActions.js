@@ -3,7 +3,13 @@ import fs from 'fs';
 import { eleActions, imageCacheType, layoutSides } from '../../../shared/constants';
 import { taskPool } from '../../core/TaskPool';
 import { readCompressedImage } from '../../functions';
-import { clearPrerenderCache, getConfigStore, ImageStorage, OverviewStorage } from '../../services/store';
+import {
+  clearPrerenderCache,
+  getConfigStore,
+  ImageStorage,
+  OverviewStorage,
+  PreviewStorage,
+} from '../../services/store';
 import { colorCache, exportFile, prerenderPage } from '../../services/file_render';
 import { getPagedImageListByCardList } from '../../services/file_render/utils';
 import { expandPath, filePathToImageKey, fixPath } from '../../../shared/functions';
@@ -124,8 +130,14 @@ export default (mainWindow) => {
   });
 
   ipcMain.on(eleActions.clearPreviewCache, async (event, args) => {
-    const { returnChannel } = args;
-    clearPrerenderCache();
+    const { returnChannel, pageIndex } = args;
+    if(pageIndex > 0 ) {
+      const cacheKey = `exportFile-${pageIndex}`
+      await PreviewStorage.delete(cacheKey)
+    } else {
+      clearPrerenderCache();
+    }
+
     console.log('Preview cache cleared');
     mainWindow.webContents.send(returnChannel, { success: true });
   });

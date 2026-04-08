@@ -1,78 +1,13 @@
 import * as React from 'react';
-import './styles.css';
-import { useGlobalStore } from '../../state/store';
+import '../styles.css';
+import { useGlobalStore } from '../../../state/store';
 import { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 'react';
-import { PrintDrawer } from './ToolBar/Print/PrintDrawer';
-import { decodeSvg } from '../../../shared/functions';
+import { PrintDrawer } from '../ToolBar/Print/PrintDrawer';
+import { decodeSvg } from '../../../../shared/functions';
+import { Ruler } from './Ruler';
+import { ImageContextMenu } from './ImageContextMenu';
 
-const Ruler = ({ orientation, length }) => {
-  const pixelsPerMM = 10;
-  const majorTickInterval = 10;
 
-  const ticks = [];
-  const maxMM = Math.ceil(length / pixelsPerMM);
-
-  for (let mm = 0; mm <= maxMM; mm++) {
-    const position = mm * pixelsPerMM;
-    const isMajor = mm % majorTickInterval === 0;
-
-    ticks.push({
-      position,
-      mm,
-      isMajor
-    });
-  }
-
-  const isHorizontal = orientation === 'horizontal';
-
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        top: isHorizontal ? '-25px' : '0',
-        left: isHorizontal ? '0' : '-25px',
-        [isHorizontal ? 'width' : 'height']: `${length}px`,
-        [isHorizontal ? 'height' : 'width']: '25px',
-        backgroundColor: 'rgba(240, 240, 240, 0.9)',
-        borderBottom: isHorizontal ? '1px solid #999' : 'none',
-        borderRight: isHorizontal ? 'none' : '1px solid #999',
-        userSelect: 'none',
-        pointerEvents: 'none'
-      }}
-    >
-      {ticks.map((tick, i) => (
-        <div
-          key={i}
-          style={{
-            position: 'absolute',
-            [isHorizontal ? 'left' : 'top']: `${tick.position}px`,
-            [isHorizontal ? 'bottom' : 'right']: 0,
-            [isHorizontal ? 'width' : 'height']: '1px',
-            [isHorizontal ? 'height' : 'width']: tick.isMajor ? '10px' : '5px',
-            backgroundColor: '#666'
-          }}
-        />
-      ))}
-      {ticks.filter(t => t.isMajor).map((tick, i) => (
-        <div
-          key={`label-${i}`}
-          style={{
-            position: 'absolute',
-            [isHorizontal ? 'left' : 'top']: isHorizontal ? `${tick.position + 2}px` : `${tick.position + 8}px`,
-            [isHorizontal ? 'top' : 'left']: '2px',
-            fontSize: '10px',
-            color: '#333',
-            transform: isHorizontal ? 'none' : 'rotate(-90deg)',
-            transformOrigin: isHorizontal ? 'none' : 'left top',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          {tick.mm}
-        </div>
-      ))}
-    </div>
-  );
-};
 
 export const PrintPreview = forwardRef((props, ref) => {
   const drawerPrintRef = useRef(null);
@@ -89,6 +24,8 @@ export const PrintPreview = forwardRef((props, ref) => {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  const [contextMenu, setContextMenu] = useState(null);
 
   const containerRef = useRef(null);
   const imageRef = useRef(null);
@@ -257,6 +194,10 @@ export const PrintPreview = forwardRef((props, ref) => {
     };
   }, [imageSize, isDrawerOpen]);
 
+  const handleCloseContextMenu = () => {
+    setContextMenu(null);
+  };
+
   const [svgContent, setSvgContent] = useState('');
 
   useEffect(() => {
@@ -283,6 +224,22 @@ export const PrintPreview = forwardRef((props, ref) => {
       };
 
       testImg.src = lowQualityUrl;
+
+      const handleContextMenuEvent = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        setContextMenu({
+          top: e.clientY,
+          left: e.clientX,
+          imageElement: img
+        });
+      };
+      img.addEventListener('contextmenu', handleContextMenuEvent);
+
+      return () => {
+        img.removeEventListener('contextmenu', handleContextMenuEvent);
+      };
     });
   }, [svgContent, isSvg, exportPreviewIndex]);
 
@@ -400,6 +357,12 @@ export const PrintPreview = forwardRef((props, ref) => {
         <PrintDrawer
           ref={drawerPrintRef}
           onOpenChange={setIsDrawerOpen}
+        />
+
+        <ImageContextMenu
+          anchorPosition={contextMenu ? { top: contextMenu.top, left: contextMenu.left } : null}
+          onClose={handleCloseContextMenu}
+          imageElement={contextMenu?.imageElement}
         />
       </div>
     </>

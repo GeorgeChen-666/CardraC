@@ -210,7 +210,19 @@ export class TaskPool {
     if (oldStatus) stats[oldStatus]--;
     if (newStatus) stats[newStatus]++;
   }
-
+  _initTagStats(tag) {
+    if (!this.tagStats.has(tag)) {
+      this.tagStats.set(tag, {
+        total: 0,
+        pending: 0,
+        running: 0,
+        completed: 0,
+        failed: 0,
+        cancelled: 0
+      });
+    }
+    return this.tagStats.get(tag);
+  }
   _removeFromTagIndex(task) {
     if (task.tag && this.tagIndex.has(task.tag)) {
       this.tagIndex.get(task.tag).delete(task.id);
