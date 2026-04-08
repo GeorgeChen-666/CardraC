@@ -284,7 +284,7 @@ export const PrintPreview = forwardRef((props, ref) => {
 
       testImg.src = lowQualityUrl;
     });
-  }, [svgContent, isSvg]);
+  }, [svgContent, isSvg, exportPreviewIndex]);
 
   useEffect(() => {
     if (ready) {

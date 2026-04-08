@@ -2,3 +2,9 @@
 .PrintPreviewContainer {
     flex-grow: 1;
 }
+
+.PrintPreviewContainer svg image:hover {
+    outline: 3px solid #1976d266;
+    outline-offset: -3px;
+    cursor: pointer;
+}

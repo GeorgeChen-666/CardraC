@@ -162,7 +162,7 @@ export async function printSVGs(printerName, svgDataList, options = {}) {
   fs.writeFileSync(tempFile, html);
 
   const win = new BrowserWindow({
-    show: false,
+    show: true,
     webPreferences: { zoomFactor: 3 }
   });
 

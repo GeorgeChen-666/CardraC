@@ -40,7 +40,7 @@ export default (mainWindow) => {
         sides: layoutSides.oneSide,
         landscape: false
       }, renderGuidePrintFunction, 'renderGuidePrintFunction')
-      const rs = await printPNGs('', [result])
+      const rs = await printSVGs('', [result])
       mainWindow.webContents.send(returnChannel, rs.success);
     } catch (e) {
       mainWindow.webContents.send(returnChannel, false);
