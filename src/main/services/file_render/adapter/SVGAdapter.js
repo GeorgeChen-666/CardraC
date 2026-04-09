@@ -179,8 +179,8 @@ export class SVGAdapter extends IAdapter {
         const centerY = (el.y + el.height / 2) * s;
 
         return `<image 
-    href="${el.href}" 
-    id="${el.id}"
+    href="${el.href}"
+    data-card-mark="${el.id}"
     x="${el.x * s}" 
     y="${el.y * s}" 
     width="${el.width * s}" 

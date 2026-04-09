@@ -1,5 +1,5 @@
 import * as React from 'react';
-import '../styles.css';
+import './styles.css';
 import { useGlobalStore } from '../../../state/store';
 import { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import { PrintDrawer } from '../ToolBar/Print/PrintDrawer';
@@ -11,11 +11,12 @@ import { ImageContextMenu } from './ImageContextMenu';
 
 export const PrintPreview = forwardRef((props, ref) => {
   const drawerPrintRef = useRef(null);
-  const { getExportPreview, setExportPreviewIndex, mergeGlobal } = useGlobalStore.getState();
+  const { getExportPreview, mergeGlobal } = useGlobalStore.getState();
   const { Global } = useGlobalStore.selectors;
   const exportPageCount = Global.exportPageCount() || 0;
   const exportPreviewIndex = Global.exportPreviewIndex() || 1;
 
+  const [frame, setFrame] = useState(0);
   const [ready, setReady] = useState(false);
   const [imageData, setImageData] = useState(null);
   const [scale, setScale] = useState(1);
@@ -235,10 +236,19 @@ export const PrintPreview = forwardRef((props, ref) => {
           imageElement: img
         });
       };
-      img.addEventListener('contextmenu', handleContextMenuEvent);
 
+      const handleHoverEvent = (e) => {
+        const mark = e.srcElement.dataset.cardMark;
+        const allSameMarkDoms = document.querySelectorAll(`[data-card-mark="${mark}"]`);
+        allSameMarkDoms.forEach(dom => dom.classList.toggle('mouseHover'));
+      }
+      img.addEventListener('contextmenu', handleContextMenuEvent);
+      img.addEventListener('mouseenter', handleHoverEvent);
+      img.addEventListener('mouseleave', handleHoverEvent);
       return () => {
         img.removeEventListener('contextmenu', handleContextMenuEvent);
+        img.removeEventListener('mouseenter', handleHoverEvent);
+        img.removeEventListener('mouseleave', handleHoverEvent);
       };
     });
   }, [svgContent, isSvg, exportPreviewIndex]);
@@ -269,7 +279,7 @@ export const PrintPreview = forwardRef((props, ref) => {
         }
       })();
     }
-  }, [exportPreviewIndex, exportPageCount, ready]);
+  }, [exportPreviewIndex, exportPageCount, ready, frame]);
 
   useEffect(() => {
     setReady(true);
@@ -277,7 +287,6 @@ export const PrintPreview = forwardRef((props, ref) => {
       setReady(false);
     };
   }, []);
-
   return (
     <>
       <div
@@ -363,6 +372,7 @@ export const PrintPreview = forwardRef((props, ref) => {
           anchorPosition={contextMenu ? { top: contextMenu.top, left: contextMenu.left } : null}
           onClose={handleCloseContextMenu}
           imageElement={contextMenu?.imageElement}
+          setFrame={setFrame}
         />
       </div>
     </>

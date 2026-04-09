@@ -3,7 +3,7 @@
     flex-grow: 1;
 }
 
-.PrintPreviewContainer svg image:hover {
+.PrintPreviewContainer svg image.mouseHover {
     outline: 10px solid #1976d266;
     outline-offset: -10px;
     cursor: pointer;

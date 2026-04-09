@@ -10,67 +10,63 @@ import ImageIcon from '@mui/icons-material/Image';
 import { clearPreviewCache, getImageSrc, openImage } from '../../../functions';
 import { useGlobalStore } from '../../../state/store';
 
-export const ImageContextMenu = ({ anchorPosition, onClose, imageElement }) => {
+export const ImageContextMenu = ({ anchorPosition, onClose, imageElement, setFrame }) => {
   const open = Boolean(anchorPosition);
   const {
     cardEditById, CardList, Global
   } = useGlobalStore.getState();
   const handleCopy = async () => {
     if (imageElement) {
-      const [id, path] = imageElement.id.split('.');
+      const [id, path] = imageElement.dataset.cardMark.split('.');
       const oldImageData = CardList.find(d => d.id === id);
       await navigator.clipboard.writeText(JSON.stringify(oldImageData[path]));
     }
     onClose();
   };
 
-  const handlePaste = () => {
+  const handlePaste = async () => {
     if (imageElement) {
-      navigator.clipboard.readText().then(text => {
-        if(text) {
-          const [id, path] = imageElement.id.split('.');
-          try {
-            const imageData = JSON.parse(text);
-            if(imageData) {
-              const oldImageData = CardList.find(d => d.id === id);
-              const imageUrl = getImageSrc(imageData, { version: Global.imageVersion, quality: 'high' });
-              cardEditById({ ...oldImageData, [path]: imageData });
-              clearPreviewCache({ pageIndex: Global.exportPreviewIndex });
-              imageElement.setAttribute('href', imageUrl);
-            }
+      const text = await navigator.clipboard.readText();
+      if(text) {
+        const [id, path] = imageElement.dataset.cardMark.split('.');
+        try {
+          const imageData = JSON.parse(text);
+          if(imageData) {
+            const oldImageData = CardList.find(d => d.id === id);
+            cardEditById({ ...oldImageData, [path]: imageData });
+            await clearPreviewCache();
+            setFrame(ov => ov + 1)
           }
-          catch (e) {
-
-          }
+        }
+        catch (e) {
 
         }
-      });
+      }
     }
     onClose();
   };
 
-  const handleClear = () => {
+  const handleClear = async () => {
     if (imageElement) {
-      const [id, path] = imageElement.id.split('.');
+      const [id, path] = imageElement.dataset.cardMark.split('.');
       const oldImageData = CardList.find(d => d.id === id);
       cardEditById({ ...oldImageData, [path]: null });
-      clearPreviewCache({ pageIndex: Global.exportPreviewIndex });
-      imageElement.setAttribute('href', '');
+      await clearPreviewCache();
+      setFrame(ov => ov + 1)
     }
     onClose();
   };
 
   const handleReplace = async () => {
     if (imageElement) {
-      const [id, path] = imageElement.id.split('.')
+      const [id, path] = imageElement.dataset.cardMark.split('.')
       const [ cardData ] = await openImage(false);
       const imageData = cardData?.face;
       if(imageData) {
         const oldImageData = CardList.find(d => d.id === id);
-        const imageUrl = getImageSrc(imageData, { version: Global.imageVersion, quality: 'high' });
         cardEditById({ ...oldImageData, [path]: imageData });
-        clearPreviewCache({ pageIndex: Global.exportPreviewIndex });
-        imageElement.setAttribute('href', imageUrl);
+        await clearPreviewCache();
+        setFrame(ov => ov + 1)
       }
     }
     onClose();

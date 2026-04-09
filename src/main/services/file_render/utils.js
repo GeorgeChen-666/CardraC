@@ -282,12 +282,12 @@ const getBrochurePagedImageListByCardList = (state, Config) => {
       const result = tempPairList2.slice(i, i + 2);
       const repeatResult = Array(size / 2).fill(result).flat(1);
       pagedImageList.push({
-        imageList: repeatResult.map(c => c[0]?.face),
+        imageList: repeatResult.map(c => c[0]?.face?.mtime ? {...c[0].face, id: `${c[0].id}.face`} : null),
         config: repeatResult.map(c => c?.config),
         type: 'face',
       });
       pagedImageList.push({
-        imageList: repeatResult.map(c => c[1]?.face),
+        imageList: repeatResult.map(c => c[1]?.face?.mtime ? {...c[1].face, id: `${c[1].id}.face`} : null),
         config: repeatResult.map(c => c?.config),
         type: 'back',
       });
@@ -296,12 +296,12 @@ const getBrochurePagedImageListByCardList = (state, Config) => {
     for (let i = 0; i < tempPairList2.length; i += size) {
       const result = tempPairList2.slice(i, i + size);
       pagedImageList.push({
-        imageList: result.map(c => c[0]?.face),
+        imageList: result.map(c => c[0]?.face?.mtime ? {...c[0].face, id: `${c[0].id}.face`} : null),
         config: result.map(c => c?.config),
         type: 'face',
       });
       pagedImageList.push({
-        imageList: result.map(c => c[1]?.face),
+        imageList: result.map(c => c[1]?.face?.mtime ? {...c[1].face, id: `${c[1].id}.face`} : null),
         config: result.map(c => c?.config),
         type: 'back',
       });
