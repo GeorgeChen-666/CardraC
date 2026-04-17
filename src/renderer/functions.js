@@ -1,7 +1,8 @@
 import { ipcRenderer } from 'electron';
-import { eleActions, emptyImg } from '../shared/constants';
+import { backendJobKey, eleActions, emptyImg } from '../shared/constants';
 import { filePathToImageKey, fixPath } from '../shared/functions';
 import { getGlobalState } from './global';
+import { useGlobalStore } from './state/store';
 
 
 
@@ -15,7 +16,7 @@ export const getResourcesPath = (path) => (isDev ? '' : '..') + path;
 
 export const isObject = data => typeof data === 'object' && data?.constructor === Object;
 
-export const getImageSrc = (imageData, {quality = 'low', version = 1}) =>
+export const getImageSrc = (imageData, {quality = 'auto', version = 1}) =>
   imageData?.path
     ? `cardrac://image/${filePathToImageKey(fixPath(imageData.path))}?quality=${quality}&version=${version}`
     : emptyImg.path;
@@ -185,6 +186,7 @@ export const openImage = async (isDoubleSides, isMultiImage = false) => {
 
   if (allFiles.length > 0) {
     try {
+      updateBackendJob(backendJobKey.loadHighQuality, { visible: true });
       const result = await getGlobalState().loading(() => loadImageList({
         imageList: allFiles,
         onProgress: (v) => {
@@ -229,3 +231,25 @@ export function immutableMerge(oldVal, newVal) {
   // 其它类型直接替换
   return newVal;
 }
+
+ipcRenderer.on(eleActions.backendJobProgress, (event, args) => {
+  const { key, progress } = args || {};
+
+  if (!key) return;
+
+  const store = useGlobalStore.getState();
+
+  store.updateBackendJob(key, { progress: Math.min(Math.max(progress, 0), 1) });
+
+  console.log(`📊 Backend job [${key}]: ${(progress * 100).toFixed(1)}%`);
+
+  if (progress >= 1) {
+    setTimeout(() => {
+      store.clearBackendJob(key);
+      console.log(`✅ Backend job [${key}] completed and removed`);
+    }, 1000);
+  }
+});
+export const updateBackendJob = (key, updates) => {
+  useGlobalStore.getState().updateBackendJob(key, updates);
+};

@@ -1,6 +1,6 @@
-import { ipcMain } from 'electron';
+import { ipcMain, protocol } from 'electron';
 import fs from 'fs';
-import { eleActions, imageCacheType, layoutSides } from '../../../shared/constants';
+import { backendJobKey, eleActions, imageCacheType, layoutSides } from '../../../shared/constants';
 import { taskPool } from '../../core/TaskPool';
 import { readCompressedImage } from '../../functions';
 import {
@@ -12,7 +12,7 @@ import {
 } from '../../services/store';
 import { colorCache, exportFile, prerenderPage } from '../../services/file_render';
 import { getPagedImageListByCardList } from '../../services/file_render/utils';
-import { expandPath, filePathToImageKey, fixPath } from '../../../shared/functions';
+import { expandPath, filePathToImageKey, fixPath, waitCondition } from '../../../shared/functions';
 import { refreshCardStorage } from '../functions';
 
 const taskFn = (storage) => {
@@ -89,6 +89,120 @@ const pathToImageData = (imagePath, force = false) => {
 };
 
 export default (mainWindow) => {
+
+  taskPool.onCompleteByTag(imageCacheType.highQuality, ({ stats }) => {
+    const { total, completed, failed, cancelled } = stats;
+    const done = completed + failed + cancelled;
+    const progress = total > 0 ? done / total : 1;
+    const key = backendJobKey.loadHighQuality;
+
+    mainWindow.webContents.send(eleActions.backendJobProgress, {
+      key,
+      progress
+    });
+
+    if (progress >= 1) {
+      console.log('✅ High quality loading completed');
+    }
+  });
+
+  protocol.handle('cardrac', async (request) => {
+    const createResponse = (data, mimeType) => {
+      const emptySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+  <rect width="100" height="100" fill="transparent"/>
+</svg>`;
+      return new Response(data ?? emptySvg, {
+        headers: { 'Content-Type': mimeType }
+      });
+    };
+
+    try {
+      const url = request.url;
+      const urlObj = new URL(url);
+      const pathname = urlObj.pathname;
+      const quality = urlObj.searchParams.get('quality') || 'auto';
+
+      let imagePath = decodeURIComponent(pathname.replace('/image/', ''));
+      if (imagePath.startsWith('/')) imagePath = imagePath.substring(1);
+
+      // ✅ 决定使用哪个质量
+      const resolveQuality = async () => {
+        if (quality !== 'auto') return quality;
+
+        // 检查高质量是否已存在
+        if (ImageStorage.keys().includes(imagePath)) return 'high';
+
+        // 检查高质量任务状态
+        const highTask = taskPool.getTaskByTagAndUniqueKey(
+          imageCacheType.highQuality,
+          expandPath(imagePath)
+        );
+
+        if (!highTask) return 'low';
+
+        // 如果任务完成，使用高质量
+        if (highTask.status === 'completed') return 'high';
+
+        // 如果任务进行中，尝试等待 100ms
+        if (highTask.status === 'running' || highTask.status === 'pending') {
+          try {
+            await Promise.race([
+              taskPool.waitTask(highTask.id),
+              new Promise((_, reject) => setTimeout(() => reject(), 100))
+            ]);
+            return 'high';
+          } catch {
+            return 'low';
+          }
+        }
+
+        return 'low';
+      };
+
+      const targetQuality = await resolveQuality();
+      const storage = targetQuality === 'low' ? OverviewStorage : ImageStorage;
+      const taskTag = targetQuality === 'low' ? imageCacheType.thumbnails : imageCacheType.highQuality;
+
+      // ✅ 获取图片数据
+      let imageData = await storage[imagePath];
+
+      if (!imageData) {
+        const task = taskPool.getTaskByTagAndUniqueKey(taskTag, expandPath(imagePath));
+
+        if (task && (task.status === 'pending' || task.status === 'running')) {
+          try {
+            await Promise.race([
+              taskPool.waitTask(task.id),
+              new Promise((_, reject) => setTimeout(() => reject(), 3000))
+            ]);
+            imageData = await storage[imagePath];
+          } catch (e) {
+            console.warn(`Timeout waiting for image: ${imagePath}`);
+          }
+        }
+      }
+
+      if (!imageData) {
+        return createResponse(null, 'image/svg+xml');
+      }
+
+      const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+      const ext = imagePath.split('.').pop().toLowerCase();
+      const mimeTypes = {
+        'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
+        'png': 'image/png', 'gif': 'image/gif', 'webp': 'image/webp'
+      };
+      const mimeType = mimeTypes[ext] || 'image/png';
+
+      return createResponse(buffer, mimeType);
+
+    } catch (error) {
+      console.error('Protocol handler error:', error);
+      return createResponse(null, 'image/svg+xml');
+    }
+  });
+
   ipcMain.on(eleActions.getExportPageCount, async (event, args) => {
     const { CardList, globalBackground, returnChannel } = args;
     const { Config } = getConfigStore();

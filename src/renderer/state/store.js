@@ -34,7 +34,11 @@ const stateSchema = yup.object({
     lastSelection: yup.object().notRequired(),
     isBackEditing: yup.boolean().notRequired(),
     selections: yup.array().of(yup.object()).notRequired(),
-    locales: yup.object().notRequired()
+    locales: yup.object().notRequired(),
+    imageVersion: yup.number().notRequired(),
+    exportPageCount: yup.number().notRequired(),
+    exportPreviewIndex: yup.number().notRequired(),
+    backendJobs: yup.object().notRequired(),
   }).notRequired(),
   Config: yup.object({
     pageSize: yup.string().required(),
@@ -487,7 +491,35 @@ export const useGlobalStore = create(middlewares((set, get) => ({
 
       return { ...state, CardList: newCardList };
     });
-  }
+  },
+
+  updateBackendJob: (key, updates) => {
+    set(state => ({
+      ...state,
+      Global: {
+        ...state.Global,
+        backendJobs: {
+          ...state.Global.backendJobs,
+          [key]: {
+            ...(state.Global?.backendJobs?.[key] || { visible: false, progress: 0 }),
+            ...updates
+          }
+        }
+      }
+    }));
+  },
+  clearBackendJob: (key) => {
+    set(state => {
+      const { [key]: removed, ...rest } = state.Global.backendJobs;
+      return {
+        ...state,
+        Global: {
+          ...state.Global,
+          backendJobs: rest
+        }
+      };
+    });
+  },
 
 })));
 

@@ -74,7 +74,7 @@ export const ImageViewer = forwardRef((props, ref) => {
           component="img"
           className={'CardImage'}
           style={{ maxWidth: '446px', maxHeight: '446px', minWidth: '446px', minHeight: '446px'}}
-          image={getImageSrc({path:imageKey} , {version: imageVersion, quality: 'high'})}
+          image={getImageSrc({path:imageKey} , {version: imageVersion})}
         />
       </Card>
     </Box>);

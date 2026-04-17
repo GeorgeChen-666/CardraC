@@ -4,6 +4,7 @@ import KeyvSqlite from '@keyv/sqlite';
 import path from 'path';
 import fs from 'fs';
 import { getAppDataPath } from '../../shared/functions';
+import { taskPool } from './TaskPool';
 
 export class SmartCache {
   constructor(name, options = {}) {
@@ -116,6 +117,7 @@ export class SmartCache {
     }
 
     const value = await this.diskCache.get(key);
+    // const value = await taskPool.taskImmediate(this.diskCache.get.bind(this.diskCache))(key);
 
     if (value !== undefined) {
       if (this.memoryCache.size >= this.maxMemorySize) {

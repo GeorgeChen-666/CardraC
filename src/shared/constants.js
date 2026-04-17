@@ -26,7 +26,8 @@ export const eleActions = Object.freeze({
   getDefaultPath: 'get-default-path',
   setDefaultPath: 'set-default-path',
   listDrives: 'list-drives',
-  browsePath: 'browse-path'
+  browsePath: 'browse-path',
+  backendJobProgress: 'backend-job-progress'
 });
 
 export const layoutSides = Object.freeze({
@@ -64,7 +65,8 @@ export const initialState = Object.freeze({
     currentView: 'edit',
     exportPageCount: 0,
     exportPreviewIndex: 1,
-    imageVersion: 1
+    imageVersion: 1,
+    backendJobs: {},
   },
   Config: {
     pageSize: 'A4:210,297',
@@ -109,4 +111,8 @@ export const emptyImg = {
 export const imageCacheType = Object.freeze({
   thumbnails: 'thumbnails',
   highQuality: 'high-quality'
+})
+
+export const backendJobKey = Object.freeze({
+  loadHighQuality: 'load-high-quality'
 })

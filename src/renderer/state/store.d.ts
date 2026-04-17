@@ -1,4 +1,11 @@
+// src/renderer/state/store.d.ts
 import type { StoreApi } from 'zustand';
+
+// ✅ 添加 BackendJob 类型
+interface BackendJob {
+  visible: boolean;
+  progress: number;
+}
 
 interface GlobalState {
   currentLang: string;
@@ -15,6 +22,8 @@ interface GlobalState {
   exportPageCount?: number;
   exportPreviewIndex?: number;
   currentView?: string;
+  // ✅ 添加 backendJobs
+  backendJobs?: Record<string, BackendJob>;
 }
 
 interface ConfigState {
@@ -47,6 +56,7 @@ interface ConfigState {
   marginFilling?: boolean;
   avoidDislocation?: boolean;
   brochureRepeatPerPage?: boolean;
+  pageNumber?: boolean;
   scale?: number;
 }
 
@@ -71,20 +81,21 @@ interface StoreState {
   mergeConfig: (newState: Partial<ConfigState>) => void;
 
   // Utility methods
-  loading: (cb?: () => Promise<void>, text?: string) => Promise<void>;
+  loading: <T = void>(cb?: () => Promise<T>, text?: string) => Promise<T | undefined>;
   progress: (v: number) => void;
 
   // Project methods
-  openProject: (filePath: any | string) => void;
-  saveProject: () => void;
-  exportFile: (targetFileType: string) => void;
+  newProject: () => void;
+  openProject: (params: any) => void;
+  saveProject: (params?: any) => void;
+  exportFile: (params: { targetFileType: string; [key: string]: any }) => void;
   printPages: (params: { pageList: any[]; printConfig: any }) => void;
   reloadLocalImage: () => void;
   getExportPageCount: (targetFileType: string) => void;
-  getExportPreview: (pageIndex: number) => Promise<any>;
+  getExportPreview: (pageIndex: number, isSilence?: boolean) => Promise<any>;
 
   // Card methods
-  cardAdd: (images: unknown) => void;
+  cardAdd: (images: Array<{ face: any; back: any }>) => void;
   cardEditById: (newState: Partial<Card> & { id: string }) => void;
   cardRemoveByIds: (ids: string[]) => void;
   cardSelect: (selectedId: string) => void;
@@ -104,12 +115,18 @@ interface StoreState {
   selectedCardsSwap: () => void;
   editCardsConfig: (ids: string[], config: any) => void;
 
+  // ✅ Backend jobs methods
+  updateBackendJob: (key: string, updates: Partial<BackendJob>) => void;
+  clearBackendJob: (key: string) => void;
+  clearAllBackendJobs: () => void;
+
   // History methods
   historyUndo: () => void;
   historyRedo: () => void;
   historyCanUndo: () => boolean;
   historyCanRedo: () => boolean;
   historyReset: () => void;
+  setWithHistory: (updater: (state: StoreState) => StoreState) => void;
 }
 
 type Selectorize<S> = {
@@ -118,7 +135,7 @@ type Selectorize<S> = {
 
 export declare const useGlobalStore: {
   (): StoreState;
-  <U>(selector: (state: StoreState) => U): U;
+  <U>(selector: (state: StoreState) => U, equalityFn?: (a: U, b: U) => boolean): U;
   getState: () => StoreState;
   setState: (state: Partial<StoreState> | ((state: StoreState) => Partial<StoreState>), replace?: boolean) => void;
   subscribe: {
@@ -133,4 +150,5 @@ export declare const useGlobalStore: {
   selectors: Selectorize<Pick<StoreState, 'Global' | 'Config' | 'CardList'>>;
 };
 
-export type { StoreState, GlobalState, ConfigState, Card };
+// ✅ 导出新类型
+export type { StoreState, GlobalState, ConfigState, Card, BackendJob };

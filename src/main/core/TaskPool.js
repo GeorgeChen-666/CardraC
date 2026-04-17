@@ -3,8 +3,20 @@ import os from 'os';
 import { generateUUID } from '../../shared/functions';
 
 export class TaskPool {
+  static maxGlobalConcurrent = Math.max(1, os.cpus().length - 2);
+  static globalRunningCount = 0;
+  static incrementGlobal() {
+    this.globalRunningCount++;
+  }
+  static decrementGlobal() {
+    this.globalRunningCount--;
+    if (this.globalRunningCount < 0) {
+      console.error('❌ Global count negative!');
+      this.globalRunningCount = 0;
+    }
+  }
+
   constructor(options = {}) {
-    this.maxConcurrent = options.maxWorkers ?? Math.max(1, os.cpus().length - 2);
     this.tasks = new Map();
     this.tagIndex = new Map();
     this.tagStats = new Map();
@@ -40,7 +52,6 @@ export class TaskPool {
       cancelled: 0
     };
 
-    console.log(`✅ TaskPool initialized with max ${this.maxConcurrent} concurrent tasks`);
   }
 
   // 调度：加入 isScheduled 防止重复 setImmediate 调用
@@ -136,6 +147,32 @@ export class TaskPool {
 
       this._scheduleProcessQueue();
       return taskId;
+    };
+  }
+
+  /**
+   * 创建立即执行的柯里化任务（最高优先级，绕过队列）
+   * @param {Function} fn - 任务函数
+   * @returns {Function} 柯里化函数
+   */
+  taskImmediate(fn) {
+    return async (...args) => {
+      // 等待全局并发限制
+      while (TaskPool.globalRunningCount >= TaskPool.maxGlobalConcurrent) {
+        await new Promise(resolve => setImmediate(resolve));
+      }
+
+      TaskPool.incrementGlobal();
+      this.runningCount++;
+
+      try {
+        // ✅ 直接调用，不注入 task 对象
+        return await fn(...args);
+      } finally {
+        TaskPool.decrementGlobal();
+        this.runningCount--;
+        this._scheduleProcessQueue();
+      }
     };
   }
 
@@ -310,19 +347,24 @@ export class TaskPool {
     this._finalizeTask(task, 'cancelled', { error: new Error('Task cancelled') });
   }
 
-  // 使用 while 循环处理队列，移除递归
   async _processQueue() {
     if (this.isProcessing) return;
-    // 已经安排的 schedule 请求现在要 clear（因为马上会运行）
     this.isProcessing = true;
     this.isScheduled = false;
 
     try {
-      while (this.runningCount < this.maxConcurrent && this.queue.length > 0) {
+      while (
+        TaskPool.globalRunningCount < TaskPool.maxGlobalConcurrent &&
+        this.queue.length > 0
+        ) {
         const task = this.queue.shift();
-        if (!task || task.cancelled) continue;
 
+        if (!task) continue;
+        if (task.cancelled) continue;
+
+        TaskPool.incrementGlobal();
         this.runningCount++;
+
         task.status = 'running';
         task.startedAt = Date.now();
         this.stats.pending--;
@@ -342,8 +384,8 @@ export class TaskPool {
         });
 
         if (shouldContinue === false || task.cancelled) {
-          // 取消正在运行的任务（在 _finalizeTask 中会对 stats 进行调整）
           this._handleCancelledTask(task);
+          TaskPool.decrementGlobal();
           this.runningCount--;
           continue;
         }
@@ -353,8 +395,8 @@ export class TaskPool {
             await task.pendingPromise;
           } catch (error) {
             console.error(`⚠️ Error in waitFor:`, error);
-            // 统一清理为 failed
             this._finalizeTask(task, 'failed', { error });
+            TaskPool.decrementGlobal();
             this.runningCount--;
             continue;
           }
@@ -363,46 +405,48 @@ export class TaskPool {
 
         if (task.cancelled) {
           this._handleCancelledTask(task);
+          // ✅ 取消时减少计数
+          TaskPool.decrementGlobal();
           this.runningCount--;
           continue;
         }
 
-        this._executeTask(task); // 异步执行，不 await
+        this._executeTask(task);
       }
     } finally {
       this.isProcessing = false;
-      if (this.queue.length > 0 && this.runningCount < this.maxConcurrent) {
+
+      // ✅ 如果还有任务且未达到限制，继续调度
+      if (
+        this.queue.length > 0 &&
+        TaskPool.globalRunningCount < TaskPool.maxGlobalConcurrent
+      ) {
         this._scheduleProcessQueue();
       }
     }
   }
 
-  // 独立任务执行
   async _executeTask(task) {
     try {
       const result = await task.fn(task, ...task.args);
 
       if (task.cancelled) {
         this._handleCancelledTask(task);
-        this.runningCount--;
-        this._scheduleProcessQueue();
         return;
       }
 
-      // 完成：使用统一 finalize
       this._finalizeTask(task, 'completed', { result });
 
     } catch (error) {
       if (task.cancelled) {
         this._handleCancelledTask(task);
-        this.runningCount--;
-        this._scheduleProcessQueue();
         return;
       }
 
       this._finalizeTask(task, 'failed', { error });
 
     } finally {
+      TaskPool.decrementGlobal();
       this.runningCount--;
       this._scheduleProcessQueue();
     }
