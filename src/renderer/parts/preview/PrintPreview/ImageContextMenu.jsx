@@ -7,7 +7,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ContentPasteIcon from '@mui/icons-material/ContentPaste';
 import ClearIcon from '@mui/icons-material/Clear';
 import ImageIcon from '@mui/icons-material/Image';
-import { clearPreviewCache, getImageSrc, openImage } from '../../../functions';
+import { clearPreviewCache, openImage } from '../../../functions';
 import { useGlobalStore } from '../../../state/store';
 
 export const ImageContextMenu = ({ anchorPosition, onClose, imageElement, setFrame }) => {

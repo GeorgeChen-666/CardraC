@@ -85,7 +85,7 @@ export class SharpAdapter extends IAdapter {
         width: page.width,
         height: page.height,
         channels: 4,
-        background: { r: 255, g: 255, b: 255, alpha: 1 }
+        background: { r: 255, g: 255, b: 255, alpha: 0 }
       }
     }).png().toBuffer();
   }

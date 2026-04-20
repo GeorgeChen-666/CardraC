@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { eleActions } from '../../../shared/constants';
-import { fixPath } from '../../../shared/functions';
+import { fixPath, imagePathToImageSrc } from '../../../shared/functions';
 
 // ✅ 工具函数
 const isHidden = (filePath) => {
@@ -112,7 +112,7 @@ const browse = (drivePath, query = {}) => {
       // url: `${basePath}/${cur}${suffix}`,
       // fileUrl: `${basePath}/${cur}`,
       // //添加缩略图 URL
-      // thumbnailUrl: `${basePath}/${cur}?thumbnail=true`
+      // thumbnailUrl: imagePathToImageSrc(fixPath(real), { quality: 'low' })
     };
   }
 
@@ -133,7 +133,8 @@ const browse = (drivePath, query = {}) => {
       size: fst.size,
       modified: fst.mtime.getTime(),
       ext: path.extname(f).toLowerCase().replace('.', ''),
-      isImage: /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(f)
+      isImage: /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(f),
+      thumbnailUrl: imagePathToImageSrc(fixPath(fp), { quality: 'low' })
     };
   }).filter(Boolean);
 

@@ -50,7 +50,7 @@ const compressHighQuality = taskPool.task(taskFn(ImageStorage), {
 //   });
 // });
 
-const pathToImageData = (imagePath, force = false) => {
+const getCompressParams = () => {
   const { Config } = getConfigStore();
   const cardWidth = Config.cardWidth;
   const compressLevel = Config.compressLevel || 2;
@@ -60,25 +60,29 @@ const pathToImageData = (imagePath, force = false) => {
     { maxWidth: cardWidth * 9, quality: 85, maxDpi: 150 },
     { maxWidth: cardWidth * 6, quality: 80, maxDpi: 75 },
   ];
+  return compressParamsList[compressLevel - 1]
+}
 
-  const ext = 'webp';//imagePath.split('.').pop();
+const pathToImageData = (imagePath, option = { }) => {
+  const { force = false, skipOverviewStorage = false, skipImageStorage = false } = option;
+  const ext = imagePath.split('.').pop();
   const imagePathKey = filePathToImageKey(fixPath(imagePath));
   const { mtime } = fs.statSync(expandPath(imagePath));
   const returnObj = { path: fixPath(imagePath), mtime: mtime.getTime() };
 
   const fixedImagePath = expandPath(imagePath);
 
-  if(!OverviewStorage.keys().includes(imagePathKey) || force) {
+  if(!skipOverviewStorage && (!OverviewStorage.keys().includes(imagePathKey) || force)) {
     compressThumbnail(
       fixedImagePath,
       { maxWidth: 100 }
     )
   }
 
-  if(!ImageStorage.keys().includes(imagePathKey) || force) {
+  if(!skipImageStorage && (!ImageStorage.keys().includes(imagePathKey) || force)) {
     compressHighQuality(
       fixedImagePath,
-      { format: ext, ...compressParamsList[compressLevel - 1] }
+      { format: ext, ...getCompressParams() }
     );
   }
 
@@ -124,13 +128,14 @@ export default (mainWindow) => {
 
       let imagePath = decodeURIComponent(pathname.replace('/image/', ''));
       if (imagePath.startsWith('/')) imagePath = imagePath.substring(1);
+      const imageKey = filePathToImageKey(imagePath);
 
       // ✅ 决定使用哪个质量
       const resolveQuality = async () => {
         if (quality !== 'auto') return quality;
 
         // 检查高质量是否已存在
-        if (ImageStorage.keys().includes(imagePath)) return 'high';
+        if (ImageStorage.keys().includes(imageKey)) return 'high';
 
         // 检查高质量任务状态
         const highTask = taskPool.getTaskByTagAndUniqueKey(
@@ -163,25 +168,32 @@ export default (mainWindow) => {
       const storage = targetQuality === 'low' ? OverviewStorage : ImageStorage;
       const taskTag = targetQuality === 'low' ? imageCacheType.thumbnails : imageCacheType.highQuality;
 
-      // ✅ 获取图片数据
-      let imageData = await storage[imagePath];
+
+
+      let imageData = await storage[imageKey];
 
       if (!imageData) {
-        const task = taskPool.getTaskByTagAndUniqueKey(taskTag, expandPath(imagePath));
+        let task = taskPool.getTaskByTagAndUniqueKey(taskTag, expandPath(imagePath));
+        if(!task) {
+          pathToImageData(imagePath, { skipImageStorage: targetQuality === 'low', skipOverviewStorage: targetQuality === 'high' });
+
+          await new Promise(resolve => setTimeout(resolve, 100)); // 等待任务创建
+          task = taskPool.getTaskByTagAndUniqueKey(taskTag, expandPath(imagePath));
+        }
 
         if (task && (task.status === 'pending' || task.status === 'running')) {
+          // 任务存在且运行中，等待完成
           try {
             await Promise.race([
               taskPool.waitTask(task.id),
-              new Promise((_, reject) => setTimeout(() => reject(), 3000))
+              new Promise((_, reject) => setTimeout(() => reject(), 30000))
             ]);
-            imageData = await storage[imagePath];
           } catch (e) {
             console.warn(`Timeout waiting for image: ${imagePath}`);
           }
         }
       }
-
+      imageData = await storage[imageKey];
       if (!imageData) {
         return createResponse(null, 'image/svg+xml');
       }
@@ -319,11 +331,16 @@ export default (mainWindow) => {
       if (!args) return;
       const { path: imagePath, mtime: cardMtime } = args;
       const imagePathKey = filePathToImageKey(fixPath(imagePath));
-      const { mtime } = fs.statSync(expandPath(imagePath));
-      if (cardMtime !== mtime.getTime() || !alreadyKnownKey.has(imagePathKey)) {
-        alreadyKnownKey.add(imagePathKey);
-        pathToImageData(imagePath, true);
-        cb && cb(mtime)
+      try{
+        const { mtime } = fs.statSync(expandPath(imagePath));
+        if (cardMtime !== mtime.getTime() || !alreadyKnownKey.has(imagePathKey)) {
+          alreadyKnownKey.add(imagePathKey);
+          pathToImageData(imagePath, { force: true});
+          cb && cb(mtime)
+        }
+      }
+      catch (e) {
+
       }
     };
 

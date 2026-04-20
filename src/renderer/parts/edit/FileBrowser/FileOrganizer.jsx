@@ -17,11 +17,11 @@ export const FileOrganizer = forwardRef(({
                                            fileTypes = [{ label: 'All Files', value: '*' }],
                                            onFileNameChange,
                                            onFileTypeChange,
-                                           dialogConfim
+                                           lockedFiles,
+                                           setLockedFiles
                                          }, ref) => {
   const scrollRef = useRef(null);
   const [isLocked, setIsLocked] = useState(false);
-  const [lockedFiles, setLockedFiles] = useState([]);
   const prevSelectedFiles = useRef([]);
 
   //Save 模式状态
@@ -88,23 +88,6 @@ export const FileOrganizer = forwardRef(({
     //Save 模式不需要限制选择
     if (mode === 'save') {
       return;
-    }
-
-    //单选模式：只能选择一个文件
-    if (!multiSelect && selectedFiles.length > 1) {
-      console.warn('单选模式下只能选择一个文件，已自动限制');
-      limitedFiles = selectedFiles.slice(-1);
-      shouldLimit = true;
-    }
-    //双面锁定模式：背面不能超过正面
-    else if (isLocked && isDoubleSides) {
-      const maxAllowed = lockedFiles.length;
-
-      if (selectedFiles.length > maxAllowed) {
-        console.warn(`最多只能选择 ${maxAllowed} 个背面文件，已自动限制`);
-        limitedFiles = selectedFiles.slice(0, maxAllowed);
-        shouldLimit = true;
-      }
     }
 
     if (shouldLimit) {

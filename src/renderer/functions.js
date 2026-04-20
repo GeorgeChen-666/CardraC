@@ -16,11 +16,6 @@ export const getResourcesPath = (path) => (isDev ? '' : '..') + path;
 
 export const isObject = data => typeof data === 'object' && data?.constructor === Object;
 
-export const getImageSrc = (imageData, {quality = 'auto', version = 1}) =>
-  imageData?.path
-    ? `cardrac://image/${filePathToImageKey(fixPath(imageData.path))}?quality=${quality}&version=${version}`
-    : emptyImg.path;
-
 export const fillByObjectValue = (source, value) => {
   if (!isObject(source) || !isObject(value)) {
     return value;
@@ -166,7 +161,7 @@ export const browsePath = (params) =>
   callMain(eleActions.browsePath, params)
 
 export const openMultiImage = (isDoubleSides) => openImage(isDoubleSides, true)
-export const openImage = async (isDoubleSides, isMultiImage = false) => {
+export const openImage = async (isDoubleSides = false, isMultiImage = false) => {
   const selectedFiles = await showFileOpenDialog({multiSelect: true, filterExtensions: 'jpg,png,gif',isDoubleSides, showFileIcon: true});
   const convertFn = (data) => data ? {
     ext: data.ext,

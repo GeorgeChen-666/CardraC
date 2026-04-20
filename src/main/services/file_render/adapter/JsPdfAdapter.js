@@ -13,7 +13,8 @@ export class JsPDFAdapter extends IAdapter {
       orientation: config.landscape ? 'landscape' : 'portrait',
       unit: 'mm',
       format: [width, height],
-      compress: true
+      compress: true,
+      background: "transparent"
     });
   }
 

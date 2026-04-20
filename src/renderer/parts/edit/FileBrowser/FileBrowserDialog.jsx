@@ -8,9 +8,6 @@ import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import FolderIcon from '@mui/icons-material/Folder';
-import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
-import ImageIcon from '@mui/icons-material/Image';
 import { useTranslation } from 'react-i18next';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
@@ -20,84 +17,13 @@ import { FileOrganizer } from './FileOrganizer';
 import { withConfirmation } from '../../../componments/withConfirmation';
 import { setDefaultPath, getDefaultPath, listDrives, browsePath } from '../../../functions';
 import { BreadcrumbBar } from './BreadcrumbBar';
+import { FileGrid } from './FileGrid';
+import { FileList } from './FileList';
+import { homeDir } from '../../../../shared/functions';
 
 console.debug = () => {};
 
 const ConfimButton = withConfirmation(Button)
-
-// 在 FileBrowserDialog 组件内部，return 之前添加
-
-const CustomFileList = React.memo(({ files, selectedFiles, onFileClick, onFileDoubleClick }) => {
-  const getFileIcon = (file) => {
-    if (file.isDir) return <FolderIcon sx={{ color: '#ffd700' }} />;
-    if (file.thumbnailUrl) return <ImageIcon sx={{ color: '#4fc3f7' }} />;
-    return <InsertDriveFileIcon sx={{ color: '#90a4ae' }} />;
-  };
-
-  const formatFileSize = (bytes) => {
-    if (!bytes || bytes === 0) return '-';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-  };
-
-  const formatDate = (date) => {
-    if (!date) return '-';
-    return new Date(date).toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  return (
-      <>
-        {/* 表头 */}
-        <div className="file-list-header">
-          <div className="file-list-cell file-name-cell">名称</div>
-          <div className="file-list-cell file-size-cell">大小</div>
-          <div className="file-list-cell file-date-cell">修改日期</div>
-        </div>
-
-        {/* 文件列表内容 */}
-        {files.length === 0 ? (
-            <div className="file-list-empty">此文件夹为空</div>
-        ) : (
-            files.map((file) => {
-              const isSelected = selectedFiles?.some?.(f => f?.id === file?.id) || false;
-
-              return (
-                  <div
-                      key={file.id}
-                      className={`file-list-row ${isSelected ? 'selected' : ''}`}
-                      onClick={(e) => onFileClick(file, e)}
-                      onDoubleClick={() => onFileDoubleClick(file)}
-                  >
-                    <div className="file-list-cell file-name-cell">
-                      <div className="file-name-content">
-                        {getFileIcon(file)}
-                        <span className="file-name-text" title={file.name}>
-                    {file.name}
-                  </span>
-                      </div>
-                    </div>
-                    <div className="file-list-cell file-size-cell">
-                      {file.isDir ? '-' : formatFileSize(file.size)}
-                    </div>
-                    <div className="file-list-cell file-date-cell">
-                      {formatDate(file.modDate)}
-                    </div>
-                  </div>
-              );
-            })
-        )}
-      </>
-  );
-});
-
 
 
 export const FileBrowserDialog = forwardRef((props, ref) => {
@@ -107,6 +33,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
   const [files, setFiles] = useState([]);
   const [folderChain, setFolderChain] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [lockedFiles, setLockedFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
@@ -120,12 +47,12 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
     showFileIcon: false
   });
 
-  const [quickAccessPaths, setQuickAccessPaths] = useState([
-    { id: 'desktop', name: 'Desktop', icon: '🖥️', path: `${process.env.HOME}/Desktop` },
-    { id: 'documents', name: 'Documents', icon: '📄', path: `${process.env.HOME}/Documents` },
-    { id: 'downloads', name: 'Downloads', icon: '⬇️', path: `${process.env.HOME}/Downloads` },
-    { id: 'pictures', name: 'Pictures', icon: '🖼️', path: `${process.env.HOME}/Pictures` },
-  ]);
+  const quickAccessPaths = useMemo(() => [
+    { id: 'desktop', name: 'Desktop', icon: '🖥️', path: `${homeDir}/Desktop` },
+    { id: 'documents', name: 'Documents', icon: '📄', path: `${homeDir}/Documents` },
+    { id: 'downloads', name: 'Downloads', icon: '⬇️', path: `${homeDir}/Downloads` },
+    { id: 'pictures', name: 'Pictures', icon: '🖼️', path: `${homeDir}/Pictures` },
+  ], []);
 
   const historyStack = useRef([]);
   const forwardStack = useRef([]);
@@ -216,6 +143,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
           isDir: item.isDirectory,
           size: item.size,
           modDate: item.modified ? new Date(item.modified) : undefined,
+          thumbnailUrl: item.thumbnailUrl,
           _raw: item
         }));
 
@@ -278,12 +206,12 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
 
     let resultData;
     if (options.mode === 'save') {
-      const { fileName } = customComponentRef.current?.getResultData?.();
+      const { fileName, fileType } = customComponentRef.current?.getResultData?.() || {};
       if (!fileName) {
         console.warn('Please enter a filename');
         return;
       }
-      const fullPath = currentPath ? `${currentPath}/${fileName}` : fileName;
+      const fullPath = currentPath ? `${currentPath}/${fileName}.${fileType}` : fileName;
       resultData = [[{ realPath: fullPath, name: fileName, isDirectory: false }]];
     } else {
       resultData = customComponentRef.current?.getResultData?.() || selectedFiles.map(f => f._raw);
@@ -297,16 +225,14 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
 
   const shouldSkipConfirm = useCallback(() => {
     if (options.mode !== 'save') return true;
-    const { fileName } = customComponentRef.current?.getResultData?.() || {};
+    const { fileName, fileType } = customComponentRef.current?.getResultData?.() || {};
     if (!fileName) return true;
-
-    const fileExists = files.some(f => !f.isDir && f.name.toLowerCase() === fileName.toLowerCase());
+    const fullName = `${fileName}.${fileType}`;
+    const fileExists = files.some(f => !f.isDir && f.name.toLowerCase() === fullName.toLowerCase());
     return !fileExists;
-  }, [options.mode, files]);
+  }, [options.mode, files, customComponentRef.current]);
 
 
-
-// 修改 handleFileAction，改为自定义的点击处理
   const handleFileClick = useCallback((file, event) => {
     if (file.isDir) return; // 文件夹不参与选择
 
@@ -315,8 +241,14 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
       setSelectedFiles(prev => {
         const exists = prev.some(f => f.id === file.id);
         if (exists) {
+          // 取消选择
           return prev.filter(f => f.id !== file.id);
         } else {
+          // ✅ 检查是否超过 lockedFiles 限制
+          if (lockedFiles.length > 0 && prev.length >= lockedFiles.length) {
+            console.warn(`最多只能选择 ${lockedFiles.length} 个文件`);
+            return prev; // 不添加新文件
+          }
           return options.multiSelect ? [...prev, file] : [file];
         }
       });
@@ -329,7 +261,14 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
       if (lastIndex !== -1 && currentIndex !== -1) {
         const start = Math.min(lastIndex, currentIndex);
         const end = Math.max(lastIndex, currentIndex);
-        const rangeFiles = files.slice(start, end + 1).filter(f => !f.isDir);
+        let rangeFiles = files.slice(start, end + 1).filter(f => !f.isDir);
+
+        // ✅ 限制范围选择数量
+        if (lockedFiles.length > 0 && rangeFiles.length > lockedFiles.length) {
+          rangeFiles = rangeFiles.slice(0, lockedFiles.length);
+          console.warn(`最多只能选择 ${lockedFiles.length} 个文件`);
+        }
+
         setSelectedFiles(rangeFiles);
       }
     } else {
@@ -341,7 +280,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
     if (options.mode === 'save') {
       customComponentRef.current?.setFileName(file.name);
     }
-  }, [files, selectedFiles, options.multiSelect, options.mode]);
+  }, [files, selectedFiles, options.multiSelect, options.mode, lockedFiles]);
 
   const handleFileDoubleClick = useCallback((file) => {
     if (file.isDir) {
@@ -353,7 +292,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
       // 不自动添加历史记录
       loadFiles(file.id, getCurrentExtension(), false);
     } else {
-      if (options.mode === 'open' && !options.multiSelect) {
+      if (options.mode === 'open') {
         handleConfirm();
       } else if (options.mode === 'save') {
         customComponentRef.current?.setFileName(file.name);
@@ -361,53 +300,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
     }
   }, [currentPath, options.mode, options.multiSelect, getCurrentExtension]);
 
-// ✅ GridFileList 只负责渲染内容，不包含滚动容器
-  const GridFileList = React.memo(({ files, selectedFiles, onFileClick, onFileDoubleClick }) => {
-    const getFileIcon = (file) => {
-      if (file.isDir) return <FolderIcon sx={{ fontSize: 48, color: '#ffd700' }} />;
-      if (file.thumbnailUrl) {
-        return (
-            <img
-                src={file.thumbnailUrl}
-                alt={file.name}
-                style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4 }}
-            />
-        );
-      }
-      return <InsertDriveFileIcon sx={{ fontSize: 48, color: '#90a4ae' }} />;
-    };
 
-    if (files.length === 0) {
-      return <div className="file-list-empty">此文件夹为空</div>;
-    }
-
-    return (
-        <>
-          {files.map((file) => {
-            const isSelected = selectedFiles.some(f => f.id === file.id);
-
-            return (
-                <div
-                    key={file.id}
-                    className={`grid-file-item ${isSelected ? 'selected' : ''}`}
-                    onClick={(e) => onFileClick(file, e)}
-                    onDoubleClick={() => onFileDoubleClick(file)}
-                >
-                  <div className="grid-file-icon">
-                    {getFileIcon(file)}
-                  </div>
-                  <div className="grid-file-name" title={file.name}>
-                    {file.name}
-                  </div>
-                </div>
-            );
-          })}
-        </>
-    );
-  });
-
-
-  // ✅ 快捷访问栏组件（在 return 之前定义）
   const QuickAccessSidebar = ({ getCurrentExtension }) => (
       <div className="windows-sidebar">
         <div className="sidebar-section">
@@ -550,14 +443,14 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
                   // ✅ 滚动容器固定，根据 viewMode 切换类名
                   <div className={viewMode === 'list' ? 'file-list-container' : 'grid-file-list'}>
                     {viewMode === 'list' ? (
-                        <CustomFileList
+                        <FileList
                             files={files}
                             selectedFiles={selectedFiles}
                             onFileClick={handleFileClick}
                             onFileDoubleClick={handleFileDoubleClick}
                         />
                     ) : (
-                        <GridFileList
+                        <FileGrid
                             files={files}
                             selectedFiles={selectedFiles}
                             onFileClick={handleFileClick}
@@ -590,7 +483,6 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
                 value: ext
               }))}
               mode={options.mode}
-              dialogConfim={handleConfirm}
               onFileTypeChange={(newFileType) => {
                 if (options?.mode === 'save') {
                   loadFiles(currentPath, newFileType, false);
@@ -599,6 +491,8 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
               onFileNameChange={(fileName) => {
                 setInputFileName(fileName);
               }}
+              lockedFiles = {lockedFiles}
+              setLockedFiles = {setLockedFiles}
           />
 
           <Divider orientation="vertical" flexItem />

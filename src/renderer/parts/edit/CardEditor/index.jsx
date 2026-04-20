@@ -3,7 +3,7 @@ import Card from '@mui/material/Card';
 import '../CardList/styles.css';
 import { useDrag, useDrop } from 'react-dnd';
 import { useTranslation } from 'react-i18next';
-import { getImageSrc, openImage } from '../../../functions';
+import { openImage } from '../../../functions';
 import { layoutSides } from '../../../../shared/constants';
 import { useGlobalStore } from '../../../state/store';
 import Menu from '@mui/material/Menu';
@@ -14,6 +14,7 @@ import { CardToolbar } from './CardToolbar';
 import { CardFooter } from './CardFooter';
 import { useEvent } from './useEvent';
 import { webUtils } from 'electron';
+import { imagePathToImageSrc } from '../../../../shared/functions';
 
 const useMenuState = (items) => {
   const [anchorEl, setAnchorEl] = React.useState(null);
@@ -207,8 +208,8 @@ export default memo(({ data, dialogCardSettingRef, index, sharedPreviewRef, curr
   const { onOpen, MenuElement } = useMenuState(menuItems);
 
   //缓存图片 URL
-  const faceUrl = useMemo(() => getImageSrc(data?.face, { quality: 'low' ,version: imageVersion }), [data?.face?.path, data?.face?.mtime, imageVersion]);
-  const backUrl = useMemo(() => getImageSrc(data?.back, { quality: 'low' , version: imageVersion }), [data?.back?.path, data?.back?.mtime, imageVersion]);
+  const faceUrl = useMemo(() => imagePathToImageSrc(data?.face?.path, { quality: 'low' ,version: imageVersion }), [data?.face?.path, data?.face?.mtime, imageVersion]);
+  const backUrl = useMemo(() => imagePathToImageSrc(data?.back?.path, { quality: 'low' , version: imageVersion }), [data?.back?.path, data?.back?.mtime, imageVersion]);
 
   //缓存计算结果
   const isShowBack = useMemo(() =>

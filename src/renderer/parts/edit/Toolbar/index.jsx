@@ -17,12 +17,13 @@ import { AboutDialog } from './About/AboutDialog';
 import { SetupDialog } from './Setup/SetupDialog';
 import { ChatDialog } from './Chat/ChatDialog';
 import Switch from '@mui/material/Switch';
-import { getImageSrc, openImage, showFileOpenDialog } from '../../../functions';
-import { exportType, layoutSides, initialState } from '../../../../shared/constants';
+import {  openImage, showFileOpenDialog } from '../../../functions';
+import { exportType, layoutSides } from '../../../../shared/constants';
 import { CompressSelectButton } from './CompressSelectButton';
 import { BulkOperationButton } from './BulkOperationButton';
 import { FormControlLabel } from '@mui/material';
 import { ImageViewer } from '../ImageViewer';
+import { imagePathToImageSrc } from '../../../../shared/functions';
 
 const ExportIcon = ({ label = 'PDF' }) => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
@@ -114,7 +115,7 @@ export function EditToolbar() {
       {[layoutSides.doubleSides, layoutSides.foldInHalf].includes(Config.sides()) && (
         <GeneralIconButton
           label={t('toolbar.btnGlobalBackground')}
-          icon={<img src={getImageSrc(globalBackground, { version : imageVersion})} width={'21px'} height={'21px'} alt='' />}
+          icon={<img src={imagePathToImageSrc(globalBackground?.path, { version : imageVersion})} width={'21px'} height={'21px'} alt='' />}
           onClick={async () => {
             const selectedFiles = await openImage();
 

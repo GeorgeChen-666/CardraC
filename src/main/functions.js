@@ -11,13 +11,15 @@ export async function getBorderAverageColors(base64String, borderWidth = 5) {
     const metadata = await baseImage.metadata();
     const { width, height, channels } = metadata;
 
-    const { data } = await baseImage.raw().toBuffer({ resolveWithObject: true });
+    const { data } = await baseImage
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
 
-    const pixelsPerChannel = channels || 3;
     const actualBorderWidth = Math.min(borderWidth, Math.floor(Math.min(width, height) / 2));
 
-    let totalR = 0, totalG = 0, totalB = 0;
-    let pixelCount = 0;
+    let totalR = 0, totalG = 0, totalB = 0, totalA = 0;
+    let pixelCount = 0, visiblePixelCount = 0;
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
@@ -28,15 +30,24 @@ export async function getBorderAverageColors(base64String, borderWidth = 5) {
           x >= width - actualBorderWidth;
 
         if (isInBorder) {
-          const index = (y * width + x) * pixelsPerChannel;
-          totalR += data[index];
-          totalG += data[index + 1];
-          totalB += data[index + 2];
+          const index = (y * width + x) * 4;
+          const a = data[index + 3];
+
           pixelCount++;
+          if (a > 0) {
+            const weight = a / 255;
+            totalR += data[index] * weight;
+            totalG += data[index + 1] * weight;
+            totalB += data[index + 2] * weight;
+            totalA += a;
+            visiblePixelCount++;
+          }
         }
       }
     }
-
+    if (visiblePixelCount === 0) {
+      return null;  // ✅ 无可见像素
+    }
     return {
       r: Math.round(totalR / pixelCount),
       g: Math.round(totalG / pixelCount),

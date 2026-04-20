@@ -17,6 +17,7 @@ export const BulkOperationButton = () => {
   const [repeat, setRepeat] = useState(1);
   const dialogCardSettingRef = window.dialogCardSettingRef;
   const handleClick = (event) => {
+    setRepeat(1);
     setAnchorEl(event.currentTarget);
   };
   const handleClose = () => {

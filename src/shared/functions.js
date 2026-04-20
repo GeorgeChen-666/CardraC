@@ -1,3 +1,5 @@
+import { emptyImg } from './constants';
+
 export const waitTime = async timeout => new Promise(resolve => setTimeout(resolve, timeout));
 export const waitCondition = async (Condition = () => true, timeout = 500, totalWaitingTime = 30000) => new Promise((resolve) => {
   const startTime = new Date().getTime();
@@ -144,6 +146,11 @@ export const expandPath = (filePath) => {
 
   return filePath;
 };
+
+export const imagePathToImageSrc = (imagePath, {quality = 'auto', version = 1}) =>
+  imagePath
+    ? `cardrac://image/${fixPath(imagePath)}?quality=${quality}&version=${version}`
+    : emptyImg.path;
 
 export function generateUUID() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {

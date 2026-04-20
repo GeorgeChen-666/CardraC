@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { checkImage, openImage } from '../../../../functions';
 import { useGlobalStore } from '../../../../state/store';
 import IconButton from '@mui/material/IconButton';
+import { expandPath, imagePathToImageSrc } from '../../../../../shared/functions';
 
 export const ReloadDialog = forwardRef(({},ref) => {
   const { t } = useTranslation();
@@ -66,6 +67,7 @@ export const ReloadDialog = forwardRef(({},ref) => {
         <Table sx={{ minWidth: 650 }} size="small" aria-label="a dense table">
           <TableHead>
             <TableRow>
+              <TableCell className={'opCol'}>图片</TableCell>
               <TableCell>{t('configDialog.reloadImageTableColumn1')}</TableCell>
               <TableCell>{t('configDialog.reloadImageTableColumn2')}</TableCell>
               <TableCell className={'opCol'}>{t('configDialog.reloadImageTableColumn3')}</TableCell>
@@ -74,6 +76,7 @@ export const ReloadDialog = forwardRef(({},ref) => {
           <TableBody>
             {dataList.map((row) => (
               <TableRow key={row.path}>
+                <TableCell><img src={imagePathToImageSrc(row.path, { quality : 'low'})} width={'40px'} height={'40px'} alt='' /></TableCell>
                 <TableCell>{row.path}</TableCell>
                 <TableCell>{row.newPath}</TableCell>
                 <TableCell>
@@ -119,8 +122,9 @@ export const ReloadDialog = forwardRef(({},ref) => {
       <Button ref={cancelRef} onClick={() => {
         setOpen(false);
         const fillNewPath = (image) => {
-          if(image && image.path && newImagePath[image.path]) {
-            image.path = newImagePath[image.path];
+          const newPath = newImagePath[expandPath(image?.path)];
+          if(image && image.path && newPath) {
+            image.path = newPath;
             delete image.mtime;
           }
         }
