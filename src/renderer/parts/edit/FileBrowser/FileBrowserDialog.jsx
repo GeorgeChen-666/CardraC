@@ -3,6 +3,7 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import Badge from '@mui/material/Badge';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
@@ -19,7 +20,7 @@ import { setDefaultPath, getDefaultPath, listDrives, browsePath } from '../../..
 import { BreadcrumbBar } from './BreadcrumbBar';
 import { FileGrid } from './FileGrid';
 import { FileList } from './FileList';
-import { homeDir } from '../../../../shared/functions';
+import { homeDir, waitTime } from '../../../../shared/functions';
 
 console.debug = () => {};
 
@@ -38,40 +39,43 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
   const [inputFileName, setInputFileName] = useState('');
-  const [viewMode, setViewMode] = useState('grid');
+  const [viewMode, setViewMode] = useState('S');
   const [options, setOptions] = useState({
     multiSelect: false,
     filterExtensions: null,
-    title: 'Select Files',
+    title: t('fileBrowser.defaultDialogTitle'),
     isDoubleSides: false,
     showFileIcon: false
   });
 
   const quickAccessPaths = useMemo(() => [
-    { id: 'desktop', name: 'Desktop', icon: '🖥️', path: `${homeDir}/Desktop` },
-    { id: 'documents', name: 'Documents', icon: '📄', path: `${homeDir}/Documents` },
-    { id: 'downloads', name: 'Downloads', icon: '⬇️', path: `${homeDir}/Downloads` },
-    { id: 'pictures', name: 'Pictures', icon: '🖼️', path: `${homeDir}/Pictures` },
+    { id: 'desktop', name: t('fileBrowser.quickAccess.desktop'), icon: '🖥️', path: `${homeDir}/Desktop` },
+    { id: 'documents', name: t('fileBrowser.quickAccess.documents'), icon: '📄', path: `${homeDir}/Documents` },
+    { id: 'downloads', name: t('fileBrowser.quickAccess.downloads'), icon: '⬇️', path: `${homeDir}/Downloads` },
+    { id: 'pictures', name: t('fileBrowser.quickAccess.pictures'), icon: '🖼️', path: `${homeDir}/Pictures` },
   ], []);
 
   const historyStack = useRef([]);
   const forwardStack = useRef([]);
   const onSelectRef = useRef(null);
   const customComponentRef = useRef(null);
+  const commitButtonRef = useRef(null);
 
-  // 1. 在所有 useCallback 之前添加
   useImperativeHandle(ref, () => ({
     openDialog: async (newOptions = {}) => {
       const { onSelect, multiSelect = false, filterExtensions = null,
-        title = 'Select Files', isDoubleSides = false,
+        title = t('fileBrowser.defaultDialogTitle'), isDoubleSides = false,
         showFileIcon = false, mode = 'open' } = newOptions;
 
       onSelectRef.current = onSelect;
+
+
+      setOptions({ multiSelect, filterExtensions,
+        title, isDoubleSides, showFileIcon, mode });
+
       const { path: defaultPath } = await getDefaultPath();
 
-      setOptions({ defaultPath, multiSelect, filterExtensions,
-        title, isDoubleSides, showFileIcon, mode });
-      setOpen(true);
+      setOptions(lastOption => ({...lastOption,  defaultPath }));
 
       historyStack.current = [];
       forwardStack.current = [];
@@ -80,9 +84,12 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
 
       loadFiles(defaultPath, filterExtensions);
       setSelectedFiles([]);
+      setLockedFiles([]);
+      setInputFileName('');
+      setOpen(true);
     },
   }));
-
+  console.log('=======', open, options.isDoubleSides)
 // 2. 添加缺失的函数
   const getCurrentExtension = useCallback(() => {
     return options.filterExtensions;
@@ -223,14 +230,19 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
     setOpen(false);
   };
 
-  const shouldSkipConfirm = useCallback(() => {
+  const skipConfirm = useMemo(() => {
     if (options.mode !== 'save') return true;
-    const { fileName, fileType } = customComponentRef.current?.getResultData?.() || {};
-    if (!fileName) return true;
-    const fullName = `${fileName}.${fileType}`;
-    const fileExists = files.some(f => !f.isDir && f.name.toLowerCase() === fullName.toLowerCase());
+    if (!inputFileName) return true;
+
+    const { fileType } = customComponentRef.current?.getResultData?.() || {};
+    const fullName = `${inputFileName}.${fileType}`;
+
+    const fileExists = files.some(f =>
+      !f.isDir && f.name.toLowerCase() === fullName.toLowerCase()
+    );
+
     return !fileExists;
-  }, [options.mode, files, customComponentRef.current]);
+  }, [options.mode, inputFileName, files]);  // ✅ 正确的依赖
 
 
   const handleFileClick = useCallback((file, event) => {
@@ -278,7 +290,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
 
     // Save 模式自动填充文件名
     if (options.mode === 'save') {
-      customComponentRef.current?.setFileName(file.name);
+      customComponentRef.current?.setFileName(file.name.replace(/\.[^.]+$/, ''));
     }
   }, [files, selectedFiles, options.multiSelect, options.mode, lockedFiles]);
 
@@ -293,9 +305,10 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
       loadFiles(file.id, getCurrentExtension(), false);
     } else {
       if (options.mode === 'open') {
-        handleConfirm();
+        commitButtonRef.current?.click();
       } else if (options.mode === 'save') {
-        customComponentRef.current?.setFileName(file.name);
+        customComponentRef.current?.setFileName(file.name.replace(/\.[^.]+$/, ''));
+        commitButtonRef.current?.click();
       }
     }
   }, [currentPath, options.mode, options.multiSelect, getCurrentExtension]);
@@ -324,23 +337,6 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
           ))}
         </div>
 
-        <div className="sidebar-section">
-          <div className="sidebar-title">此电脑</div>
-          <div
-              className={`sidebar-item ${currentPath === '' ? 'active' : ''}`}
-              onClick={() => {
-                if (currentPath !== '') {
-                  historyStack.current.push(currentPath);
-                  forwardStack.current = [];
-                  updateHistoryState();
-                }
-                loadFiles('', getCurrentExtension(), false);
-              }}
-          >
-            <span className="sidebar-icon">💾</span>
-            <span className="sidebar-label">所有驱动器</span>
-          </div>
-        </div>
       </div>
   );
 
@@ -365,8 +361,10 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
           maxWidth="lg"
           PaperProps={{
             sx: {
+              width: '90vw',
               height: '80vh',
-              maxHeight: '800px',
+              maxWidth: '90vw',
+              maxHeight: '80vh',
               display: 'flex',
               flexDirection: 'column'
             }
@@ -414,19 +412,38 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
                   size="small"
                   onClick={() => setViewMode('list')}
                   color={viewMode === 'list' ? 'primary' : 'default'}
-                  title="列表视图"
+                  title={t('fileBrowser.dialogListView')}
               >
                 <ViewListIcon fontSize="small" />
               </IconButton>
-              <IconButton
-                disabled={viewMode === 'grid'}
+              {['S','M','L'].map(size => {
+                const modeName = size;
+                return (<IconButton
+                  disabled={viewMode === modeName}
                   size="small"
-                  onClick={() => setViewMode('grid')}
-                  color={viewMode === 'grid' ? 'primary' : 'default'}
-                  title="图标视图"
-              >
-                <ViewModuleIcon fontSize="small" />
-              </IconButton>
+                  onClick={() => setViewMode(modeName)}
+                  color={viewMode === modeName ? 'primary' : 'default'}
+                  title={`${t('fileBrowser.dialogIconView')} - ${size}`}
+                >
+                  <Badge
+                    badgeContent={size}
+                    anchorOrigin={{
+                      vertical: 'bottom',
+                      horizontal: 'right',
+                    }}
+                    sx={{
+                      '& .MuiBadge-badge': {
+                        fontSize: '10px',
+                        color: viewMode === modeName ? 'rgba(255, 255, 255, 0.5)' : 'white',
+                        fontWeight: 'bold',
+                      }
+                    }}
+                  >
+                    <ViewModuleIcon fontSize="small" />
+                  </Badge>
+                </IconButton>)
+              })}
+
             </div>
           </div>
 
@@ -440,24 +457,21 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
               {loading ? (
                   <div className="file-list-loading">加载中...</div>
               ) : (
-                  // ✅ 滚动容器固定，根据 viewMode 切换类名
-                  <div className={viewMode === 'list' ? 'file-list-container' : 'grid-file-list'}>
-                    {viewMode === 'list' ? (
-                        <FileList
-                            files={files}
-                            selectedFiles={selectedFiles}
-                            onFileClick={handleFileClick}
-                            onFileDoubleClick={handleFileDoubleClick}
-                        />
-                    ) : (
-                        <FileGrid
-                            files={files}
-                            selectedFiles={selectedFiles}
-                            onFileClick={handleFileClick}
-                            onFileDoubleClick={handleFileDoubleClick}
-                        />
-                    )}
-                  </div>
+                <div className={`${viewMode === 'list' ? 'file-list-container' : `grid-file-list size-${viewMode}`}`}>
+                  {viewMode === 'list' && <FileList
+                    files={files}
+                    selectedFiles={selectedFiles}
+                    onFileClick={handleFileClick}
+                    onFileDoubleClick={handleFileDoubleClick}
+                  />}
+                  {['S', 'M', 'L'].includes(viewMode) && <FileGrid
+                    size={viewMode}
+                    files={files}
+                    selectedFiles={selectedFiles}
+                    onFileClick={handleFileClick}
+                    onFileDoubleClick={handleFileDoubleClick}
+                  />}
+                </div>
               )}
             </div>
           </div>
@@ -505,8 +519,9 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
           </Button>
 
           <ConfimButton
-              confirmMessage={'文件已存在，是否覆盖？'}
-              skipConfirm={shouldSkipConfirm()}
+              ref={commitButtonRef}
+              confirmMessage={t('fileBrowser.existConfirm')}
+              skipConfirm={skipConfirm}
               onClick={handleConfirm}
               variant="contained"
               disabled={

@@ -4,6 +4,7 @@ import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import React, { useEffect, useImperativeHandle, useRef, useState, forwardRef } from 'react';
 import Button from '@mui/material/Button';
+import { useTranslation } from 'react-i18next';
 
 export const FileOrganizer = forwardRef(({
                                            selectedFiles,
@@ -20,6 +21,7 @@ export const FileOrganizer = forwardRef(({
                                            lockedFiles,
                                            setLockedFiles
                                          }, ref) => {
+  const { t } = useTranslation();
   const scrollRef = useRef(null);
   const [isLocked, setIsLocked] = useState(false);
   const prevSelectedFiles = useRef([]);
@@ -155,13 +157,13 @@ export const FileOrganizer = forwardRef(({
     return (
       <Box sx={{ display: 'flex', gap: 2, flex: 1, alignItems: 'center' }}>
         <TextField
-          label="File Name"
+          label={t('fileBrowser.bottomBar.nameInputLabel')}
           value={fileName}
           onChange={(e) => setFileName(e.target.value)}
           fullWidth
           size='small'
           autoFocus
-          placeholder="Enter file name..."
+          placeholder={t('fileBrowser.bottomBar.nameInputPlaceholder')}
         />
         <FormControl size="small" sx={{ width: 250 }} disabled={fileTypes?.length <= 1}>
           <InputLabel>{fileType}</InputLabel>
@@ -170,7 +172,7 @@ export const FileOrganizer = forwardRef(({
             select size='small'
             value={fileType}
             onChange={(e) => setFileType(e.target.value)}
-            label="File Type"
+            label={t('fileBrowser.bottomBar.extInputLabel')}
           >
             {fileTypes.map((option) => (
               <MenuItem key={option.value} value={option.value} style={{display: 'list-item'}}>
@@ -229,19 +231,38 @@ export const FileOrganizer = forwardRef(({
         </Typography>
       )}
       {file?.thumbnailUrl ? (
-        <img src={file.thumbnailUrl} alt={file.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <img src={file.thumbnailUrl} alt={file.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
       ) : file ? (
         <DescriptionIcon sx={{ fontSize: 40, color: 'grey.400' }} />
       ) : (
         <Typography variant="caption" color="text.secondary">
-          {isNextToFill ? '待填充' : '空'}
+          {isNextToFill ? t('fileBrowser.bottomBar.slotLabelEmptyCurrent') : t('fileBrowser.bottomBar.slotLabelEmpty')}
         </Typography>
       )}
     </Box>
   );
 
+  const FileNameText = ({ name }) => (
+    <Typography
+      variant="caption"
+      title={name || t('fileBrowser.bottomBar.slotLabelEmpty')}
+      sx={{
+        textAlign: 'center',
+        fontSize: '11px',
+        color: 'white',
+        width: 60,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        cursor: 'default'
+      }}
+    >
+      {name || t('fileBrowser.bottomBar.slotLabelEmpty')}
+    </Typography>
+  );
+
   return (
-    <Box sx={{p: 0, display: 'flex', alignItems: 'center', gap: 2, width: '100%', minWidth: 0 }}>
+    <Box className={`isDoubleSides_${isDoubleSides}`} sx={{p: 0, display: 'flex', alignItems: 'center', gap: 2, width: '100%', minWidth: 0 }}>
       <Box
         ref={scrollRef}
         sx={{
@@ -277,71 +298,24 @@ export const FileOrganizer = forwardRef(({
             >
               {showFileIcon && (
                 <Box sx={{ display: 'flex', gap: '4px', p: '4px', border: '1px dashed', borderColor: 'divider', borderRadius: 1 }}>
-                  <FileSlot file={pair.front} label={isDoubleSides ? '正面' : null} isNextToFill={false} />
+                  <FileSlot file={pair.front} label={isDoubleSides ? t('fileBrowser.bottomBar.face') : null} isNextToFill={false} />
                   {isDoubleSides && (
                     <FileSlot
                       file={pair.back}
-                      label="背面"
+                      label={t('fileBrowser.bottomBar.back')}
                       isNextToFill={isBackNextToFill}
                     />
                   )}
                 </Box>
               )}
 
-              {!isDoubleSides && (
-                <Typography
-                  variant="caption"
-                  title={pair.front?.name || '未选择文件'}
-                  sx={{
-                    textAlign: 'center',
-                    fontSize: '11px',
-                    color: 'white',
-                    width: 60,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    cursor: 'default'
-                  }}
-                >
-                  {pair.front?.name || '未选择文件'}
-                </Typography>
-              )}
-
-              {isDoubleSides && (
+              {isDoubleSides ? (
                 <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Typography
-                    variant="caption"
-                    title={pair.front?.name || '空'}
-                    sx={{
-                      textAlign: 'center',
-                      fontSize: '11px',
-                      color: 'white',
-                      width: 60,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      cursor: 'default'
-                    }}
-                  >
-                    {pair.front?.name || '空'}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    title={pair.back?.name || '空'}
-                    sx={{
-                      textAlign: 'center',
-                      fontSize: '11px',
-                      color: 'white',
-                      width: 60,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      cursor: 'default'
-                    }}
-                  >
-                    {pair.back?.name || '空'}
-                  </Typography>
+                  <FileNameText name={pair.front?.name} />
+                  <FileNameText name={pair.back?.name} />
                 </Box>
+              ) : (
+                <FileNameText name={pair.front?.name} />
               )}
             </Box>
           );
@@ -358,7 +332,7 @@ export const FileOrganizer = forwardRef(({
           <Box display={'flex'} flexDirection={'column'} alignItems={'center'}>
             {isLocked ? <LockIcon /> : <LockOpenIcon />}
             <Typography variant="caption">
-              {isLocked ? '已锁定' : '锁定正面'}
+              {isLocked ? t('fileBrowser.bottomBar.lockedOn') : t('fileBrowser.bottomBar.lockedOff')}
             </Typography>
           </Box>
         </Button>

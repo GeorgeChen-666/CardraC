@@ -67,7 +67,7 @@ export const ReloadDialog = forwardRef(({},ref) => {
         <Table sx={{ minWidth: 650 }} size="small" aria-label="a dense table">
           <TableHead>
             <TableRow>
-              <TableCell className={'opCol'}>图片</TableCell>
+              <TableCell className={'opCol'}>{t('configDialog.reloadImageTableColumn0')}</TableCell>
               <TableCell>{t('configDialog.reloadImageTableColumn1')}</TableCell>
               <TableCell>{t('configDialog.reloadImageTableColumn2')}</TableCell>
               <TableCell className={'opCol'}>{t('configDialog.reloadImageTableColumn3')}</TableCell>

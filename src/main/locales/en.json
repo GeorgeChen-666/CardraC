@@ -119,6 +119,7 @@
     "reloadImageSubTitle2": "New Image Path",
     "reloadImageTitle3": "Reload",
     "reloadImageSubTitle3": "New Image",
+    "reloadImageTableColumn0": "Image",
     "reloadImageTableColumn1": "Invalid Image Path",
     "reloadImageTableColumn2": "New Image Path",
     "reloadImageTableColumn3": "Action",
@@ -150,6 +151,34 @@
     "guideStep3_title": "Apply offset",
     "guideStep3_body": "The offset is about to be set: OffsetX {{x}}, OffsetY {{y}}",
     "guideStep3_button1": "Apply"
+  },
+  "fileBrowser": {
+    "defaultDialogTitle": "Select File",
+    "dialogIconView": "Icon View",
+    "dialogListView": "List View",
+    "existConfirm": "File is exist, overwrite it?",
+    "nothingToShow": "Nothing need to show.",
+    "fileListTitle1": "File Name",
+    "fileListTitle2": "File Size",
+    "fileListTitle3": "Date Modified",
+    "expandHiddenItems": "Show {{num}} hidden items",
+    "quickAccess": {
+      "desktop": "Desktop",
+      "documents": "Documents",
+      "downloads": "Downloads",
+      "pictures": "Pictures"
+    },
+    "bottomBar": {
+      "nameInputLabel": "File Name",
+      "nameInputPlaceholder": "Enter file name...",
+      "extInputLabel": "File Type",
+      "slotLabelEmpty": "Empty",
+      "slotLabelEmptyCurrent": "Current",
+      "lockedOn": "Locked",
+      "lockedOff": "Lock Face",
+      "face": "Face",
+      "back": "Back"
+    }
   },
   "footer": {
     "files": "Files",

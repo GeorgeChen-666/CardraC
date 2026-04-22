@@ -6,8 +6,9 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 
+// withConfirmation/index.jsx
 export const withConfirmation = (WrappedComponent) => {
-  return function WithConfirmation(props) {
+  return React.forwardRef(function WithConfirmation(props, ref) {  // ✅ 添加 forwardRef
     const {
       onClick,
       confirmMessage = 'Confirm?',
@@ -19,8 +20,14 @@ export const withConfirmation = (WrappedComponent) => {
 
     const [open, setOpen] = React.useState(false);
     const [clickArgs, setClickArgs] = React.useState(null);
+    const buttonRef = React.useRef(null);  // ✅ 内部 ref
 
-    const handleOpen = (e,...args) => {
+    React.useImperativeHandle(ref, () => ({
+      click: () => buttonRef.current?.click(),
+      element: buttonRef.current
+    }));
+
+    const handleOpen = (e, ...args) => {
       e.preventDefault();
       e.stopPropagation();
       if (skipConfirm) {
@@ -29,7 +36,7 @@ export const withConfirmation = (WrappedComponent) => {
         }
         return;
       }
-      setClickArgs([e,...args]);
+      setClickArgs([e, ...args]);
       setOpen(true);
     };
 
@@ -54,6 +61,7 @@ export const withConfirmation = (WrappedComponent) => {
       <>
         <WrappedComponent
           {...otherProps}
+          ref={buttonRef}  // ✅ 转发到真实按钮
           onClick={handleOpen}
         />
         <Dialog
@@ -74,5 +82,5 @@ export const withConfirmation = (WrappedComponent) => {
         </Dialog>
       </>
     );
-  };
+  });
 };

@@ -171,7 +171,7 @@ export class SVGAdapter extends IAdapter {
 
   renderElement(el) {
     const s = displayScale;
-
+    const ptToPixel = 1.333;
     switch (el.type) {
       case 'image':
         if (!el.href) return '';
@@ -204,7 +204,7 @@ export class SVGAdapter extends IAdapter {
           x2="${el.x2 * s}" 
           y2="${el.y2 * s}" 
           stroke="${el.color || '#000000'}"
-          stroke-width="${el.width * s}"
+          stroke-width="${el.width* ptToPixel * s}"
           ${el.dash ? `stroke-dasharray="${el.dash.map(d => d * s).join(',')}"` : ''} />`;
 
       case 'rect':

@@ -212,46 +212,50 @@ export class SharpAdapter extends IAdapter {
     }
   }
 
+// SharpAdapter.js
   async createLineLayer(x1, y1, x2, y2, lineWidth, color, dash) {
     try {
+      const PT_TO_PX = 1.333;
       const sx1 = this.scale(x1);
       const sy1 = this.scale(y1);
       const sx2 = this.scale(x2);
       const sy2 = this.scale(y2);
-      const sLineWidth = this.scale(lineWidth);
+      const sLineWidth = this.scale(lineWidth * PT_TO_PX);
 
       const minX = Math.min(sx1, sx2);
       const minY = Math.min(sy1, sy2);
       const maxX = Math.max(sx1, sx2);
       const maxY = Math.max(sy1, sy2);
 
-      const boxWidth = Math.max(Math.ceil(maxX - minX), 1);
-      const boxHeight = Math.max(Math.ceil(maxY - minY), 1);
+      // ✅ 扩展容器以容纳线粗
+      const padding = Math.ceil(sLineWidth / 2) + 1;
+      const boxWidth = Math.max(Math.ceil(maxX - minX) + padding * 2, 1);
+      const boxHeight = Math.max(Math.ceil(maxY - minY) + padding * 2, 1);
 
       const dashArray = dash
         ? dash.map(d => this.scale(d)).join(',')
         : '';
 
       const svg = `
-        <svg width="${boxWidth}" height="${boxHeight}">
-          <line 
-            x1="${sx1 - minX}" 
-            y1="${sy1 - minY}" 
-            x2="${sx2 - minX}" 
-            y2="${sy2 - minY}" 
-            stroke="${this.colorToHex(color)}" 
-            stroke-width="${sLineWidth}"
-            ${dashArray ? `stroke-dasharray="${dashArray}"` : ''}
-          />
-        </svg>
-      `;
+      <svg width="${boxWidth}" height="${boxHeight}">
+        <line 
+          x1="${sx1 - minX + padding}" 
+          y1="${sy1 - minY + padding}" 
+          x2="${sx2 - minX + padding}" 
+          y2="${sy2 - minY + padding}" 
+          stroke="${this.colorToHex(color)}" 
+          stroke-width="${sLineWidth}"
+          ${dashArray ? `stroke-dasharray="${dashArray}"` : ''}
+        />
+      </svg>
+    `;
 
       const lineBuffer = await sharp(Buffer.from(svg)).png().toBuffer();
 
       return {
         input: lineBuffer,
-        top: Math.ceil(minY),
-        left: Math.ceil(minX)
+        top: Math.ceil(minY - padding),   // ✅ 调整位置
+        left: Math.ceil(minX - padding)   // ✅ 调整位置
       };
     } catch (error) {
       console.error('Failed to create line layer:', error);

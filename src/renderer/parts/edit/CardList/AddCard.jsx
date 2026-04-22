@@ -10,9 +10,8 @@ import { layoutSides } from '../../../../shared/constants';
 
 export default () => {
   const { t } = useTranslation();
-  const {
-    openImage, cardAdd, Config
-  } = useGlobalStore.getState();
+  const { cardAdd } = useGlobalStore.getState();
+  const Config = useGlobalStore(state => state.Config);
   const isDoubleSides = Config.sides === layoutSides.doubleSides || Config.sides === layoutSides.foldInHalf
   return <Card className={'Card'}>
     <IconButton className={'AddCardButton'}

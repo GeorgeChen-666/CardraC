@@ -119,6 +119,7 @@
     "reloadImageSubTitle2": "新图片路径",
     "reloadImageTitle3": "重载",
     "reloadImageSubTitle3": "新图像",
+    "reloadImageTableColumn0": "图像",
     "reloadImageTableColumn1": "无效图片路径",
     "reloadImageTableColumn2": "新路径",
     "reloadImageTableColumn3": "操作",
@@ -150,6 +151,34 @@
     "guideStep3_title": "应用偏移量",
     "guideStep3_body": "需要设定偏移：横向{{x}}，纵向{{y}}",
     "guideStep3_button1": "应用结果"
+  },
+  "fileBrowser": {
+    "defaultDialogTitle": "选择文件",
+    "dialogIconView": "图标视图",
+    "dialogListView": "列表视图",
+    "existConfirm": "文件已存在，是否覆盖？",
+    "nothingToShow": "没有需要展示的内容。",
+    "fileListTitle1": "文件名",
+    "fileListTitle2": "大小",
+    "fileListTitle3": "修改日期",
+    "expandHiddenItems": "显示 {{num}} 个隐藏项",
+    "quickAccess": {
+      "desktop": "桌面",
+      "documents": "文档",
+      "downloads": "下载",
+      "pictures": "图像"
+    },
+    "bottomBar": {
+      "nameInputLabel": "文件名",
+      "nameInputPlaceholder": "输入文件名...",
+      "extInputLabel": "扩展名",
+      "slotLabelEmpty": "空",
+      "slotLabelEmptyCurrent": "待填充",
+      "lockedOn": "已锁定",
+      "lockedOff": "锁定正面",
+      "face": "正面",
+      "back": "背面"
+    }
   },
   "footer": {
     "files": "文件数",
