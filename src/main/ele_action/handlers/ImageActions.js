@@ -110,13 +110,19 @@ export default (mainWindow) => {
     }
   });
 
+// src/main/ele_action/handlers/ImageActions.js
+
   protocol.handle('cardrac', async (request) => {
-    const createResponse = (data, mimeType) => {
+    const createResponse = (data, mimeType, status = 200) => {
       const emptySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
   <rect width="100" height="100" fill="transparent"/>
 </svg>`;
       return new Response(data ?? emptySvg, {
-        headers: { 'Content-Type': mimeType }
+        status,
+        headers: {
+          'Content-Type': mimeType,
+          ...(status === 503 ? { 'Retry-After': '2' } : {})
+        }
       });
     };
 
@@ -124,18 +130,21 @@ export default (mainWindow) => {
       const url = request.url;
       const urlObj = new URL(url);
       const pathname = urlObj.pathname;
-      const quality = urlObj.searchParams.get('quality') || 'auto';
+      const requestedQuality = urlObj.searchParams.get('quality') || 'auto';  // ✅ 恢复 auto
 
       let imagePath = decodeURIComponent(pathname.replace('/image/', ''));
       if (imagePath.startsWith('/')) imagePath = imagePath.substring(1);
       const imageKey = filePathToImageKey(imagePath);
 
-      // ✅ 决定使用哪个质量
-      const resolveQuality = async () => {
-        if (quality !== 'auto') return quality;
+      // ✅ 智能选择质量
+      const resolveQuality = () => {
+        if (requestedQuality !== 'auto') return requestedQuality;
 
-        // 检查高质量是否已存在
-        if (ImageStorage.keys().includes(imageKey)) return 'high';
+        // 如果高质量已存在，直接使用
+        if (ImageStorage.keys().includes(imageKey)) {
+          console.log(`✅ [AUTO->HIGH] Using cached high quality: ${imagePath}`);
+          return 'high';
+        }
 
         // 检查高质量任务状态
         const highTask = taskPool.getTaskByTagAndUniqueKey(
@@ -143,61 +152,68 @@ export default (mainWindow) => {
           expandPath(imagePath)
         );
 
-        if (!highTask) return 'low';
-
-        // 如果任务完成，使用高质量
-        if (highTask.status === 'completed') return 'high';
-
-        // 如果任务进行中，尝试等待 100ms
-        if (highTask.status === 'running' || highTask.status === 'pending') {
-          try {
-            await Promise.race([
-              taskPool.waitTask(highTask.id),
-              new Promise((_, reject) => setTimeout(() => reject(), 100))
-            ]);
-            return 'high';
-          } catch {
-            return 'low';
-          }
+        // 如果高质量任务已完成，使用高质量
+        if (highTask && highTask.status === 'completed') {
+          console.log(`✅ [AUTO->HIGH] High quality task completed: ${imagePath}`);
+          return 'high';
         }
 
+        // 否则使用低质量
+        console.log(`📉 [AUTO->LOW] Using low quality: ${imagePath}`);
         return 'low';
       };
 
-      const targetQuality = await resolveQuality();
-      const storage = targetQuality === 'low' ? OverviewStorage : ImageStorage;
-      const taskTag = targetQuality === 'low' ? imageCacheType.thumbnails : imageCacheType.highQuality;
-
-
+      const quality = resolveQuality();
+      const storage = quality === 'low' ? OverviewStorage : ImageStorage;
+      const taskTag = quality === 'low' ? imageCacheType.thumbnails : imageCacheType.highQuality;
 
       let imageData = await storage[imageKey];
 
+      // 如果数据不存在
       if (!imageData) {
         let task = taskPool.getTaskByTagAndUniqueKey(taskTag, expandPath(imagePath));
-        if(!task) {
-          pathToImageData(imagePath, { skipImageStorage: targetQuality === 'low', skipOverviewStorage: targetQuality === 'high' });
 
-          await new Promise(resolve => setTimeout(resolve, 100)); // 等待任务创建
+        // 如果任务不存在，创建任务
+        if (!task) {
+          pathToImageData(imagePath, {
+            skipImageStorage: quality === 'low',
+            skipOverviewStorage: quality === 'high'
+          });
+          await new Promise(resolve => setTimeout(resolve, 100));
           task = taskPool.getTaskByTagAndUniqueKey(taskTag, expandPath(imagePath));
         }
 
         if (task && (task.status === 'pending' || task.status === 'running')) {
-          // 任务存在且运行中，等待完成
-          try {
-            await Promise.race([
-              taskPool.waitTask(task.id),
-              new Promise((_, reject) => setTimeout(() => reject(), 30000))
-            ]);
-          } catch (e) {
-            console.warn(`Timeout waiting for image: ${imagePath}`);
+          if (quality === 'low') {
+            // ✅ 低清：阻塞等待
+            console.log(`⏳ [LOW] Waiting for image: ${imagePath}`);
+            try {
+              await Promise.race([
+                taskPool.waitTask(task.id),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 30000))
+              ]);
+              console.log(`✅ [LOW] Image loaded: ${imagePath}`);
+              imageData = await storage[imageKey];
+            } catch (e) {
+              console.error(`❌ [LOW] Timeout: ${imagePath}`);
+              return createResponse(null, 'image/svg+xml', 500);
+            }
+          } else if (requestedQuality === 'high') {
+            // ✅ 明确请求高清但未就绪：返回 503
+            console.log(`⏳ [HIGH] Not ready, returning 503: ${imagePath}`);
+            return createResponse(null, 'image/svg+xml', 503);
           }
         }
-      }
-      imageData = await storage[imageKey];
-      if (!imageData) {
-        return createResponse(null, 'image/svg+xml');
+
+        imageData = await storage[imageKey];
       }
 
+      if (!imageData) {
+        console.warn(`❌ No data: ${imagePath} (quality: ${quality})`);
+        return createResponse(null, 'image/svg+xml', 404);
+      }
+
+      // 返回图片
       const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
       const buffer = Buffer.from(base64Data, 'base64');
       const ext = imagePath.split('.').pop().toLowerCase();
@@ -207,11 +223,12 @@ export default (mainWindow) => {
       };
       const mimeType = mimeTypes[ext] || 'image/png';
 
-      return createResponse(buffer, mimeType);
+      console.log(`✅ [${quality.toUpperCase()}] Served: ${imagePath}`);
+      return createResponse(buffer, mimeType, 200);
 
     } catch (error) {
       console.error('Protocol handler error:', error);
-      return createResponse(null, 'image/svg+xml');
+      return createResponse(null, 'image/svg+xml', 500);
     }
   });
 

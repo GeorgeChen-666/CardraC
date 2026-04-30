@@ -6,6 +6,7 @@ import { PrintDrawer } from '../ToolBar/Print/PrintDrawer';
 import { decodeSvg } from '../../../../shared/functions';
 import { Ruler } from './Ruler';
 import { ImageContextMenu } from './ImageContextMenu';
+import { emptyImg } from '../../../../shared/constants';
 
 
 
@@ -201,35 +202,63 @@ export const PrintPreview = forwardRef((props, ref) => {
 
   const [svgContent, setSvgContent] = useState('');
 
+
   useEffect(() => {
     if (!isSvg || !svgRef.current) return;
 
     const svgElement = svgRef.current.querySelector('svg');
     if (!svgElement) return;
 
-    const images = svgElement.querySelectorAll('image[href^="cardrac://"]');
+    const images = svgElement.querySelectorAll('image[data-card-mark]');
 
     images.forEach((img) => {
-      const lowQualityUrl = img.getAttribute('href');
-      const testImg = new Image();
+      const currentUrl = img.getAttribute('href');
+      let isUnmounted = false;
+      let retryTimeoutId = null;
 
-      testImg.onload = () => {
-        const highQualityUrl = lowQualityUrl.replace('quality=low', 'quality=high');
-        setTimeout(() => {
-          img.setAttribute('href', highQualityUrl);
-        }, 100);
-      };
+      // ✅ 检查是否是 emptyImg
+      const isEmptyImage = currentUrl === emptyImg.path;
 
-      testImg.onerror = () => {
-        console.error('Failed to load image:', lowQualityUrl);
-      };
+      // ✅ 检查 URL 是否已经是高清
+      const isAlreadyHigh = currentUrl.includes('quality=high');
 
-      testImg.src = lowQualityUrl;
+      // ✅ 只有非空白图且不是高清的才加载高清
+      if (!isEmptyImage && !isAlreadyHigh) {
+        const loadHighQuality = (retryCount = 0) => {
+          if (isUnmounted) return;
 
+          const highQualityUrl = currentUrl.replace('quality=low', 'quality=high')
+            .replace('quality=auto', 'quality=high');
+
+          const testImg = new Image();
+
+          testImg.onload = () => {
+            if (!isUnmounted) {
+              img.setAttribute('href', highQualityUrl);
+              console.log(`✅ [HIGH] Loaded: ${img.dataset.cardMark}`);
+            }
+          };
+
+          testImg.onerror = () => {
+            if (!isUnmounted && retryCount < 10) {
+              console.log(`⏳ [HIGH] Retry ${retryCount + 1}/10: ${img.dataset.cardMark}`);
+              retryTimeoutId = setTimeout(() => loadHighQuality(retryCount + 1), 2000);
+            }
+          };
+
+          testImg.src = highQualityUrl;
+        };
+
+        // 延迟加载高清
+        retryTimeoutId = setTimeout(() => loadHighQuality(), 500);
+      } else if (isAlreadyHigh) {
+        console.log(`⚡ Already high quality: ${img.dataset.cardMark}`);
+      }
+
+      // ✅ 所有图片都添加事件监听器
       const handleContextMenuEvent = (e) => {
         e.preventDefault();
         e.stopPropagation();
-
         setContextMenu({
           top: e.clientY,
           left: e.clientX,
@@ -241,17 +270,24 @@ export const PrintPreview = forwardRef((props, ref) => {
         const mark = e.srcElement.dataset.cardMark;
         const allSameMarkDoms = document.querySelectorAll(`[data-card-mark="${mark}"]`);
         allSameMarkDoms.forEach(dom => dom.classList.toggle('mouseHover'));
-      }
+      };
+
       img.addEventListener('contextmenu', handleContextMenuEvent);
       img.addEventListener('mouseenter', handleHoverEvent);
       img.addEventListener('mouseleave', handleHoverEvent);
+
       return () => {
+        isUnmounted = true;
+        if (retryTimeoutId) {
+          clearTimeout(retryTimeoutId);
+        }
         img.removeEventListener('contextmenu', handleContextMenuEvent);
         img.removeEventListener('mouseenter', handleHoverEvent);
         img.removeEventListener('mouseleave', handleHoverEvent);
       };
     });
   }, [svgContent, isSvg, exportPreviewIndex]);
+
 
   useEffect(() => {
     if (ready) {

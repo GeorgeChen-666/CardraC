@@ -5,11 +5,10 @@ import {
   getPagedImageListByCardList,
   isNeedRotation,
 } from './utils';
-import { imageCacheType, layoutSides } from '../../../shared/constants';
+import { emptyImg, layoutSides } from '../../../shared/constants';
 import { getConfigStore, ImageStorage, PreviewStorage } from '../store';
 import { SVGAdapter } from './adapter/SVGAdapter';
 import { filePathToImageKey, fixFloat } from '../../../shared/functions';
-import { taskPool } from '../../core/TaskPool';
 
 export const colorCache = new Map();
 const imageAverageColorSet = new Map();
@@ -200,7 +199,7 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
     }
 
     //image
-    const { imageList, type, config: cardConfigList } = adjustBackPageImageOrder(pageData, Config);
+    const { imageList, pathList, type, config: cardConfigList } = adjustBackPageImageOrder(pageData, Config);
     const imageRectList = getCutRectangleList(Config, {maxWidth, maxHeight}, false, pageData.type === 'back');
     const cutRectList = getCutRectangleList(Config, {maxWidth, maxHeight}, true, pageData.type === 'back');
     for(let i = 0; i < imageList.length; i++) {
@@ -208,65 +207,66 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
       const cardConfig = cardConfigList[i];
       const rect = {...imageRectList[i]};
       const rectCut = {...cutRectList[i]};
-      if (image) {
-        let rotation = 0;
-        if(sides !== layoutSides.brochure && (cardConfig || type === 'back' && avoidDislocation)) {
-          let cardBleedX = Math.min(fixFloat(cardConfig?.bleed?.[`${type}BleedX`]), scaledMarginX / 2);
-          let cardBleedY = Math.min(fixFloat(cardConfig?.bleed?.[`${type}BleedY`]), scaledMarginY / 2);
+      const actualImage = image || emptyImg;
+      let rotation = 0;
+      if(sides !== layoutSides.brochure && (cardConfig || type === 'back' && avoidDislocation)) {
+        let cardBleedX = Math.min(fixFloat(cardConfig?.bleed?.[`${type}BleedX`]), scaledMarginX / 2);
+        let cardBleedY = Math.min(fixFloat(cardConfig?.bleed?.[`${type}BleedY`]), scaledMarginY / 2);
 
-          if(cardBleedX) {
-            rect.x = rectCut.x - cardBleedX;
-            rect.width = rectCut.width + cardBleedX * 2;
-          }
-          if(cardBleedY) {
-            rect.y = rectCut.y - cardBleedY;
-            rect.height = rectCut.height + cardBleedY * 2;
-          }
+        if(cardBleedX) {
+          rect.x = rectCut.x - cardBleedX;
+          rect.width = rectCut.width + cardBleedX * 2;
         }
-        if(isNeedRotation(Config, type === 'back')) {
-          rotation = 180;
-          rect.x = rect.x + rect.width;
-          rect.y = rect.y - rect.height;
+        if(cardBleedY) {
+          rect.y = rectCut.y - cardBleedY;
+          rect.height = rectCut.height + cardBleedY * 2;
         }
+      }
+      if(isNeedRotation(Config, type === 'back')) {
+        rotation = 180;
+        rect.x = rect.x + rect.width;
+        rect.y = rect.y - rect.height;
+      }
 
-        if(Config.marginFilling) {
-          try {
-            doc.setLineStyle({width:0, color: 0});
-            const averageColor = imageAverageColorSet.get(filePathToImageKey(image.path));
-            const xOffset = fixFloat(scaledMarginX / 2);
-            const yOffset = fixFloat(scaledMarginY / 2);
-            const rectFill = {
-              x: rectCut.x - xOffset,
-              y: rectCut.y - yOffset,
-              width: rectCut.width + xOffset * 2,
-              height: rectCut.height + yOffset * 2,
-            }
-            const checkX = rectFill.x < rect.x || rectFill.x + rectFill.width > rect.x + rect.width;
-            const checkY = rectFill.y < rect.y || rectFill.y + rectFill.height > rect.y + rect.height;
-            if(averageColor && (checkX || checkY)) {
-              doc.fillRect({
-                ...rectFill,
-                color: averageColor
-              })
-            }
-          } catch (e) {
-            console.log('addImageBG error', e);
-          }
-        }
-
+      if(Config.marginFilling) {
         try {
-          const base64String = await ImageStorage[filePathToImageKey(image.path)];
-          doc.drawImage({
-            data: { base64: base64String, ext: image.ext, path: image.path, id: image.id },
-            x: rect.x,
-            y: rect.y,
-            width: rect.width,
-            height: rect.height,
-            rotation
-          })
+          doc.setLineStyle({width:0, color: 0});
+          const averageColor = imageAverageColorSet.get(filePathToImageKey(actualImage.path));
+          const xOffset = fixFloat(scaledMarginX / 2);
+          const yOffset = fixFloat(scaledMarginY / 2);
+          const rectFill = {
+            x: rectCut.x - xOffset,
+            y: rectCut.y - yOffset,
+            width: rectCut.width + xOffset * 2,
+            height: rectCut.height + yOffset * 2,
+          }
+          const checkX = rectFill.x < rect.x || rectFill.x + rectFill.width > rect.x + rect.width;
+          const checkY = rectFill.y < rect.y || rectFill.y + rectFill.height > rect.y + rect.height;
+          if(averageColor && (checkX || checkY)) {
+            doc.fillRect({
+              ...rectFill,
+              color: averageColor
+            })
+          }
         } catch (e) {
-          console.log('addImage error', e);
+          console.log('addImageBG error', e);
         }
+      }
+
+      try {
+        const base64String = await ImageStorage[filePathToImageKey(actualImage.path)];
+        const cardMark = pathList?.[i] || `unknown.${type}`;
+        doc.drawImage({
+          data: { base64: base64String, ext: actualImage.ext, path: actualImage.path, id: actualImage.id },
+          x: rect.x,
+          y: rect.y,
+          width: rect.width,
+          height: rect.height,
+          rotation,
+          option: { cardMark }
+        })
+      } catch (e) {
+        console.log('addImage error', e);
       }
     }
 

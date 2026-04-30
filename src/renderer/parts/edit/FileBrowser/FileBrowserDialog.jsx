@@ -53,7 +53,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
     { id: 'documents', name: t('fileBrowser.quickAccess.documents'), icon: '📄', path: `${homeDir}/Documents` },
     { id: 'downloads', name: t('fileBrowser.quickAccess.downloads'), icon: '⬇️', path: `${homeDir}/Downloads` },
     { id: 'pictures', name: t('fileBrowser.quickAccess.pictures'), icon: '🖼️', path: `${homeDir}/Pictures` },
-  ], []);
+  ], [t]);
 
   const historyStack = useRef([]);
   const forwardStack = useRef([]);
@@ -89,7 +89,6 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
       setOpen(true);
     },
   }));
-  console.log('=======', open, options.isDoubleSides)
 // 2. 添加缺失的函数
   const getCurrentExtension = useCallback(() => {
     return options.filterExtensions;
@@ -317,7 +316,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
   const QuickAccessSidebar = ({ getCurrentExtension }) => (
       <div className="windows-sidebar">
         <div className="sidebar-section">
-          <div className="sidebar-title">快速访问</div>
+          <div className="sidebar-title">{t('fileBrowser.quickAccess.title')}</div>
           {quickAccessPaths.map(item => (
               <div
                   key={item.id}
@@ -419,6 +418,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
               {['S','M','L'].map(size => {
                 const modeName = size;
                 return (<IconButton
+                  key={'icon-size' + size}
                   disabled={viewMode === modeName}
                   size="small"
                   onClick={() => setViewMode(modeName)}
@@ -455,7 +455,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
             {/* 右侧文件列表 */}
             <div className="windows-file-area">
               {loading ? (
-                  <div className="file-list-loading">加载中...</div>
+                  <div className="file-list-loading">{t('fileBrowser.loading')}</div>
               ) : (
                 <div className={`${viewMode === 'list' ? 'file-list-container' : `grid-file-list size-${viewMode}`}`}>
                   {viewMode === 'list' && <FileList

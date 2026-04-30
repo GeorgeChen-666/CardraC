@@ -1,3 +1,4 @@
+const { resolve } = require('path');
 module.exports = {
   /**
    * This is the main entry point for your application, it's the first file
@@ -14,6 +15,14 @@ module.exports = {
   },
   externals: {
     'sharp': 'commonjs sharp',
+    'sqlite3': 'commonjs sqlite3'
+  },
+  cache: {
+    type: 'filesystem',
+    cacheDirectory: resolve(__dirname, '.webpack_cache'),
+    buildDependencies: {
+      config: [__filename],
+    },
   },
   optimization: {
     minimize: process.env.NODE_ENV === 'production',

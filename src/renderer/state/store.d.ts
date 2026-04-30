@@ -91,7 +91,7 @@ interface StoreState {
   exportFile: (params: { targetFileType: string; [key: string]: any }) => void;
   printPages: (params: { pageList: any[]; printConfig: any }) => void;
   reloadLocalImage: () => void;
-  getExportPageCount: (targetFileType: string) => void;
+  getExportPageCount: () => void;
   getExportPreview: (pageIndex: number, isSilence?: boolean) => Promise<any>;
 
   // Card methods

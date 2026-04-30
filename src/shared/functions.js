@@ -51,9 +51,37 @@ export const decodeSvg = (data) => {
 
 export const isDev = process.env.NODE_ENV === 'development';
 
-export const homeDir = process.env.HOME;
+const getSystemPath = (pathType) => {
+  // 渲染进程
+  if (typeof window !== 'undefined' && window.systemPaths?.[pathType]) {
+    return window.systemPaths[pathType];
+  }
 
-export const getAppDataPath = () => process.env.APPDATA;
+  // 主进程
+  if (typeof process !== 'undefined' && process.env) {
+    const homeDir = process.env.HOME || process.env.USERPROFILE || '/';
+
+    switch (pathType) {
+      case 'home':
+        return homeDir;
+
+      case 'appData':
+        if (process.platform === 'win32') {
+          return process.env.APPDATA || `${homeDir}/AppData/Roaming`;
+        } else if (process.platform === 'darwin') {
+          return `${homeDir}/Library/Application Support`;
+        } else {
+          return `${homeDir}/.config`;
+        }
+    }
+  }
+
+  return '/';
+};
+
+export const homeDir = getSystemPath('home');
+export const getAppDataPath = () => getSystemPath('appData');
+
 
 /**
  * 浏览器兼容的路径规范化

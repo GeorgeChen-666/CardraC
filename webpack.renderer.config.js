@@ -1,5 +1,6 @@
 const rules = require('./webpack.rules');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+const { resolve } = require('path');
 
 module.exports = {
   // Put your normal webpack config below here
@@ -45,6 +46,13 @@ module.exports = {
       ],
     }),
   ],
+  cache: {
+    type: 'filesystem',
+    cacheDirectory: resolve(__dirname, '.webpack_cache'),
+    buildDependencies: {
+      config: [__filename],
+    },
+  },
   optimization: {
     minimize: process.env.NODE_ENV === 'production',
     usedExports: true,

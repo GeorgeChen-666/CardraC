@@ -181,69 +181,88 @@ function centerRects(rects, pageWidth, pageHeight, offsetX = 0, offsetY = 0) {
 }
 
 export const getPagedImageListByCardList = (state, Config) => {
-  if (!state.CardList || state.CardList.length === 0) {
-    const { sides, rows, columns } = Config;
-    const isFoldInHalf = sides === layoutSides.foldInHalf;
-    const isBrochure = sides === layoutSides.brochure;
+  const { sides, rows, columns } = Config;
+  const isFoldInHalf = sides === layoutSides.foldInHalf;
+  const isBrochure = sides === layoutSides.brochure;
 
-    const pagedImageList = [];
+  let pagedImageList = [];
 
-    if (isBrochure) {
-      const slotCount = rows * columns * 2;
-      pagedImageList.push({
-        imageList: new Array(slotCount).fill(emptyImg),
-        config: new Array(slotCount).fill(undefined),
-        type: 'face',
-      });
-      pagedImageList.push({
-        imageList: new Array(slotCount).fill(emptyImg),
-        config: new Array(slotCount).fill(undefined),
-        type: 'back',
-      });
-    } else {
-      const slotCount = rows * columns / (isFoldInHalf ? 2 : 1);
-      pagedImageList.push({
-        imageList: new Array(slotCount).fill(emptyImg),
-        config: new Array(slotCount).fill(undefined),
-        type: 'face',
-      });
-
-      if ([layoutSides.doubleSides, layoutSides.foldInHalf].includes(sides)) {
-        pagedImageList.push({
-          imageList: new Array(slotCount).fill(emptyImg),
-          config: new Array(slotCount).fill(undefined),
-          type: 'back',
-        });
-      }
-    }
-
-    return pagedImageList;
+  if ([layoutSides.oneSide, layoutSides.doubleSides, layoutSides.foldInHalf].includes(sides)) {
+    pagedImageList = getNormalPagedImageListByCardList(state, Config);
+  } else if (sides === layoutSides.brochure) {
+    pagedImageList = getBrochurePagedImageListByCardList(state, Config);
   }
-  if ([layoutSides.oneSide, layoutSides.doubleSides, layoutSides.foldInHalf].includes(Config.sides)) {
-    return getNormalPagedImageListByCardList(state, Config);
-  } else if (Config.sides === layoutSides.brochure) {
-    return getBrochurePagedImageListByCardList(state, Config);
+
+  const slotCount = isBrochure
+    ? rows * columns * 2
+    : rows * columns / (isFoldInHalf ? 2 : 1);
+
+  const startEmptyIndex = state.CardList?.length || 0;
+
+  pagedImageList.push({
+    imageList: new Array(slotCount).fill(emptyImg),
+    pathList: new Array(slotCount).fill(null).map((_, index) => `${startEmptyIndex + index}.face`),
+    config: new Array(slotCount).fill(undefined),
+    type: 'face',
+  });
+
+  if ([layoutSides.doubleSides, layoutSides.foldInHalf, layoutSides.brochure].includes(sides)) {
+    pagedImageList.push({
+      imageList: new Array(slotCount).fill(emptyImg),
+      pathList: new Array(slotCount).fill(null).map((_, index) => `${startEmptyIndex + index}.back`),
+      config: new Array(slotCount).fill(undefined),
+      type: 'back',
+    });
   }
+
+  return pagedImageList;
 };
+
 
 const getNormalPagedImageListByCardList = ({ CardList, globalBackground }, Config) => {
   const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
-  let repeatCardList = CardList.reduce((arr, cv) => arr.concat(new Array(cv.repeat).fill(cv)), []);
+
+  // 展开重复的卡片
+  let repeatCardList = [];
+  CardList.forEach((card, originalIndex) => {
+    for (let i = 0; i < card.repeat; i++) {
+      repeatCardList.push({
+        ...card,
+        _originalIndex: originalIndex,
+      });
+    }
+  });
 
   const pagedImageList = [];
   const sides = Config.sides;
   const size = Config.rows * Config.columns / (isFoldInHalf ? 2 : 1);
 
+  // ✅ 计算总位置数并填充空白位
+  const totalSlots = Math.ceil(repeatCardList.length / size) * size;
+  while (repeatCardList.length < totalSlots) {
+    repeatCardList.push({
+      face: null,
+      back: null,
+      config: undefined,
+      _originalIndex: repeatCardList.length,  // ✅ 使用当前长度作为索引
+    });
+  }
+
+  // 分页
   for (let i = 0; i < repeatCardList.length; i += size) {
     const result = repeatCardList.slice(i, i + size);
+
     pagedImageList.push({
       imageList: result.map(c => c.face?.mtime ? {...c.face, id: `${c.id}.face`} : null),
+      pathList: result.map(c => `${c._originalIndex}.face`),
       config: result.map(c => c?.config),
       type: 'face',
     });
+
     if ([layoutSides.doubleSides, layoutSides.foldInHalf].includes(sides)) {
       pagedImageList.push({
         imageList: result.map(c => c.back?.mtime ? {...c.back, id: `${c.id}.back`} : globalBackground),
+        pathList: result.map(c => `${c._originalIndex}.back`),
         config: result.map(c => c?.config),
         type: 'back',
       });
@@ -256,21 +275,31 @@ const getNormalPagedImageListByCardList = ({ CardList, globalBackground }, Confi
 const getBrochurePagedImageListByCardList = (state, Config) => {
   const { CardList } = state;
   const { brochureRepeatPerPage } = Config;
-  let repeatCardList = CardList;
+
+  let repeatCardList = CardList.map((card, originalIndex) => ({
+    ...card,
+    _originalIndex: originalIndex,
+  }));
 
   const pagedImageList = [];
   const size = Config.rows * Config.columns * 2;
 
   const repeatEmpty = (4 - repeatCardList.length % 4) % 4;
-  const emptyCard = {
-    face: emptyImg,
-    config: undefined
-  };
-  repeatCardList = repeatCardList.concat(new Array(repeatEmpty).fill(emptyCard));
+  const startEmptyIndex = repeatCardList.length;
+
+  for (let i = 0; i < repeatEmpty; i++) {
+    repeatCardList.push({
+      face: emptyImg,
+      config: undefined,
+      _originalIndex: startEmptyIndex + i,
+    });
+  }
+
   const tempPairList = [];
   for (let i = 0; i < repeatCardList.length / 2; i++) {
     tempPairList.push([repeatCardList[i * 2], repeatCardList[i * 2 + 1]]);
   }
+
   const tempPairList2 = [];
   for (let i = 0; i < tempPairList.length / 2; i++) {
     tempPairList2.push(tempPairList[tempPairList.length - i - 1].reverse());
@@ -281,13 +310,17 @@ const getBrochurePagedImageListByCardList = (state, Config) => {
     for (let i = 0; i < tempPairList2.length; i += 2) {
       const result = tempPairList2.slice(i, i + 2);
       const repeatResult = Array(size / 2).fill(result).flat(1);
+
       pagedImageList.push({
         imageList: repeatResult.map(c => c[0]?.face?.mtime ? {...c[0].face, id: `${c[0].id}.face`} : null),
+        pathList: repeatResult.map(c => `${c[0]._originalIndex}.face`),
         config: repeatResult.map(c => c?.config),
         type: 'face',
       });
+
       pagedImageList.push({
         imageList: repeatResult.map(c => c[1]?.face?.mtime ? {...c[1].face, id: `${c[1].id}.face`} : null),
+        pathList: repeatResult.map(c => `${c[1]._originalIndex}.back`),
         config: repeatResult.map(c => c?.config),
         type: 'back',
       });
@@ -295,18 +328,23 @@ const getBrochurePagedImageListByCardList = (state, Config) => {
   } else {
     for (let i = 0; i < tempPairList2.length; i += size) {
       const result = tempPairList2.slice(i, i + size);
+
       pagedImageList.push({
         imageList: result.map(c => c[0]?.face?.mtime ? {...c[0].face, id: `${c[0].id}.face`} : null),
+        pathList: result.map(c => `${c[0]._originalIndex}.face`),
         config: result.map(c => c?.config),
         type: 'face',
       });
+
       pagedImageList.push({
         imageList: result.map(c => c[1]?.face?.mtime ? {...c[1].face, id: `${c[1].id}.face`} : null),
+        pathList: result.map(c => `${c[1]._originalIndex}.back`),
         config: result.map(c => c?.config),
         type: 'back',
       });
     }
   }
+
   return pagedImageList;
 };
 
@@ -321,26 +359,34 @@ export const adjustBackPageImageOrder = (pageData, Config) => {
       ...pageData,
       config: pageData.config || [],
       imageList: pageData.imageList || [],
+      pathList: pageData.pathList || [],  // ✅ 添加 pathList
     };
   }
 
-  const { imageList, config = [] } = pageData;
-  //计算实际需要的格子数量
+  const { imageList, config = [], pathList = [] } = pageData;  // ✅ 解构 pathList
+
+  // 计算实际需要的格子数量
   const totalSlots = isBrochure
-    ? imageList.length  // 小册子：使用实际图片数量
+    ? imageList.length
     : isFoldInHalf
       ? (foldLineType === '0' ? Math.floor(rows / 2) : rows) * (foldLineType === '1' ? Math.floor(columns / 2) : columns)
       : rows * columns;
-  //填充到格子数
+
+  // 填充到格子数
   const paddedImageList = [...imageList];
   const paddedConfig = [...config];
+  const paddedPathList = [...pathList];  // ✅ 填充 pathList
+
   while (paddedImageList.length < totalSlots) {
     paddedImageList.push(undefined);
     paddedConfig.push(undefined);
+    paddedPathList.push(undefined);  // ✅ 同步填充
   }
-  //用填充后的初始化
+
+  // 用填充后的初始化
   const newImageList = new Array(totalSlots).fill(undefined);
   const newConfigList = new Array(totalSlots).fill(undefined);
+  const newPathList = new Array(totalSlots).fill(undefined);  // ✅ 初始化 pathList
 
   // 通用翻转函数
   const applyFlip = (effectiveRows, effectiveColumns, flipType) => {
@@ -351,16 +397,16 @@ export const adjustBackPageImageOrder = (pageData, Config) => {
         let newY = y;
 
         switch (flipType) {
-          case 'verticalInColumn': // 每列内上下翻转
+          case 'verticalInColumn':
             newY = (effectiveRows - 1) - y;
             break;
-          case 'horizontalInRow': // 每行内左右翻转
+          case 'horizontalInRow':
             newX = (effectiveColumns - 1) - x;
             break;
-          case 'verticalOverall': // 整体上下翻转
+          case 'verticalOverall':
             newY = rows - y - 1;
             break;
-          case 'horizontalOverall': // 整体左右翻转
+          case 'horizontalOverall':
             newX = effectiveColumns - x - 1;
             break;
         }
@@ -369,6 +415,7 @@ export const adjustBackPageImageOrder = (pageData, Config) => {
         if (newIndex < totalSlots) {
           newImageList[newIndex] = paddedImageList[originalIndex];
           newConfigList[newIndex] = paddedConfig[originalIndex];
+          newPathList[newIndex] = paddedPathList[originalIndex];  // ✅ 同步调整
         }
       }
     }
@@ -376,23 +423,23 @@ export const adjustBackPageImageOrder = (pageData, Config) => {
 
   // 小册子专用翻转函数
   const applyBrochureFlip = (flipType) => {
-    const pairSize = 2; // 每列2个元素
-    const totalPairs = imageList.length / pairSize; // 总对数
-    const pairsPerRow = columns; // 每行的列数（对数）
+    const pairSize = 2;
+    const totalPairs = imageList.length / pairSize;
+    const pairsPerRow = columns;
     const totalRows = rows;
 
     // 清空数组
     for (let i = 0; i < imageList.length; i++) {
       newImageList[i] = undefined;
       newConfigList[i] = undefined;
+      newPathList[i] = undefined;  // ✅ 清空 pathList
     }
 
     if (flipType === 'reversePairsAndColumns') {
-      // 长边装订：行序不变，列序颠倒，每列内的对也颠倒
       for (let row = 0; row < totalRows; row++) {
         for (let col = 0; col < pairsPerRow; col++) {
           const oldCol = col;
-          const newCol = pairsPerRow - 1 - col; // 列序颠倒
+          const newCol = pairsPerRow - 1 - col;
 
           const oldPairStart = (row * pairsPerRow + oldCol) * pairSize;
           const newPairStart = (row * pairsPerRow + newCol) * pairSize;
@@ -402,12 +449,13 @@ export const adjustBackPageImageOrder = (pageData, Config) => {
           newImageList[newPairStart + 1] = imageList[oldPairStart];
           newConfigList[newPairStart] = config[oldPairStart + 1];
           newConfigList[newPairStart + 1] = config[oldPairStart];
+          newPathList[newPairStart] = pathList[oldPairStart + 1];      // ✅ 同步调整
+          newPathList[newPairStart + 1] = pathList[oldPairStart];      // ✅ 同步调整
         }
       }
     } else if (flipType === 'reverseRows') {
-      // 短边装订：行序颠倒，列序不变，对内不变
       for (let row = 0; row < totalRows; row++) {
-        const newRow = totalRows - 1 - row; // 行序颠倒
+        const newRow = totalRows - 1 - row;
 
         for (let col = 0; col < pairsPerRow; col++) {
           const oldPairStart = (row * pairsPerRow + col) * pairSize;
@@ -418,13 +466,14 @@ export const adjustBackPageImageOrder = (pageData, Config) => {
           newImageList[newPairStart + 1] = imageList[oldPairStart + 1];
           newConfigList[newPairStart] = config[oldPairStart];
           newConfigList[newPairStart + 1] = config[oldPairStart + 1];
+          newPathList[newPairStart] = pathList[oldPairStart];          // ✅ 同步调整
+          newPathList[newPairStart + 1] = pathList[oldPairStart + 1];  // ✅ 同步调整
         }
       }
     }
   };
 
   if (isFoldInHalf) {
-    // 折叠模式：根据折叠方向调整行列数
     let effectiveRows = rows;
     let effectiveColumns = columns;
 
@@ -455,10 +504,10 @@ export const adjustBackPageImageOrder = (pageData, Config) => {
       for (let i = 0; i < totalSlots; i++) {
         newImageList[i] = paddedImageList[i];
         newConfigList[i] = paddedConfig[i];
+        newPathList[i] = paddedPathList[i];  // ✅ 同步复制
       }
     }
   } else if (flipWay !== 0) {
-    // 普通双面打印的翻转逻辑
     const effectiveColumns = columns;
     if (!landscape) {
       if (flipWay === 1) {
@@ -477,6 +526,7 @@ export const adjustBackPageImageOrder = (pageData, Config) => {
     for (let i = 0; i < totalSlots; i++) {
       newImageList[i] = paddedImageList[i];
       newConfigList[i] = paddedConfig[i];
+      newPathList[i] = paddedPathList[i];  // ✅ 同步复制
     }
   }
 
@@ -484,6 +534,7 @@ export const adjustBackPageImageOrder = (pageData, Config) => {
     ...pageData,
     config: newConfigList,
     imageList: newImageList,
+    pathList: newPathList,  // ✅ 返回调整后的 pathList
   };
 };
 

@@ -226,9 +226,9 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       }
     });
   },
-  getExportPageCount: (targetFileType) => {
+  getExportPageCount: () => {
     get().loading(async () => {
-      const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList, targetFileType };
+      const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList };
       const count = await getExportPageCount(param);
       get().mergeGlobal({exportPageCount: count})
     });
@@ -295,6 +295,28 @@ export const useGlobalStore = create(middlewares((set, get) => ({
       ...state,
       CardList: state.CardList.filter(c => !ids.includes(c.id))
     })),
+  cardEditByIndex: (index, side, imageData) =>
+    get().setWithHistory(state => {
+      const newCardList = [...state.CardList];
+      // ✅ 如果索引超出当前 CardList 长度,自动补全空卡片
+      while (newCardList.length <= index) {
+        newCardList.push({
+          id: crypto.randomUUID(),
+          face: null,
+          back: null,
+          repeat: 1,
+          selected: false,
+        });
+      }
+      // ✅ 更新目标位置的图片
+      const targetCard = newCardList[index];
+      newCardList[index] = {
+        ...targetCard,
+        [side]: imageData,
+      };
+      return { ...state, CardList: newCardList };
+    }),
+
   cardSelect: (selectedId) => {
     set(state => {
       const selection = state.CardList.filter(c => c.selected);

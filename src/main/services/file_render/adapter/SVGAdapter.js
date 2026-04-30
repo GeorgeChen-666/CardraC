@@ -84,16 +84,20 @@ export class SVGAdapter extends IAdapter {
     this.currentLineColor = color;
   }
 
-  drawImage({ data, x, y, width, height, rotation = 0 }) {
-    const imagePathKey = encodeURIComponent(filePathToImageKey(data.path));
-
+  drawImage({ data, x, y, width, height, rotation = 0, option= { cardMark: data.id } }) {
     let imageSource;
-    if (this.useAppLinks) {
-      const quality = this.imageQuality === 'high' ? 'high' : 'low';
-      imageSource = `cardrac://image/${imagePathKey}?quality=${quality}`;
-    } else {
-      const storage = this.imageQuality === 'low' ? OverviewStorage : ImageStorage;
-      imageSource = storage[imagePathKey] || '';
+    if (data.path && data.path.startsWith('data:image/')) {
+      imageSource = data.path;
+    }
+    else {
+      const imagePathKey = encodeURIComponent(filePathToImageKey(data.path));
+      if (this.useAppLinks) {
+        const quality = this.imageQuality === 'high' ? 'high' : 'low';
+        imageSource = `cardrac://image/${imagePathKey}?quality=${quality}`;
+      } else {
+        const storage = this.imageQuality === 'low' ? OverviewStorage : ImageStorage;
+        imageSource = storage[imagePathKey] || '';
+      }
     }
 
     let adjustedX = x;
@@ -113,7 +117,8 @@ export class SVGAdapter extends IAdapter {
       width,
       height,
       rotation,
-      path: data.path
+      path: data.path,
+      cardMark: option.cardMark,
     });
   }
 
@@ -156,7 +161,6 @@ export class SVGAdapter extends IAdapter {
     });
   }
 
-  //修改：按绘制顺序渲染，不分组
   generatePageSVG(page) {
     const svg = `<svg 
     width="${this.pageWidth * displayScale}" 
@@ -180,7 +184,7 @@ export class SVGAdapter extends IAdapter {
 
         return `<image 
     href="${el.href}"
-    data-card-mark="${el.id}"
+    data-card-mark="${el.cardMark}"
     x="${el.x * s}" 
     y="${el.y * s}" 
     width="${el.width * s}" 

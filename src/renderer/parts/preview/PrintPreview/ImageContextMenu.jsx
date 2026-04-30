@@ -9,17 +9,19 @@ import ClearIcon from '@mui/icons-material/Clear';
 import ImageIcon from '@mui/icons-material/Image';
 import { clearPreviewCache, openImage } from '../../../functions';
 import { useGlobalStore } from '../../../state/store';
+import { emptyImg } from '../../../../shared/constants';
 
 export const ImageContextMenu = ({ anchorPosition, onClose, imageElement, setFrame }) => {
   const open = Boolean(anchorPosition);
   const {
-    cardEditById, CardList, Global
+    getExportPageCount, cardEditByIndex, CardList, Global
   } = useGlobalStore.getState();
   const handleCopy = async () => {
     if (imageElement) {
-      const [id, path] = imageElement.dataset.cardMark.split('.');
-      const oldImageData = CardList.find(d => d.id === id);
-      await navigator.clipboard.writeText(JSON.stringify(oldImageData[path]));
+      const [index, side] = imageElement.dataset.cardMark.split('.')
+        .map((v, i) => i ? v : +v);
+      const oldImageData = CardList[index];
+      await navigator.clipboard.writeText(JSON.stringify(oldImageData?.[side] || emptyImg));
     }
     onClose();
   };
@@ -28,13 +30,14 @@ export const ImageContextMenu = ({ anchorPosition, onClose, imageElement, setFra
     if (imageElement) {
       const text = await navigator.clipboard.readText();
       if(text) {
-        const [id, path] = imageElement.dataset.cardMark.split('.');
+        const [index, side] = imageElement.dataset.cardMark.split('.')
+          .map((v, i) => i ? v : +v);
         try {
           const imageData = JSON.parse(text);
           if(imageData) {
-            const oldImageData = CardList.find(d => d.id === id);
-            cardEditById({ ...oldImageData, [path]: imageData });
+            cardEditByIndex(index, side, imageData);
             await clearPreviewCache();
+            await getExportPageCount();
             setFrame(ov => ov + 1)
           }
         }
@@ -48,9 +51,9 @@ export const ImageContextMenu = ({ anchorPosition, onClose, imageElement, setFra
 
   const handleClear = async () => {
     if (imageElement) {
-      const [id, path] = imageElement.dataset.cardMark.split('.');
-      const oldImageData = CardList.find(d => d.id === id);
-      cardEditById({ ...oldImageData, [path]: null });
+      const [index, side] = imageElement.dataset.cardMark.split('.')
+        .map((v, i) => i ? v : +v);
+      cardEditByIndex(index, side, null);
       await clearPreviewCache();
       setFrame(ov => ov + 1)
     }
@@ -59,13 +62,14 @@ export const ImageContextMenu = ({ anchorPosition, onClose, imageElement, setFra
 
   const handleReplace = async () => {
     if (imageElement) {
-      const [id, path] = imageElement.dataset.cardMark.split('.')
+      const [index, side] = imageElement.dataset.cardMark.split('.')
+        .map((v, i) => i ? v : +v);
       const [ cardData ] = await openImage(false);
       const imageData = cardData?.face;
       if(imageData) {
-        const oldImageData = CardList.find(d => d.id === id);
-        cardEditById({ ...oldImageData, [path]: imageData });
+        cardEditByIndex(index, side, imageData);
         await clearPreviewCache();
+        await getExportPageCount();
         setFrame(ov => ov + 1)
       }
     }

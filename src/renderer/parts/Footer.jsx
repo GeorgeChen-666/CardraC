@@ -12,7 +12,7 @@ export const Footer = () => {
   const fileLength = useGlobalStore(state => state.CardList.length);
   const cardLength = useGlobalStore(state => _.sum(state.CardList.map(c => parseInt(c.repeat) || 1)));
 
-  const { mergeGlobal } = useGlobalStore.getState();
+  const { mergeGlobal, getExportPageCount } = useGlobalStore.getState();
   const { Global } = useGlobalStore.selectors;
   const currentView = Global.currentView();
 
@@ -30,6 +30,7 @@ export const Footer = () => {
           options={options}
           value={currentView || 'edit'}
           onChange={async (view) => {
+            await getExportPageCount();
             await clearPreviewCache();
             mergeGlobal({currentView: view})
           }}

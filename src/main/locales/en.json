@@ -153,6 +153,7 @@
     "guideStep3_button1": "Apply"
   },
   "fileBrowser": {
+    "loading": "loading...",
     "defaultDialogTitle": "Select File",
     "dialogIconView": "Icon View",
     "dialogListView": "List View",
@@ -163,6 +164,7 @@
     "fileListTitle3": "Date Modified",
     "expandHiddenItems": "Show {{num}} hidden items",
     "quickAccess": {
+      "title": "Quick Access",
       "desktop": "Desktop",
       "documents": "Documents",
       "downloads": "Downloads",
@@ -181,6 +183,11 @@
     }
   },
   "footer": {
+    "backendJobs": {
+      "title": "Background Tasks ({{num}})",
+      "multipleTasks": "Multiple background tasks...",
+      "load-high-quality": "Loading High Quality Images"
+    },
     "files": "Files",
     "images": "Images",
     "editView": "Edit View",

@@ -153,6 +153,7 @@
     "guideStep3_button1": "应用结果"
   },
   "fileBrowser": {
+    "loading": "加载中。。。",
     "defaultDialogTitle": "选择文件",
     "dialogIconView": "图标视图",
     "dialogListView": "列表视图",
@@ -163,6 +164,7 @@
     "fileListTitle3": "修改日期",
     "expandHiddenItems": "显示 {{num}} 个隐藏项",
     "quickAccess": {
+      "title": "快速访问",
       "desktop": "桌面",
       "documents": "文档",
       "downloads": "下载",
@@ -181,6 +183,11 @@
     }
   },
   "footer": {
+    "backendJobs": {
+      "title": "后台任务 ({{num}})",
+      "multipleTasks": "多个后台任务...",
+      "load-high-quality": "加载高质量图片"
+    },
     "files": "文件数",
     "images": "卡牌数",
     "editView": "编辑视图",

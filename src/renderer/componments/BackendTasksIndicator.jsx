@@ -6,7 +6,6 @@ import {
   LinearProgress,
   Typography,
   Stack,
-  Chip,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -20,9 +19,8 @@ export const BackendTasksIndicator = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const backendJobs = useGlobalStore(state => state.Global.backendJobs || {});
 
-  // ✅ 获取可见的任务
   const visibleJobs = Object.entries(backendJobs)
-    .filter(([_, job]) => job.visible)
+    .filter(([_, job]) => job.visible && job.progress > 0 && job.progress < 1)
     .map(([key, job]) => ({ key, ...job }));
 
   const primaryJob = visibleJobs[0];
@@ -30,11 +28,14 @@ export const BackendTasksIndicator = () => {
 
   if (!primaryJob) return null;
 
+  const averageProgress = hasMultipleTasks
+    ? visibleJobs.reduce((sum, job) => sum + (job.progress || 0), 0) / visibleJobs.length
+    : primaryJob.progress;
+
   const open = Boolean(anchorEl);
 
   return (
     <>
-      {/* ✅ 默认显示的进度条 */}
       <Box
         onClick={(e) => hasMultipleTasks && setAnchorEl(e.currentTarget)}
         sx={{
@@ -50,49 +51,58 @@ export const BackendTasksIndicator = () => {
           position: 'relative',
         }}
       >
-        <Typography variant="caption" noWrap sx={{ flex: 1, fontSize: '0.75rem' }}>
-          {t(`backendJobs.${primaryJob.key}`, primaryJob.key)}
-        </Typography>
+        {open ? (
+          <Typography variant="caption" sx={{ flex: 1, fontSize: '0.75rem' }}>
+            {t('footer.backendJobs.title', { num: visibleJobs.length })}
+          </Typography>
+        ) : (
+          <>
+            <Typography variant="caption" noWrap sx={{ flex: 1, fontSize: '0.75rem' }}>
+              {hasMultipleTasks
+                ? t('footer.backendJobs.multipleTasks', '多个后台任务...')
+                : t(`footer.backendJobs.${primaryJob.key}`, primaryJob.key)
+              }
+            </Typography>
 
-        <Typography variant="caption" sx={{ fontSize: '0.7rem', opacity: 0.7 }}>
-          {(primaryJob.progress * 100).toFixed(0)}%
-        </Typography>
+            <Typography variant="caption" sx={{ fontSize: '0.7rem', opacity: 0.7 }}>
+              {(averageProgress * 100).toFixed(0)}%
+            </Typography>
 
-        {hasMultipleTasks && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <Chip label={visibleJobs.length} size="small" sx={{ height: 16, fontSize: '0.65rem' }} />
-            {open ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-          </Box>
+            <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2 }}>
+              <LinearProgress
+                variant="determinate"
+                value={averageProgress * 100}
+                sx={{ height: 2 }}
+              />
+            </Box>
+          </>
         )}
-
-        <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2 }}>
-          <LinearProgress
-            variant="determinate"
-            value={primaryJob.progress * 100}
-            sx={{ height: 2 }}
-          />
-        </Box>
+        {open && (
+          <ExpandLessIcon fontSize="small" />
+        )}
       </Box>
 
-      {/* ✅ 下拉面板 */}
       <Popover
         open={open}
         anchorEl={anchorEl}
         onClose={() => setAnchorEl(null)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        anchorOrigin={{
+          vertical: 'top',
+          horizontal: 'center'
+        }}
+        transformOrigin={{
+          vertical: 'bottom',
+          horizontal: 'center'
+        }}
         PaperProps={{ sx: { width: 400, maxHeight: 300 } }}
       >
         <Box sx={{ p: 2 }}>
-          <Typography variant="subtitle2" mb={2}>
-            {t('backendJobs.title', 'Background Tasks')} ({visibleJobs.length})
-          </Typography>
           <Stack spacing={2}>
             {visibleJobs.map((job) => (
               <Box key={job.key}>
                 <Stack direction="row" justifyContent="space-between" mb={0.5}>
                   <Typography variant="body2" noWrap>
-                    {t(`backendJobs.${job.key}`, job.key)}
+                    {t(`footer.backendJobs.${job.key}`, job.key)}
                   </Typography>
                   <Typography variant="caption">
                     {(job.progress * 100).toFixed(1)}%
