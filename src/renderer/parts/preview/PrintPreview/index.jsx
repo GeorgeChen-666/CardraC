@@ -100,13 +100,9 @@ export const PrintPreview = forwardRef((props, ref) => {
 
     if (e.shiftKey) {
       if (e.deltaY < 0) {
-        if (exportPreviewIndex > 1) {
-          handlePageChange(exportPreviewIndex - 1);
-        }
+        handlePageChange(exportPreviewIndex - 1);
       } else if (e.deltaY > 0) {
-        if (exportPreviewIndex < exportPageCount) {
-          handlePageChange(exportPreviewIndex + 1);
-        }
+        handlePageChange(exportPreviewIndex + 1);
       }
       return;
     }
@@ -292,26 +288,24 @@ export const PrintPreview = forwardRef((props, ref) => {
   useEffect(() => {
     if (ready) {
       (async () => {
-        if (exportPageCount > 0) {
-          const data = await getExportPreview(exportPreviewIndex);
-          setImageData(data);
+        const data = await getExportPreview(exportPreviewIndex);
+        setImageData(data);
 
-          if (data && data.includes('svg')) {
-            const decoded = decodeSvg(data)
-            if (decoded) {
-              const widthMatch = decoded.match(/width="(\d+)"/);
-              const heightMatch = decoded.match(/height="(\d+)"/);
-              if (widthMatch && heightMatch) {
-                setImageSize({
-                  width: parseInt(widthMatch[1]),
-                  height: parseInt(heightMatch[1])
-                });
-              }
+        if (data && data.includes('svg')) {
+          const decoded = decodeSvg(data)
+          if (decoded) {
+            const widthMatch = decoded.match(/width="(\d+)"/);
+            const heightMatch = decoded.match(/height="(\d+)"/);
+            if (widthMatch && heightMatch) {
+              setImageSize({
+                width: parseInt(widthMatch[1]),
+                height: parseInt(heightMatch[1])
+              });
             }
-            setSvgContent(decoded);
-          } else {
-            setSvgContent('');
           }
+          setSvgContent(decoded);
+        } else {
+          setSvgContent('');
         }
       })();
     }

@@ -12,7 +12,7 @@ import {
 } from '../../services/store';
 import { colorCache, exportFile, prerenderPage } from '../../services/file_render';
 import { getPagedImageListByCardList } from '../../services/file_render/utils';
-import { expandPath, filePathToImageKey, fixPath, waitCondition } from '../../../shared/functions';
+import { expandPath, filePathToImageKey, fixPath, waitCondition, waitTime } from '../../../shared/functions';
 import { refreshCardStorage } from '../functions';
 
 const taskFn = (storage) => {
@@ -134,6 +134,9 @@ export default (mainWindow) => {
 
       let imagePath = decodeURIComponent(pathname.replace('/image/', ''));
       if (imagePath.startsWith('/')) imagePath = imagePath.substring(1);
+      if(requestedQuality === 'high') {
+        console.log(imagePath);
+      }
       const imageKey = filePathToImageKey(imagePath);
 
       // ✅ 智能选择质量
@@ -173,16 +176,6 @@ export default (mainWindow) => {
       if (!imageData) {
         let task = taskPool.getTaskByTagAndUniqueKey(taskTag, expandPath(imagePath));
 
-        // 如果任务不存在，创建任务
-        if (!task) {
-          pathToImageData(imagePath, {
-            skipImageStorage: quality === 'low',
-            skipOverviewStorage: quality === 'high'
-          });
-          await new Promise(resolve => setTimeout(resolve, 100));
-          task = taskPool.getTaskByTagAndUniqueKey(taskTag, expandPath(imagePath));
-        }
-
         if (task && (task.status === 'pending' || task.status === 'running')) {
           if (quality === 'low') {
             // ✅ 低清：阻塞等待
@@ -204,7 +197,7 @@ export default (mainWindow) => {
             return createResponse(null, 'image/svg+xml', 503);
           }
         }
-
+        await waitTime(500);
         imageData = await storage[imageKey];
       }
 

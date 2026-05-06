@@ -62,11 +62,32 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
     pagesToRender = Array.from(expandedPages).sort((a, b) => a - b);
   }
 
-  const pagedImageList = getPagedImageListByCardList(state, Config);
+  let pagedImageList = getPagedImageListByCardList(state, Config);
+
+  const createEmptyPage = (index) => {
+    const isBrochure = sides === layoutSides.brochure;
+    const slotCount = isBrochure
+      ? rows * columns * 2
+      : rows * columns / (isFoldInHalf ? 2 : 1);
+
+    const isFace = index % 2 === 0;
+    const startEmptyIndex = state.CardList?.length || 0;
+
+    return {
+      imageList: new Array(slotCount).fill(emptyImg),
+      pathList: new Array(slotCount).fill(null).map((_, i) => `${startEmptyIndex}.${isFace ? 'face' : 'back'}`),
+      config: new Array(slotCount).fill(undefined),
+      type: isFace ? 'face' : 'back',
+    };
+  };
+  const getPage = (index) => {
+    return pagedImageList[index] || createEmptyPage(index);
+  };
 
   const totalPageCount = pagedImageList.filter(p => p.type === 'face').length;
-  for (const pageData of pagedImageList) {
-    const index = pagedImageList.indexOf(pageData)
+  const indicesToRender = pagesToRender || Array.from({ length: pagedImageList.length }, (_, i) => i);
+  for (const index of indicesToRender) {
+    const pageData = getPage(index);
 
     if (pagesToRender && pagesToRender.length > 0) {
       if (!pagesToRender.includes(index)) {
@@ -350,21 +371,7 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
       continue
     }
     // 判断是否最后一页
-    let isLastPage = false;
-    if (pagesToRender && pagesToRender.length > 0) {
-      // 有过滤条件：检查后续是否还有要渲染的页
-      let hasMorePages = false;
-      for (let i = index + 1; i < pagedImageList.length; i++) {
-        if (pagesToRender.includes(i)) {
-          hasMorePages = true;
-          break;
-        }
-      }
-      isLastPage = !hasMorePages;
-    } else {
-      // 无过滤条件：检查是否是最后一个索引
-      isLastPage = (index === pagedImageList.length - 1);
-    }
+    const isLastPage = index === indicesToRender[indicesToRender.length - 1];
     // 不是最后一页才 addPage
     if (!isLastPage) {
       doc.addPage();

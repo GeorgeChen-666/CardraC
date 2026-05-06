@@ -152,6 +152,14 @@
     "guideStep3_body": "需要设定偏移：横向{{x}}，纵向{{y}}",
     "guideStep3_button1": "应用结果"
   },
+  "printPreview": {
+    "contextMenu": {
+      "copy": "复制",
+      "paste": "粘贴",
+      "clear": "清除",
+      "replace": "替换图像"
+    }
+  },
   "fileBrowser": {
     "loading": "加载中。。。",
     "defaultDialogTitle": "选择文件",

@@ -193,27 +193,27 @@ export const getPagedImageListByCardList = (state, Config) => {
     pagedImageList = getBrochurePagedImageListByCardList(state, Config);
   }
 
-  const slotCount = isBrochure
-    ? rows * columns * 2
-    : rows * columns / (isFoldInHalf ? 2 : 1);
+  // const slotCount = isBrochure
+  //   ? rows * columns * 2
+  //   : rows * columns / (isFoldInHalf ? 2 : 1);
+  //
+  // const startEmptyIndex = state.CardList?.length || 0;
 
-  const startEmptyIndex = state.CardList?.length || 0;
-
-  pagedImageList.push({
-    imageList: new Array(slotCount).fill(emptyImg),
-    pathList: new Array(slotCount).fill(null).map((_, index) => `${startEmptyIndex + index}.face`),
-    config: new Array(slotCount).fill(undefined),
-    type: 'face',
-  });
-
-  if ([layoutSides.doubleSides, layoutSides.foldInHalf, layoutSides.brochure].includes(sides)) {
-    pagedImageList.push({
-      imageList: new Array(slotCount).fill(emptyImg),
-      pathList: new Array(slotCount).fill(null).map((_, index) => `${startEmptyIndex + index}.back`),
-      config: new Array(slotCount).fill(undefined),
-      type: 'back',
-    });
-  }
+  // pagedImageList.push({
+  //   imageList: new Array(slotCount).fill(emptyImg),
+  //   pathList: new Array(slotCount).fill(null).map((_, index) => `${startEmptyIndex + index}.face`),
+  //   config: new Array(slotCount).fill(undefined),
+  //   type: 'face',
+  // });
+  //
+  // if ([layoutSides.doubleSides, layoutSides.foldInHalf, layoutSides.brochure].includes(sides)) {
+  //   pagedImageList.push({
+  //     imageList: new Array(slotCount).fill(emptyImg),
+  //     pathList: new Array(slotCount).fill(null).map((_, index) => `${startEmptyIndex + index}.back`),
+  //     config: new Array(slotCount).fill(undefined),
+  //     type: 'back',
+  //   });
+  // }
 
   return pagedImageList;
 };

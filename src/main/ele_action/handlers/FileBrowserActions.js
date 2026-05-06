@@ -123,6 +123,7 @@ const browse = (drivePath, query = {}) => {
     if (!fst) return null;
 
     const itemPath = up === '/' ? `${drv.toUpperCase()}:/${f}` : `${cur}/${f}`;
+    const isImage = /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(f);
 
     return {
       name: f,
@@ -133,8 +134,8 @@ const browse = (drivePath, query = {}) => {
       size: fst.size,
       modified: fst.mtime.getTime(),
       ext: path.extname(f).toLowerCase().replace('.', ''),
-      isImage: /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(f),
-      thumbnailUrl: imagePathToImageSrc(fixPath(fp), { quality: 'low' })
+      isImage,
+      ...(isImage && { thumbnailUrl: imagePathToImageSrc(fixPath(fp), { quality: 'low' }) })
     };
   }).filter(Boolean);
 

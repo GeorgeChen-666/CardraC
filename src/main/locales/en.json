@@ -152,6 +152,14 @@
     "guideStep3_body": "The offset is about to be set: OffsetX {{x}}, OffsetY {{y}}",
     "guideStep3_button1": "Apply"
   },
+  "printPreview": {
+    "contextMenu": {
+      "copy": "Copy",
+      "paste": "Paste",
+      "clear": "Clear",
+      "replace": "Replace"
+    }
+  },
   "fileBrowser": {
     "loading": "loading...",
     "defaultDialogTitle": "Select File",

@@ -10,9 +10,11 @@ import ImageIcon from '@mui/icons-material/Image';
 import { clearPreviewCache, openImage } from '../../../functions';
 import { useGlobalStore } from '../../../state/store';
 import { emptyImg } from '../../../../shared/constants';
+import { useTranslation } from 'react-i18next';
 
 export const ImageContextMenu = ({ anchorPosition, onClose, imageElement, setFrame }) => {
   const open = Boolean(anchorPosition);
+  const { t } = useTranslation();
   const {
     getExportPageCount, cardEditByIndex, CardList, Global
   } = useGlobalStore.getState();
@@ -92,28 +94,28 @@ export const ImageContextMenu = ({ anchorPosition, onClose, imageElement, setFra
         <ListItemIcon>
           <ContentCopyIcon fontSize="small" />
         </ListItemIcon>
-        <ListItemText>复制</ListItemText>
+        <ListItemText>{t('printPreview.contextMenu.copy')}</ListItemText>
       </MenuItem>
 
       <MenuItem onClick={handlePaste}>
         <ListItemIcon>
           <ContentPasteIcon fontSize="small" />
         </ListItemIcon>
-        <ListItemText>黏贴</ListItemText>
+        <ListItemText>{t('printPreview.contextMenu.paste')}</ListItemText>
       </MenuItem>
 
       <MenuItem onClick={handleClear}>
         <ListItemIcon>
           <ClearIcon fontSize="small" />
         </ListItemIcon>
-        <ListItemText>清除</ListItemText>
+        <ListItemText>{t('printPreview.contextMenu.clear')}</ListItemText>
       </MenuItem>
 
       <MenuItem onClick={handleReplace}>
         <ListItemIcon>
           <ImageIcon fontSize="small" />
         </ListItemIcon>
-        <ListItemText>替换图像</ListItemText>
+        <ListItemText>{t('printPreview.contextMenu.replace')}</ListItemText>
       </MenuItem>
 
     </Menu>
