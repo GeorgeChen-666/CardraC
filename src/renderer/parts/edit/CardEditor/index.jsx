@@ -172,8 +172,8 @@ export default memo(({ data, dialogCardSettingRef, index, sharedPreviewRef, curr
     {
       label: t('cardEditor.face'),
       onClick: async () => {
-        const filePath = await openImage('setCardFace');
-        cardEditById({ id: data.id, face: filePath });
+        const [ imageData ] = await openImage();
+        cardEditById({ id: data.id, face: imageData?.face });
       },
     },
     {
@@ -186,8 +186,8 @@ export default memo(({ data, dialogCardSettingRef, index, sharedPreviewRef, curr
       {
         label: t('cardEditor.back'),
         onClick: async () => {
-          const filePath = await openImage('setCardFace');
-          cardEditById({ id: data.id, back: filePath });
+          const [ imageData ] = await openImage();
+          cardEditById({ id: data.id, back: imageData?.face });
         },
       },
       {

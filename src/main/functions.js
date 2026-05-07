@@ -102,11 +102,11 @@ export const readCompressedImage = async (path, options = {}) => {
         force: true,
         quality
       });
-    const ext = 'webp';
+    // const ext = 'webp';
     const buffer = await image.toBuffer()
     if(returnFormat === 'base64') {
       const base64String = (buffer).toString('base64');
-      return `data:image/${ext};base64,${base64String}`;
+      return `data:image/${format};base64,${base64String}`;
     }
     return buffer;
   } catch (e) {

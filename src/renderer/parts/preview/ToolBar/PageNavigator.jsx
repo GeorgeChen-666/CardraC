@@ -22,10 +22,13 @@ export const PageNavigator = ({ currentPage, totalPages, onPageChange }) => {
 
   // ✅ 根据 sides 计算额外页面数量
   const getExtraPageCount = () => {
-    if (sides === layoutSides.oneSide) {
+    if ([layoutSides.oneSide, layoutSides.foldInHalf].includes(sides)) {
       return 1;
-    } else if ([layoutSides.doubleSides, layoutSides.foldInHalf, layoutSides.brochure].includes(sides)) {
+    } else if ([layoutSides.doubleSides].includes(sides)) {
       return 2;
+    }
+    else if ([layoutSides.brochure].includes(sides)) {
+      return 0;
     }
     return 1;
   };

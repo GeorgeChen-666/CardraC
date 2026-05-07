@@ -226,6 +226,8 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
     if (onSelectRef.current) {
       onSelectRef.current(resultData);
     }
+    setLockedFiles([]);
+    setSelectedFiles([]);
     setOpen(false);
   };
 

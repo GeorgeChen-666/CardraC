@@ -160,7 +160,7 @@ export const listDrives = (params) =>
 export const browsePath = (params) =>
   callMain(eleActions.browsePath, params)
 
-export const openMultiImage = (isDoubleSides) => openImage(isDoubleSides, true)
+export const openMultiImage = (isDoubleSides = false) => openImage(isDoubleSides, true)
 export const openImage = async (isDoubleSides = false, isMultiImage = false) => {
   const selectedFiles = await showFileOpenDialog({multiSelect: true, filterExtensions: 'jpg,png,gif',isDoubleSides, showFileIcon: true});
   const convertFn = (data) => data ? {

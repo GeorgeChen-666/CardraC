@@ -304,7 +304,7 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
       //cutline cross
       doc.setLineStyle({width: lineWeight * 0.3527, color: cutlineColor});
       const markRectList = getCutRectangleList(Config, {maxWidth, maxHeight}, true);
-      const crossLength = fixFloat(2);
+      const crossLength = fixFloat(1);
 
       const { imageList } = adjustBackPageImageOrder(pageData, Config);
 

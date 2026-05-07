@@ -60,15 +60,15 @@ export const BulkOperationButton = () => {
       </MenuItem>
       <MenuItem onClick={async () => {
         handleClose();
-        const filePath = await openImage('fillBackground');
-        selectedCardsEdit({ back: filePath });
+        const [ imageData ] = await openImage();
+        imageData && selectedCardsEdit({ back: imageData?.face });
       }}>
         {t('toolbar.bulkMenu.menuFillBackground')}
       </MenuItem>
       <MenuItem onClick={async () => {
         handleClose();
-        const filePaths = await openMultiImage('SelectedCardFillBackWithEachBack');
-        filePaths?.length > 0 && selectedCardsFillBackWithEach(filePaths);
+        const imageDataList = await openMultiImage();
+        imageDataList?.length > 0 && selectedCardsFillBackWithEach(imageDataList.map(data => data.face));
       }}>
         {t('toolbar.bulkMenu.menuFillMultiBackground')}
       </MenuItem>
