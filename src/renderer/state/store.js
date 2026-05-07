@@ -297,26 +297,43 @@ export const useGlobalStore = create(middlewares((set, get) => ({
     })),
   cardEditByIndex: (index, side, imageData) =>
     get().setWithHistory(state => {
-      const newCardList = [...state.CardList];
-      // ✅ 如果索引超出当前 CardList 长度,自动补全空卡片
-      while (newCardList.length <= index) {
-        newCardList.push({
+      // ✅ 展开 CardList（考虑 repeat）
+      let expandedCards = [];
+      state.CardList.forEach(card => {
+        for (let i = 0; i < (card.repeat || 1); i++) {
+          expandedCards.push(card);
+        }
+      });
+
+      // ✅ 如果索引超出，补全空卡片
+      while (expandedCards.length <= index) {
+        const newCard = {
           id: crypto.randomUUID(),
           face: null,
           back: null,
           repeat: 1,
           selected: false,
-        });
+        };
+        expandedCards.push(newCard);
+        state.CardList.push(newCard);  // 同时添加到原始 CardList
       }
+
       // ✅ 更新目标位置的图片
-      const targetCard = newCardList[index];
-      newCardList[index] = {
-        ...targetCard,
-        [side]: imageData,
-      };
+      const targetCard = expandedCards[index];
+
+      // ✅ 在原始 CardList 中找到并更新
+      const newCardList = state.CardList.map(c => {
+        if (c.id === targetCard.id) {
+          return {
+            ...c,
+            [side]: imageData,
+          };
+        }
+        return c;
+      });
+
       return { ...state, CardList: newCardList };
     }),
-
   cardSelect: (selectedId) => {
     set(state => {
       const selection = state.CardList.filter(c => c.selected);

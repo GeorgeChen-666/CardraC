@@ -71,15 +71,23 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
       : rows * columns / (isFoldInHalf ? 2 : 1);
 
     const isFace = index % 2 === 0;
-    const startEmptyIndex = state.CardList?.length || 0;
+
+    // ✅ 正确计算起始索引（考虑 repeat）
+    const startEmptyIndex = state.CardList?.reduce((sum, card) => sum + (card.repeat || 1), 0) || 0;
+
+    const pairIndex = Math.floor(index / 2);
+    const pageCardStartIndex = startEmptyIndex + pairIndex * slotCount;
 
     return {
       imageList: new Array(slotCount).fill(emptyImg),
-      pathList: new Array(slotCount).fill(null).map((_, i) => `${startEmptyIndex}.${isFace ? 'face' : 'back'}`),
+      pathList: new Array(slotCount).fill(null).map((_, i) =>
+        `${pageCardStartIndex + i}.${isFace ? 'face' : 'back'}`
+      ),
       config: new Array(slotCount).fill(undefined),
       type: isFace ? 'face' : 'back',
     };
   };
+
   const getPage = (index) => {
     return pagedImageList[index] || createEmptyPage(index);
   };
