@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { useGlobalStore } from '../../../state/store';
+import { useGlobalStore } from '../../state/store';
 import Button from '@mui/material/Button';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import Menu from '@mui/material/Menu';
@@ -8,7 +8,7 @@ import { Divider } from '@mui/material';
 import Tooltip from '@mui/material/Tooltip';
 import Badge from '@mui/material/Badge';
 import { ReloadDialog } from './ReloadImg/ReloadDialog';
-import { checkImage } from '../../../functions';
+import { checkImage } from '../../functions';
 import { useTranslation } from 'react-i18next';
 
 export const CompressSelectButton = ({ label, disabled }) => {

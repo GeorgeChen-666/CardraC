@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import Button from '@mui/material/Button';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import { i18nInstance } from '../../../i18n';
-import { getResourcesPath } from '../../../functions';
-import { useGlobalStore } from '../../../state/store';
+import { i18nInstance } from '../../i18n';
+import { getResourcesPath } from '../../functions';
+import { useGlobalStore } from '../../state/store';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import Tooltip from '@mui/material/Tooltip';
 

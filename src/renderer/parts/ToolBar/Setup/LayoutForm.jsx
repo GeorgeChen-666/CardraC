@@ -2,8 +2,8 @@ import React from 'react';
 import { FormControl, ControlType } from './FormControl';
 import { useTranslation } from 'react-i18next';
 import HelpIcon from '@mui/icons-material/Help';
-import { useGlobalStore } from '../../../../state/store';
-import { flipWay, layoutSides } from '../../../../../shared/constants';
+import { useGlobalStore } from '../../../state/store';
+import { flipWay, layoutSides } from '../../../../shared/constants';
 import Tooltip from '@mui/material/Tooltip';
 
 export const LayoutForm = () => {

@@ -1,6 +1,6 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import Dialog from '@mui/material/Dialog';
-import { version } from '../../../../functions';
+import { version } from '../../../functions';
 import { DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
 import Button from '@mui/material/Button';
 import { useTranslation } from 'react-i18next';

@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useGlobalStore } from '../../../../state/store';
-import { decodeSvg } from '../../../../../shared/functions';
+import { useGlobalStore } from '../../../state/store';
+import { decodeSvg } from '../../../../shared/functions';
 import { shallow } from 'zustand/shallow';
-import { clearPreviewCache } from '../../../../functions';
+import { clearPreviewCache } from '../../../functions';
 
 export const ConfigOverview = () => {
   const { getExportPreview } = useGlobalStore.getState();

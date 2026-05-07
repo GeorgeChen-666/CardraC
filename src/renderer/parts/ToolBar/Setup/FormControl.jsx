@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { useGlobalStore } from '../../../../state/store';
+import React from 'react';
+import { useGlobalStore } from '../../../state/store';
 import { Checkbox, FormControlLabel, TextField } from '@mui/material';
 import MenuItem from '@mui/material/MenuItem';
 import MuiFormControl from '@mui/material/FormControl';
 import FormLabel from '@mui/material/FormLabel';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
-import { NumberInput } from '../../../../componments/NumberInput';
+import { NumberInput } from '../../../componments/NumberInput';
 
 export const ControlType = Object.freeze({
   NumberInput: 'NumberInput',

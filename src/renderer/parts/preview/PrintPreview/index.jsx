@@ -2,7 +2,7 @@ import * as React from 'react';
 import './styles.css';
 import { useGlobalStore } from '../../../state/store';
 import { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 'react';
-import { PrintDrawer } from '../ToolBar/Print/PrintDrawer';
+import { PrintDrawer } from '../../ToolBar/Print/PrintDrawer';
 import { decodeSvg } from '../../../../shared/functions';
 import { Ruler } from './Ruler';
 import { ImageContextMenu } from './ImageContextMenu';
@@ -11,7 +11,6 @@ import { emptyImg } from '../../../../shared/constants';
 
 
 export const PrintPreview = forwardRef((props, ref) => {
-  const drawerPrintRef = useRef(null);
   const { getExportPreview, mergeGlobal } = useGlobalStore.getState();
   const { Global } = useGlobalStore.selectors;
   const exportPageCount = Global.exportPageCount() || 0;
@@ -25,7 +24,8 @@ export const PrintPreview = forwardRef((props, ref) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const drawerPrintRef = window.drawerPrintRef
+  const isDrawerOpen = false; //const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const [contextMenu, setContextMenu] = useState(null);
 
@@ -88,7 +88,6 @@ export const PrintPreview = forwardRef((props, ref) => {
     getScale: () => scale,
     canZoomIn: () => scale < MAX_SCALE,
     canZoomOut: () => scale > MIN_SCALE,
-    drawerPrintRef,
   }));
 
   const handleDoubleClick = () => {
@@ -393,10 +392,6 @@ export const PrintPreview = forwardRef((props, ref) => {
             Loading...
           </div>
         )}
-        <PrintDrawer
-          ref={drawerPrintRef}
-          onOpenChange={setIsDrawerOpen}
-        />
 
         <ImageContextMenu
           anchorPosition={contextMenu ? { top: contextMenu.top, left: contextMenu.left } : null}

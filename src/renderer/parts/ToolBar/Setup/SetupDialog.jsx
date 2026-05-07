@@ -13,7 +13,7 @@ import { MarkFrom } from './MarkFrom';
 import useAutoCalc from './useAutoCalc';
 import { TemplateMenu } from './TemplateMenu';
 import { ConfigOverview } from './ConfigOverview';
-import { useGlobalStore } from '../../../../state/store';
+import { useGlobalStore } from '../../../state/store';
 
 const CustomTabPanel = ({ children, value, index }) => (
   <div

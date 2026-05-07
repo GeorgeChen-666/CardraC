@@ -1,6 +1,6 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import Dialog from '@mui/material/Dialog';
-import { callMain, version } from '../../../../functions';
+import { callMain, version } from '../../../functions';
 import {
   DialogActions,
   DialogContent,
@@ -14,10 +14,10 @@ import {
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import { eleActions } from '../../../../../shared/constants';
-import { NumberInput } from '../../../../componments/NumberInput';
+import { eleActions } from '../../../../shared/constants';
+import { NumberInput } from '../../../componments/NumberInput';
 import { useTranslation } from 'react-i18next';
-import { fixFloat } from '../../../../../shared/functions';
+import { fixFloat } from '../../../../shared/functions';
 
 
 

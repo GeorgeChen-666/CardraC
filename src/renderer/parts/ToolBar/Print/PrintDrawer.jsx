@@ -2,10 +2,10 @@ import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react
 import { Box, Divider, TextField } from '@mui/material';
 import Button from '@mui/material/Button';
 import { GuideDialog } from './GuideDialog';
-import { callMain } from '../../../../functions';
-import { eleActions } from '../../../../../shared/constants';
-import { useGlobalStore } from '../../../../state/store';
-import { NumberInput } from '../../../../componments/NumberInput';
+import { callMain } from '../../../functions';
+import { eleActions } from '../../../../shared/constants';
+import { useGlobalStore } from '../../../state/store';
+import { NumberInput } from '../../../componments/NumberInput';
 import MenuItem from '@mui/material/MenuItem';
 import { useTranslation } from 'react-i18next';
 
@@ -45,6 +45,7 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
       setOpen(false);
       onOpenChange?.(false);
     },
+    isOpen: open,
   }));
 
   const handleMouseDown = (e) => {

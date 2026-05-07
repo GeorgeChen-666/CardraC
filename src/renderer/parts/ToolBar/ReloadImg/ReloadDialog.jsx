@@ -13,10 +13,10 @@ import Paper from '@mui/material/Paper';
 import './style.css'
 
 import { useTranslation } from 'react-i18next';
-import { checkImage, openImage } from '../../../../functions';
-import { useGlobalStore } from '../../../../state/store';
+import { checkImage, openImage } from '../../../functions';
+import { useGlobalStore } from '../../../state/store';
 import IconButton from '@mui/material/IconButton';
-import { expandPath, imagePathToImageSrc } from '../../../../../shared/functions';
+import { expandPath, imagePathToImageSrc } from '../../../../shared/functions';
 
 export const ReloadDialog = forwardRef(({},ref) => {
   const { t } = useTranslation();

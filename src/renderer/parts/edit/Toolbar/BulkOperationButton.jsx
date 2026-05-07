@@ -8,7 +8,7 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { useTranslation } from 'react-i18next';
 import { openImage, openMultiImage } from '../../../functions';
 import { NumberInput } from '../../../componments/NumberInput';
-import './style.css'
+import '../../ToolBar/style.css'
 
 export const BulkOperationButton = () => {
   const { t } = useTranslation();

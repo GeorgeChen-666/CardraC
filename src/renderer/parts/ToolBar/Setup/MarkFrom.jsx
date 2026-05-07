@@ -1,8 +1,8 @@
 import { ControlType, FormControl } from './FormControl';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useGlobalStore } from '../../../../state/store';
-import { layoutSides } from '../../../../../shared/constants';
+import { useGlobalStore } from '../../../state/store';
+import { layoutSides } from '../../../../shared/constants';
 
 
 export const MarkFrom = () => {

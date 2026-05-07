@@ -3,7 +3,7 @@ import Button from '@mui/material/Button';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
-import { editTemplate, getTemplate, setTemplate, deleteTemplate } from '../../../../functions';
+import { editTemplate, getTemplate, setTemplate, deleteTemplate } from '../../../functions';
 import TextField from '@mui/material/TextField';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { useTranslation } from 'react-i18next';
@@ -16,9 +16,9 @@ import ClearIcon from '@mui/icons-material/Clear';
 import { ListItemText } from '@mui/material';
 import './styles.css'
 import Tooltip from '@mui/material/Tooltip';
-import { withConfirmation } from '../../../../componments/withConfirmation';
-import { useGlobalStore } from '../../../../state/store';
-import { initialState } from '../../../../../shared/constants';
+import { withConfirmation } from '../../../componments/withConfirmation';
+import { useGlobalStore } from '../../../state/store';
+import { initialState } from '../../../../shared/constants';
 
 const ConfirmIconButton = withConfirmation(IconButton);
 
