@@ -296,15 +296,15 @@ export const useGlobalStore = /** @type {import('./store').useGlobalStore} */ (
       })),
     cardEditByIndex: (index, side, imageData) =>
       get().setWithHistory(state => {
-        // ✅ 展开 CardList（考虑 repeat）
         let expandedCards = [];
-        state.CardList.forEach(card => {
+        const newCardList = [...state.CardList]; // ← 先复制
+
+        newCardList.forEach(card => {
           for (let i = 0; i < (card.repeat || 1); i++) {
             expandedCards.push(card);
           }
         });
 
-        // ✅ 如果索引超出，补全空卡片
         while (expandedCards.length <= index) {
           const newCard = {
             id: crypto.randomUUID(),
@@ -314,24 +314,20 @@ export const useGlobalStore = /** @type {import('./store').useGlobalStore} */ (
             selected: false,
           };
           expandedCards.push(newCard);
-          state.CardList.push(newCard);  // 同时添加到原始 CardList
+          newCardList.push(newCard);
         }
 
-        // ✅ 更新目标位置的图片
         const targetCard = expandedCards[index];
 
-        // ✅ 在原始 CardList 中找到并更新
-        const newCardList = state.CardList.map(c => {
-          if (c.id === targetCard.id) {
-            return {
-              ...c,
-              [side]: imageData,
-            };
-          }
-          return c;
-        });
-
-        return { ...state, CardList: newCardList };
+        return {
+          ...state,
+          CardList: newCardList.map(c => {
+            if (c.id === targetCard.id) {
+              return { ...c, [side]: imageData };
+            }
+            return c;
+          })
+        };
       }),
     cardSelect: (selectedId) => {
       set(state => {

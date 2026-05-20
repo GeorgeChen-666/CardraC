@@ -22,6 +22,8 @@
     "print": "打印"
   },
   "toolbar" : {
+    "btnUndo" : "后退",
+    "btnRedo" : "前进",
     "btnAdd" : "创建pnp文件。",
     "btnOpen" : "打开pnp文件。",
     "btnSave" : "保存pnp文件。",

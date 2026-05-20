@@ -9,7 +9,7 @@ import GitHubIcon from '@mui/icons-material/GitHub';
 import InfoIcon from '@mui/icons-material/Info';
 import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
-import {GeneralIconButton} from '../../componments/GeneralIconButton'
+import { GeneralIconButton } from '../../componments/GeneralIconButton';
 import { useTranslation } from 'react-i18next';
 import { useGlobalStore } from '../../state/store';
 import { LangSelectButton } from './LangSelectButton';
@@ -25,19 +25,19 @@ import PrintIcon from '@mui/icons-material/Print';
 import { PrintDrawer } from './Print/PrintDrawer';
 
 const ExportIcon = ({ label = 'PDF' }) => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
-    <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6z"/>
+  <svg width='24' height='24' viewBox='0 0 24 24' fill='currentColor'>
+    <path d='M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z' />
+    <path d='M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6z' />
     <text
-      x="14"
-      y="12"
-      textAnchor="middle"
-      fontSize="6"
-      fontWeight="900"
-      fontFamily="Arial, sans-serif"
-      fill="#2E2E2E"
-      stroke="#2E2E2E"
-      strokeWidth="0.2"
+      x='14'
+      y='12'
+      textAnchor='middle'
+      fontSize='6'
+      fontWeight='900'
+      fontFamily='Arial, sans-serif'
+      fill='#2E2E2E'
+      stroke='#2E2E2E'
+      strokeWidth='0.2'
     >
       {label.toUpperCase()}
     </text>
@@ -60,9 +60,9 @@ export function BaseToolbar({ SubMenu }) {
   const canRedo = useGlobalStore(state => state.History.canRedo);
   const historyUndo = useGlobalStore(state => state.historyUndo);
   const historyRedo = useGlobalStore(state => state.historyRedo);
-  const {Config, Global, CardList } = useGlobalStore.selectors;
+  const { Config, Global, CardList } = useGlobalStore.selectors;
   const cardListLength = CardList().length;
-  const globalBackground = Config.globalBackground()
+  const globalBackground = Config.globalBackground();
   const imageVersion = Global.imageVersion();
   return (
     <Box
@@ -83,8 +83,8 @@ export function BaseToolbar({ SubMenu }) {
         label={t('toolbar.btnOpen')}
         icon={<FindInPageIcon />}
         onClick={async () => {
-          const selectedFiles = await showFileOpenDialog({filterExtensions: 'cpnp'});
-          if(selectedFiles.length === 0) {
+          const selectedFiles = await showFileOpenDialog({ filterExtensions: 'cpnp' });
+          if (selectedFiles.length === 0) {
             return;
           }
           openProject({ filePath: selectedFiles[0][0].realPath });
@@ -96,30 +96,37 @@ export function BaseToolbar({ SubMenu }) {
         label={t('toolbar.btnSave')}
         icon={<SaveIcon />}
         onClick={async () => {
-          const selectedFile = await showFileOpenDialog({filterExtensions: 'cpnp', mode: 'save'});
-          if(!selectedFile) {
+          const selectedFile = await showFileOpenDialog({ filterExtensions: 'cpnp', mode: 'save' });
+          if (!selectedFile) {
             return;
           }
-          saveProject({ filePath: selectedFile.realPath })
+          saveProject({ filePath: selectedFile.realPath });
         }}
       />
       <GeneralIconButton
         disabled={!canUndo}
         label={t('toolbar.btnUndo')}
         icon={<UndoIcon />}
-        onClick={() => historyUndo()}
+        onClick={async () => {
+          await clearPreviewCache();
+          historyUndo();
+        }}
       />
       <GeneralIconButton
         disabled={!canRedo}
         label={t('toolbar.btnRedo')}
         icon={<RedoIcon />}
-        onClick={() => historyRedo()}
+        onClick={async () => {
+          await clearPreviewCache();
+          historyRedo();
+        }}
       />
       <span style={{ color: '#666', padding: '4px' }}>|</span>
       {[layoutSides.doubleSides, layoutSides.foldInHalf].includes(Config.sides()) && (
         <GeneralIconButton
           label={t('toolbar.btnGlobalBackground')}
-          icon={<img src={imagePathToImageSrc(globalBackground?.path, { version : imageVersion})} width={'21px'} height={'21px'} alt='' />}
+          icon={<img src={imagePathToImageSrc(globalBackground?.path, { version: imageVersion })} width={'21px'}
+                     height={'21px'} alt='' />}
           onClick={async () => {
             const selectedFiles = await openImage();
 
@@ -134,25 +141,25 @@ export function BaseToolbar({ SubMenu }) {
         disabled={cardListLength === 0}
       />
       <GeneralIconButton
-        label={t('toolbar.btnExport', {format:'PDF'})}
+        label={t('toolbar.btnExport', { format: 'PDF' })}
         icon={<ExportIcon />}
         onClick={async () => {
-          const selectedFile = await showFileOpenDialog({filterExtensions: exportType.pdf, mode: 'save'});
-          if(!selectedFile) {
+          const selectedFile = await showFileOpenDialog({ filterExtensions: exportType.pdf, mode: 'save' });
+          if (!selectedFile) {
             return;
           }
-          exportFile({ filePath: selectedFile.realPath, targetFileType: exportType.pdf })
+          exportFile({ filePath: selectedFile.realPath, targetFileType: exportType.pdf });
         }}
       />
       <GeneralIconButton
-        label={t('toolbar.btnExport', {format:'PNG'})}
+        label={t('toolbar.btnExport', { format: 'PNG' })}
         icon={<ExportIcon label={'png'} />}
         onClick={async () => {
-          const selectedFile = await showFileOpenDialog({filterExtensions: exportType.zip, mode: 'save'});
-          if(!selectedFile) {
+          const selectedFile = await showFileOpenDialog({ filterExtensions: exportType.zip, mode: 'save' });
+          if (!selectedFile) {
             return;
           }
-          exportFile({ filePath: selectedFile.realPath, targetFileType: exportType.png })
+          exportFile({ filePath: selectedFile.realPath, targetFileType: exportType.png });
         }}
       />
       {/*<GeneralIconButton*/}
@@ -168,7 +175,7 @@ export function BaseToolbar({ SubMenu }) {
           drawerPrintRef.current.openDrawer();
         }}
       />
-      <span style={{color: '#666', padding:'4px'}}>|</span>
+      <span style={{ color: '#666', padding: '4px' }}>|</span>
       <LangSelectButton label={t('toolbar.btnLang')} />
       <GeneralIconButton
         label={t('toolbar.btnConfig')}

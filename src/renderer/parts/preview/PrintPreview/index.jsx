@@ -6,6 +6,7 @@ import { decodeSvg } from '../../../../shared/functions';
 import { Ruler } from './Ruler';
 import { ImageContextMenu } from './ImageContextMenu';
 import { emptyImg } from '../../../../shared/constants';
+import { shallow } from 'zustand/shallow';
 
 // ✅ 缓存定义
 let currentImageVersion = null;
@@ -290,6 +291,8 @@ export const PrintPreview = forwardRef((props, ref) => {
     };
   }, [svgContent, isSvg, exportPreviewIndex]);
 
+  const CardList = useGlobalStore(state => state.CardList, shallow);
+  const Config = useGlobalStore(state => state.Config, shallow);
   useEffect(() => {
     if (ready) {
       (async () => {
@@ -314,7 +317,7 @@ export const PrintPreview = forwardRef((props, ref) => {
         }
       })();
     }
-  }, [exportPreviewIndex, exportPageCount, ready, frame, imageVersion]);
+  }, [exportPreviewIndex, exportPageCount, ready, frame, imageVersion, CardList, Config]);
 
   useEffect(() => {
     setReady(true);

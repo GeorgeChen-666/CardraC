@@ -22,6 +22,8 @@
     "print": "Print"
   },
   "toolbar" : {
+    "btnUndo" : "Undo",
+    "btnRedo" : "Redo",
     "btnAdd" : "Create a New PNP File.",
     "btnOpen" : "Open a PNP File.",
     "btnSave" : "Save PNP File.",

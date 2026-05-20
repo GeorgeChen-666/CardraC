@@ -74,7 +74,7 @@ export const ConfigOverview = () => {
   useEffect(() => {
     (async () => {
       await clearPreviewCache();
-      const data = await getExportPreview(-1, true);
+      const data = await getExportPreview(-999, true);
       setImageData(data);
 
       if (data && data.includes('svg')) {
