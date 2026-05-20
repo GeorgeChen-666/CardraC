@@ -162,7 +162,7 @@ export const browsePath = (params) =>
 
 export const openMultiImage = (isDoubleSides = false) => openImage(isDoubleSides, true)
 export const openImage = async (isDoubleSides = false, isMultiImage = false) => {
-  const selectedFiles = await showFileOpenDialog({multiSelect: true, filterExtensions: 'jpg,png,gif',isDoubleSides, showFileIcon: true});
+  const selectedFiles = await showFileOpenDialog({multiSelect: isMultiImage, filterExtensions: 'jpg,png,gif',isDoubleSides, showFileIcon: true});
   const convertFn = (data) => data ? {
     ext: data.ext,
     mtime: data.modified,
@@ -184,10 +184,10 @@ export const openImage = async (isDoubleSides = false, isMultiImage = false) => 
       updateBackendJob(backendJobKey.loadHighQuality, { visible: true });
       const result = await getGlobalState().loading(() => loadImageList({
         imageList: allFiles,
-        onProgress: (v) => {
-          console.log('onProgress', v)
-          getGlobalState().progress(v)
-        }
+        // onProgress: (v) => {
+        //   console.log('onProgress', v)
+        //   getGlobalState().progress(v)
+        // }
       }))
 
       console.log('Background loading started:', result);
@@ -233,9 +233,9 @@ ipcRenderer.on(eleActions.backendJobProgress, (event, args) => {
   if (!key) return;
 
   const store = useGlobalStore.getState();
-
-  store.updateBackendJob(key, { progress: Math.min(Math.max(progress, 0), 1) });
-
+  if(store.Global.backendJobs?.[key]?.visible) {
+    store.updateBackendJob(key, { progress: Math.min(Math.max(progress, 0), 1) });
+  }
   console.log(`📊 Backend job [${key}]: ${(progress * 100).toFixed(1)}%`);
 
   if (progress >= 1) {

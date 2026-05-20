@@ -54,7 +54,7 @@ export const initialState = Object.freeze({
   Global: {
     availableLangs: [],
     currentLang: 'zh',
-    isLoading: false,
+    isLoading: 0,
     loadingText: '',
     isInProgress: false,
     progress: 0,

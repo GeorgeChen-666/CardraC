@@ -2,19 +2,21 @@ import * as React from 'react';
 import './styles.css';
 import { useGlobalStore } from '../../../state/store';
 import { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 'react';
-import { PrintDrawer } from '../../ToolBar/Print/PrintDrawer';
 import { decodeSvg } from '../../../../shared/functions';
 import { Ruler } from './Ruler';
 import { ImageContextMenu } from './ImageContextMenu';
 import { emptyImg } from '../../../../shared/constants';
 
-
+// ✅ 缓存定义
+let currentImageVersion = null;
+const highQualityCache = new Set();
 
 export const PrintPreview = forwardRef((props, ref) => {
   const { getExportPreview, mergeGlobal } = useGlobalStore.getState();
   const { Global } = useGlobalStore.selectors;
   const exportPageCount = Global.exportPageCount() || 0;
   const exportPreviewIndex = Global.exportPreviewIndex() || 1;
+  const imageVersion = Global.imageVersion();
 
   const [frame, setFrame] = useState(0);
   const [ready, setReady] = useState(false);
@@ -24,10 +26,11 @@ export const PrintPreview = forwardRef((props, ref) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
-  const drawerPrintRef = window.drawerPrintRef
-  const isDrawerOpen = false; //const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const drawerPrintRef = window.drawerPrintRef;
+  const isDrawerOpen = false;
 
   const [contextMenu, setContextMenu] = useState(null);
+  const [svgContent, setSvgContent] = useState('');
 
   const containerRef = useRef(null);
   const imageRef = useRef(null);
@@ -128,7 +131,7 @@ export const PrintPreview = forwardRef((props, ref) => {
     if (e.button !== 0) return;
     const drawerElement = drawerPrintRef.current;
     if (drawerElement && e.target.closest('.print-drawer')) {
-      return; // 如果点击在 Drawer 内，不处理拖拽
+      return;
     }
     setIsDragging(true);
     setDragStart({
@@ -195,8 +198,13 @@ export const PrintPreview = forwardRef((props, ref) => {
     setContextMenu(null);
   };
 
-  const [svgContent, setSvgContent] = useState('');
-
+  // ✅ 更新缓存版本
+  useEffect(() => {
+    if (currentImageVersion !== imageVersion) {
+      highQualityCache.clear();
+      currentImageVersion = imageVersion;
+    }
+  }, [imageVersion]);
 
   useEffect(() => {
     if (!isSvg || !svgRef.current) return;
@@ -205,84 +213,82 @@ export const PrintPreview = forwardRef((props, ref) => {
     if (!svgElement) return;
 
     const images = svgElement.querySelectorAll('image[data-card-mark]');
+    const cleanups = [];
 
     images.forEach((img) => {
       const currentUrl = img.getAttribute('href');
-      let isUnmounted = false;
-      let retryTimeoutId = null;
-
-      // ✅ 检查是否是 emptyImg
       const isEmptyImage = currentUrl === emptyImg.path;
 
-      // ✅ 检查 URL 是否已经是高清
-      const isAlreadyHigh = currentUrl.includes('quality=high');
+      // ✅ 只有非空白图才加载高清
+      if (!isEmptyImage) {
+        const imagePath = currentUrl.split('?')[0].replace('cardrac://image/', '');
 
-      // ✅ 只有非空白图且不是高清的才加载高清
-      if (!isEmptyImage && !isAlreadyHigh) {
-        const loadHighQuality = (retryCount = 0) => {
-          if (isUnmounted) return;
+        if (highQualityCache.has(imagePath)) {
+          const highUrl = currentUrl.replace(/quality=\w+/, 'quality=high');
+          img.setAttribute('href', highUrl);
+        } else {
+          let unmounted = false;
+          let timeoutId = null;
 
-          const highQualityUrl = currentUrl.replace('quality=low', 'quality=high')
-            .replace('quality=auto', 'quality=high');
+          const loadHigh = (retry = 0) => {
+            if (unmounted || retry > 10) return;
 
-          const testImg = new Image();
+            const highUrl = currentUrl.replace(/quality=\w+/, 'quality=high');
+            const testImg = new Image();
 
-          testImg.onload = () => {
-            if (!isUnmounted) {
-              img.setAttribute('href', highQualityUrl);
-              console.log(`✅ [HIGH] Loaded: ${img.dataset.cardMark}`);
-            }
+            testImg.onload = () => {
+              if (!unmounted) {
+                img.setAttribute('href', highUrl);
+                highQualityCache.add(imagePath);
+              }
+            };
+
+            testImg.onerror = () => {
+              if (!unmounted) {
+                timeoutId = setTimeout(() => loadHigh(retry + 1), 2000);
+              }
+            };
+
+            testImg.src = highUrl;
           };
 
-          testImg.onerror = () => {
-            if (!isUnmounted && retryCount < 10) {
-              console.log(`⏳ [HIGH] Retry ${retryCount + 1}/10: ${img.dataset.cardMark}`);
-              retryTimeoutId = setTimeout(() => loadHighQuality(retryCount + 1), 2000);
-            }
-          };
+          timeoutId = setTimeout(loadHigh, 500);
 
-          testImg.src = highQualityUrl;
-        };
-
-        // 延迟加载高清
-        retryTimeoutId = setTimeout(() => loadHighQuality(), 500);
-      } else if (isAlreadyHigh) {
-        console.log(`⚡ Already high quality: ${img.dataset.cardMark}`);
+          cleanups.push(() => {
+            unmounted = true;
+            if (timeoutId) clearTimeout(timeoutId);
+          });
+        }
       }
 
-      // ✅ 所有图片都添加事件监听器
-      const handleContextMenuEvent = (e) => {
+      // ✅ 所有图片（包括空白图）都添加事件监听器
+      const onContextMenu = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        setContextMenu({
-          top: e.clientY,
-          left: e.clientX,
-          imageElement: img
-        });
+        setContextMenu({ top: e.clientY, left: e.clientX, imageElement: img });
       };
 
-      const handleHoverEvent = (e) => {
-        const mark = e.srcElement.dataset.cardMark;
-        const allSameMarkDoms = document.querySelectorAll(`[data-card-mark="${mark}"]`);
-        allSameMarkDoms.forEach(dom => dom.classList.toggle('mouseHover'));
+      const onHover = (e) => {
+        const mark = e.target.dataset.cardMark;
+        document.querySelectorAll(`[data-card-mark="${mark}"]`)
+          .forEach(dom => dom.classList.toggle('mouseHover'));
       };
 
-      img.addEventListener('contextmenu', handleContextMenuEvent);
-      img.addEventListener('mouseenter', handleHoverEvent);
-      img.addEventListener('mouseleave', handleHoverEvent);
+      img.addEventListener('contextmenu', onContextMenu);
+      img.addEventListener('mouseenter', onHover);
+      img.addEventListener('mouseleave', onHover);
 
-      return () => {
-        isUnmounted = true;
-        if (retryTimeoutId) {
-          clearTimeout(retryTimeoutId);
-        }
-        img.removeEventListener('contextmenu', handleContextMenuEvent);
-        img.removeEventListener('mouseenter', handleHoverEvent);
-        img.removeEventListener('mouseleave', handleHoverEvent);
-      };
+      cleanups.push(() => {
+        img.removeEventListener('contextmenu', onContextMenu);
+        img.removeEventListener('mouseenter', onHover);
+        img.removeEventListener('mouseleave', onHover);
+      });
     });
-  }, [svgContent, isSvg, exportPreviewIndex]);
 
+    return () => {
+      cleanups.forEach(cleanup => cleanup());
+    };
+  }, [svgContent, isSvg, exportPreviewIndex]);
 
   useEffect(() => {
     if (ready) {
@@ -291,7 +297,7 @@ export const PrintPreview = forwardRef((props, ref) => {
         setImageData(data);
 
         if (data && data.includes('svg')) {
-          const decoded = decodeSvg(data)
+          const decoded = decodeSvg(data);
           if (decoded) {
             const widthMatch = decoded.match(/width="(\d+)"/);
             const heightMatch = decoded.match(/height="(\d+)"/);
@@ -308,14 +314,15 @@ export const PrintPreview = forwardRef((props, ref) => {
         }
       })();
     }
-  }, [exportPreviewIndex, exportPageCount, ready, frame]);
+  }, [exportPreviewIndex, exportPageCount, ready, frame, imageVersion]);
 
   useEffect(() => {
     setReady(true);
-    return async () => {
+    return () => {
       setReady(false);
     };
   }, []);
+
   return (
     <>
       <div

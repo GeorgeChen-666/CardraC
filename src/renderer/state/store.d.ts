@@ -1,7 +1,6 @@
 // src/renderer/state/store.d.ts
 import type { StoreApi } from 'zustand';
 
-// ✅ 添加 BackendJob 类型
 interface BackendJob {
   visible: boolean;
   progress: number;
@@ -11,18 +10,18 @@ interface GlobalState {
   currentLang: string;
   isShowOverView: boolean;
   availableLangs?: string[];
-  isLoading?: boolean;
+  isLoading?: number;
   loadingText?: string;
   isInProgress?: boolean;
   progress?: number;
   lastSelection?: any;
   isBackEditing?: boolean;
   selections?: any[];
+  locales?: any;
   imageVersion?: number;
   exportPageCount?: number;
   exportPreviewIndex?: number;
   currentView?: string;
-  // ✅ 添加 backendJobs
   backendJobs?: Record<string, BackendJob>;
 }
 
@@ -85,18 +84,19 @@ interface StoreState {
   progress: (v: number) => void;
 
   // Project methods
-  newProject: () => void;
-  openProject: (params: any) => void;
+  newProject: () => Promise<void>;
+  openProject: (params?: any) => void;
   saveProject: (params?: any) => void;
   exportFile: (params: { targetFileType: string; [key: string]: any }) => void;
   printPages: (params: { pageList: any[]; printConfig: any }) => void;
   reloadLocalImage: () => void;
-  getExportPageCount: () => void;
+  getExportPageCount: () => Promise<void>;
   getExportPreview: (pageIndex: number, isSilence?: boolean) => Promise<any>;
 
   // Card methods
   cardAdd: (images: Array<{ face: any; back: any }>) => void;
   cardEditById: (newState: Partial<Card> & { id: string }) => void;
+  cardEditByIndex: (index: number, side: 'face' | 'back', imageData: any) => void;
   cardRemoveByIds: (ids: string[]) => void;
   cardSelect: (selectedId: string) => void;
   cardCtrlSelect: (selectedId: string) => void;
@@ -115,7 +115,7 @@ interface StoreState {
   selectedCardsSwap: () => void;
   editCardsConfig: (ids: string[], config: any) => void;
 
-  // ✅ Backend jobs methods
+  // Backend jobs methods
   updateBackendJob: (key: string, updates: Partial<BackendJob>) => void;
   clearBackendJob: (key: string) => void;
   clearAllBackendJobs: () => void;
@@ -150,5 +150,4 @@ export declare const useGlobalStore: {
   selectors: Selectorize<Pick<StoreState, 'Global' | 'Config' | 'CardList'>>;
 };
 
-// ✅ 导出新类型
 export type { StoreState, GlobalState, ConfigState, Card, BackendJob };

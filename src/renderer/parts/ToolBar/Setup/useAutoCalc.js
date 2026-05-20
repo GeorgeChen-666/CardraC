@@ -39,7 +39,7 @@ export default () => {
       if(foldLineType === '0') {
         autoRows = autoRows - ((autoRows % 2 === 1 && isFoldInHalf) ? 1 : 0);
       }
-      const newConfig = { columns: autoColumns, rows: autoRows };
+      const newConfig = { columns: Math.max(autoColumns, 1), rows: Math.max(autoRows, 1) };
       mergeConfig(newConfig);
     }
   }, [

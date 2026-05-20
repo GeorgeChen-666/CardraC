@@ -16,7 +16,7 @@ import { LangSelectButton } from './LangSelectButton';
 import { AboutDialog } from './About/AboutDialog';
 import { SetupDialog } from './Setup/SetupDialog';
 import { ChatDialog } from './Chat/ChatDialog';
-import {  openImage, showFileOpenDialog } from '../../functions';
+import { clearPreviewCache, openImage, showFileOpenDialog } from '../../functions';
 import { exportType, layoutSides } from '../../../shared/constants';
 import { CompressSelectButton } from './CompressSelectButton';
 import { ImageViewer } from '../edit/ImageViewer';
@@ -54,7 +54,7 @@ export function BaseToolbar({ SubMenu }) {
   window.drawerPrintRef = drawerPrintRef;
   const { t } = useTranslation();
   const {
-    saveProject, newProject, openProject, mergeConfig, mergeGlobal, exportFile,
+    saveProject, newProject, openProject, mergeConfig, mergeGlobal, getExportPageCount, exportFile,
   } = useGlobalStore.getState();
   const canUndo = useGlobalStore(state => state.History.canUndo);
   const canRedo = useGlobalStore(state => state.History.canRedo);
@@ -73,7 +73,11 @@ export function BaseToolbar({ SubMenu }) {
       <GeneralIconButton
         label={t('toolbar.btnAdd')}
         icon={<NoteAddIcon />}
-        onClick={() => newProject()}
+        onClick={async () => {
+          newProject();
+          await getExportPageCount();
+          mergeGlobal({ imageVersion: Date.now() });
+        }}
       />
       <GeneralIconButton
         label={t('toolbar.btnOpen')}
@@ -83,7 +87,9 @@ export function BaseToolbar({ SubMenu }) {
           if(selectedFiles.length === 0) {
             return;
           }
-          openProject({ filePath: selectedFiles[0][0].realPath })
+          openProject({ filePath: selectedFiles[0][0].realPath });
+          await getExportPageCount();
+          mergeGlobal({ imageVersion: Date.now() });
         }}
       />
       <GeneralIconButton

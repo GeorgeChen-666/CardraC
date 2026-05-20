@@ -10,6 +10,7 @@
     "confirmDelete": "Do You Want Delete?"
   },
   "button": {
+    "save": "Save",
     "next": "Next",
     "prev": "Previous",
     "close": "Close",

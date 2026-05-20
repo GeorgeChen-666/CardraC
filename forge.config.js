@@ -185,6 +185,7 @@ module.exports = {
     },
     extraResource: [
       'src/main/locales',
+      'node_modules/sql.js/dist/sql-wasm.wasm'
     ],
     prune: true,
     derefSymlinks: true

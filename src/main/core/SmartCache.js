@@ -1,10 +1,8 @@
 // SmartCache.js
-import Keyv from 'keyv';
-import KeyvSqlite from '@keyv/sqlite';
 import path from 'path';
 import fs from 'fs';
 import { getAppDataPath } from '../../shared/functions';
-import { taskPool } from './TaskPool';
+import { FileKV } from './FileKV';
 
 export class SmartCache {
   constructor(name, options = {}) {
@@ -19,9 +17,10 @@ export class SmartCache {
     const dbPath = path.join(cacheDir, `pid-${this.pid}.db`);
     this.memoryCache = new Map();
     this.frequencyMap = new Map();
-    this.diskCache = new Keyv({
-      store: new KeyvSqlite(`sqlite://${dbPath}`),
-      ttl: 1000 * 60 * 60 * 24
+    this.diskCache = new FileKV({
+      dir: path.join(cacheDir, `pid-${this.pid}`),
+      ttl: 1000 * 60 * 60 * 24 / 1000, // 单位秒
+      pid: this.pid
     });
     this.allKeys = new Set();
     this.dbPath = dbPath;

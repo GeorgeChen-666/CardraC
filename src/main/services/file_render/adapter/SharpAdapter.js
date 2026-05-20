@@ -140,20 +140,25 @@ export class SharpAdapter extends IAdapter {
   async createImageLayer(data, x, y, width, height, rotation = 0) {
     try {
       let imageBuffer;
-
-      if (data.base64) {
+      if (data?.base64) {
         const base64Data = data.base64.replace(/^data:image\/\w+;base64,/, '');
         imageBuffer = Buffer.from(base64Data, 'base64');
-      } else if (data.path) {
+      } else if (data?.path && !data.path.startsWith('data:')) {
         imageBuffer = require('fs').readFileSync(data.path);
+      } else if (typeof data === 'string' || data?.path?.startsWith('data:')) {
+        const raw = typeof data === 'string' ? data : data.path;
+        const base64Data = raw.replace(/^data:image\/\w+;base64,/, '');
+        imageBuffer = Buffer.from(base64Data, 'base64');
       } else {
         return null;
       }
 
       let image = sharp(imageBuffer);
 
-      const scaledWidth = Math.ceil(this.scale(width));
-      const scaledHeight = Math.ceil(this.scale(height));
+      const scaledX = Math.ceil(this.scale(x));
+      const scaledY = Math.ceil(this.scale(y));
+      let scaledWidth = Math.ceil(this.scale(width));
+      let scaledHeight = Math.ceil(this.scale(height));
 
       image = image.resize(scaledWidth, scaledHeight, {
         fit: 'fill',
@@ -161,28 +166,49 @@ export class SharpAdapter extends IAdapter {
         withoutEnlargement: false
       });
 
-      let adjustedX = x;
-      let adjustedY = y;
+      let adjustedX = scaledX;
+      let adjustedY = scaledY;
 
       if (rotation === 180) {
-        adjustedX = x - width;
-        adjustedY = y + height;
+        adjustedX = scaledX - scaledWidth;
+        adjustedY = scaledY + scaledHeight;
       }
       if (rotation !== 0) {
         image = image.rotate(rotation, {
           background: { r: 0, g: 0, b: 0, alpha: 0 }
         });
+        const rotatedBuffer = await image.png().toBuffer();
+        const meta = await sharp(rotatedBuffer).metadata();
+        scaledWidth = meta.width;
+        scaledHeight = meta.height;
+        image = sharp(rotatedBuffer);
       }
 
-      image = image.png({
-        compressionLevel: this.compressionLevel,
-        effort: this.effort
+      const clampedLeft = Math.max(0, adjustedX);
+      const clampedTop = Math.max(0, adjustedY);
+      const clampedRight = Math.min(this.renderWidth, adjustedX + scaledWidth);
+      const clampedBottom = Math.min(this.renderHeight, adjustedY + scaledHeight);
+
+      if (clampedRight <= clampedLeft || clampedBottom <= clampedTop) {
+        return null;
+      }
+
+      const extractLeft = clampedLeft - adjustedX;
+      const extractTop = clampedTop - adjustedY;
+      const extractWidth = clampedRight - clampedLeft;
+      const extractHeight = clampedBottom - clampedTop;
+
+      image = image.extract({
+        left: extractLeft,
+        top: extractTop,
+        width: extractWidth,
+        height: extractHeight,
       });
 
       return {
-        input: await image.toBuffer(),
-        top: Math.ceil(this.scale(adjustedY)),
-        left: Math.ceil(this.scale(adjustedX))
+        input: await image.png({ compressionLevel: this.compressionLevel, effort: this.effort }).toBuffer(),
+        top: clampedTop,
+        left: clampedLeft,
       };
     } catch (error) {
       console.error('Failed to create image layer:', error);
@@ -190,29 +216,38 @@ export class SharpAdapter extends IAdapter {
     }
   }
 
+
   async createRectLayer(x, y, width, height, color) {
     try {
+      const scaledX = Math.ceil(this.scale(x));
+      const scaledY = Math.ceil(this.scale(y));
+      const scaledWidth = Math.ceil(this.scale(width));
+      const scaledHeight = Math.ceil(this.scale(height));
+
+      const clampedLeft = Math.max(0, scaledX);
+      const clampedTop = Math.max(0, scaledY);
+      const clampedRight = Math.min(this.renderWidth, scaledX + scaledWidth);
+      const clampedBottom = Math.min(this.renderHeight, scaledY + scaledHeight);
+
+      if (clampedRight <= clampedLeft || clampedBottom <= clampedTop) return null;
+
       const rectBuffer = await sharp({
         create: {
-          width: Math.ceil(this.scale(width)),
-          height: Math.ceil(this.scale(height)),
+          width: clampedRight - clampedLeft,
+          height: clampedBottom - clampedTop,
           channels: 4,
-          background: { r: color.r, g: color.g, b: color.b, alpha: 1 }
+          background: { r: color.r, g: color.g, b: color.b, alpha: color.a ?? 1 }
         }
       }).png().toBuffer();
 
-      return {
-        input: rectBuffer,
-        top: Math.ceil(this.scale(y)),
-        left: Math.ceil(this.scale(x))
-      };
+      return { input: rectBuffer, top: clampedTop, left: clampedLeft };
     } catch (error) {
       console.error('Failed to create rect layer:', error);
       return null;
     }
   }
 
-// SharpAdapter.js
+
   async createLineLayer(x1, y1, x2, y2, lineWidth, color, dash) {
     try {
       const PT_TO_PX = 1.333;
@@ -250,13 +285,26 @@ export class SharpAdapter extends IAdapter {
       </svg>
     `;
 
-      const lineBuffer = await sharp(Buffer.from(svg)).png().toBuffer();
+      const clampedLeft = Math.max(0, Math.ceil(minX - padding));
+      const clampedTop  = Math.max(0, Math.ceil(minY - padding));
+      const clampedRight  = Math.min(this.renderWidth,  Math.ceil(minX - padding) + boxWidth);
+      const clampedBottom = Math.min(this.renderHeight, Math.ceil(minY - padding) + boxHeight);
 
-      return {
-        input: lineBuffer,
-        top: Math.ceil(minY - padding),   // ✅ 调整位置
-        left: Math.ceil(minX - padding)   // ✅ 调整位置
-      };
+      if (clampedRight <= clampedLeft || clampedBottom <= clampedTop) return null;
+
+      const extractLeft = clampedLeft - Math.ceil(minX - padding);
+      const extractTop  = clampedTop  - Math.ceil(minY - padding);
+
+      const lineBuffer = await sharp(Buffer.from(svg))
+        .extract({
+          left: extractLeft,
+          top: extractTop,
+          width: clampedRight - clampedLeft,
+          height: clampedBottom - clampedTop,
+        })
+        .png().toBuffer();
+
+      return { input: lineBuffer, top: clampedTop, left: clampedLeft };
     } catch (error) {
       console.error('Failed to create line layer:', error);
       return null;

@@ -66,7 +66,7 @@ export const ImageContextMenu = ({ anchorPosition, onClose, imageElement, setFra
     if (imageElement) {
       const [index, side] = imageElement.dataset.cardMark.split('.')
         .map((v, i) => i ? v : +v);
-      const [ cardData ] = await openImage(false);
+      const [ cardData ] = await openImage(false, false);
       const imageData = cardData?.face;
       if(imageData) {
         cardEditByIndex(index, side, imageData);

@@ -115,11 +115,16 @@ export default (mainWindow) => {
       const emptySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="transparent"/></svg>`;
       return new Response(data ?? emptySvg, {
         status,
-        headers: {
-          'Content-Type': mimeType,
-          ...(status === 503 ? { 'Retry-After': '2' } : {})
-        }
+        headers: { 'Content-Type': mimeType }
       });
+    };
+
+    const buildImageResponse = async (imageData, imagePath) => {
+      const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+      const ext = imagePath.split('.').pop().toLowerCase();
+      const mimeTypes = { 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'gif': 'image/gif', 'webp': 'image/webp' };
+      return createResponse(buffer, mimeTypes[ext] || 'image/png', 200);
     };
 
     try {
@@ -131,69 +136,40 @@ export default (mainWindow) => {
       const imageKey = filePathToImageKey(imagePath);
       const expandedPath = expandPath(imagePath);
 
-      const resolveQuality = () => {
-        if (requestedQuality !== 'auto') return requestedQuality;
-        if (ImageStorage.keys().includes(imageKey)) return 'high';
+      // ✅ 第一步：先拿低质量图（快速响应）
+      let overviewData = await OverviewStorage[imageKey];
+      if (!overviewData) {
+        compressThumbnail(expandedPath, { maxWidth: 100 });
+        try {
+          const task = taskPool.getTaskByTagAndUniqueKey(imageCacheType.thumbnails, expandedPath);
+          if (task) await Promise.race([
+            taskPool.waitTask(task.id),
+            new Promise((_, reject) => setTimeout(() => reject(), 10000))
+          ]);
+          overviewData = await OverviewStorage[imageKey];
+        } catch (_) {}
+      }
 
-        const highTask = taskPool.getTaskByTagAndUniqueKey(imageCacheType.highQuality, expandedPath);
-        if (highTask?.status === 'completed') return 'high';
-
-        return 'low';
-      };
-
-      const quality = resolveQuality();
-      const storage = quality === 'low' ? OverviewStorage : ImageStorage;
-      const taskTag = quality === 'low' ? imageCacheType.thumbnails : imageCacheType.highQuality;
-
-      let imageData = await storage[imageKey];
-
-      if (!imageData) {
-        let task = taskPool.getTaskByTagAndUniqueKey(taskTag, expandedPath);
-
-        if (!task) {
-          if (quality === 'low') {
-            compressThumbnail(expandedPath, { maxWidth: 100 });
-          } else {
+      // ✅ 第二步：如果需要高清，尝试升级
+      if (requestedQuality !== 'low') {
+        let highData = await ImageStorage[imageKey];
+        if (!highData) {
+          const highTask = taskPool.getTaskByTagAndUniqueKey(imageCacheType.highQuality, expandedPath);
+          if (highTask?.status === 'pending' || highTask?.status === 'running') {
+            // 高清还在处理中，先返回低质量图
+            if (overviewData) return buildImageResponse(overviewData, imagePath);
+          } else if (!highTask) {
             const ext = imagePath.split('.').pop();
             compressHighQuality(expandedPath, { format: ext, ...getCompressParams() });
           }
-          task = taskPool.getTaskByTagAndUniqueKey(taskTag, expandedPath);
-        }
-
-        if (task && (task.status === 'pending' || task.status === 'running')) {
-          if (quality === 'low') {
-            try {
-              await Promise.race([
-                taskPool.waitTask(task.id),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 30000))
-              ]);
-              imageData = await storage[imageKey];
-            } catch (e) {
-              return createResponse(null, 'image/svg+xml', 500);
-            }
-          } else {
-            return createResponse(null, 'image/svg+xml', 503);
-          }
         } else {
-          await waitTime(500);
-          imageData = await storage[imageKey];
+          return buildImageResponse(highData, imagePath);
         }
       }
 
-      if (!imageData) {
-        return createResponse(null, 'image/svg+xml', 404);
-      }
-
-      const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
-      const buffer = Buffer.from(base64Data, 'base64');
-      const ext = imagePath.split('.').pop().toLowerCase();
-      const mimeTypes = {
-        'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
-        'png': 'image/png', 'gif': 'image/gif', 'webp': 'image/webp'
-      };
-      const mimeType = mimeTypes[ext] || 'image/png';
-
-      return createResponse(buffer, mimeType, 200);
+      // ✅ 第三步：返回低质量图，实在没有就返回默认空白
+      if (overviewData) return buildImageResponse(overviewData, imagePath);
+      return createResponse(null, 'image/svg+xml', 404);
 
     } catch (error) {
       console.error('Protocol handler error:', error);
