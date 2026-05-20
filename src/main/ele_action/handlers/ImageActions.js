@@ -205,15 +205,18 @@ export default (mainWindow) => {
     const totalDuration = (requestEndTime - requestStartTime).toFixed(2);
     console.log(`✨ Request completed in ${totalDuration}ms\n`);
 
-    console.log(`🔮 Pre-rendering next 3 pages...`);
-    for (let i = 1; i <= 3; i++) {
-      const nextIndex = actualIndex + i;
-      if (nextIndex < totalPages) {
-        prerenderPage(nextIndex, state, Config, exportFile, 'exportFile').catch(err => {
-          console.error(`Failed to prerender page ${nextIndex + 1}:`, err);
-        });
+    if(pageIndex > 0) {
+      console.log(`🔮 Pre-rendering next 3 pages...`);
+      for (let i = 1; i <= 3; i++) {
+        const nextIndex = actualIndex + i;
+        if (nextIndex < totalPages) {
+          prerenderPage(nextIndex, state, Config, exportFile, 'exportFile').catch(err => {
+            console.error(`Failed to prerender page ${nextIndex + 1}:`, err);
+          });
+        }
       }
     }
+
     mainWindow.webContents.send(returnChannel, result);
   });
 
