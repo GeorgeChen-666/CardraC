@@ -99,7 +99,7 @@ export const PrintPreview = forwardRef((props, ref) => {
   };
 
   const handleWheel = (e) => {
-    e.preventDefault();
+    // e.preventDefault();
 
     if (e.shiftKey) {
       if (e.deltaY < 0) {

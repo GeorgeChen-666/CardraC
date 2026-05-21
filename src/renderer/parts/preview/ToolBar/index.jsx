@@ -15,6 +15,7 @@ const SubMenu = () => {
   const { Global } = useGlobalStore.selectors;
   const exportPageCount = Global.exportPageCount() || 0;
   const exportPreviewIndex = Global.exportPreviewIndex() || 1;
+  const previewRef = window.printPreviewRef;
   useEffect(() => {
     CardList.length > 0 && getExportPageCount()
   }, [CardList]);

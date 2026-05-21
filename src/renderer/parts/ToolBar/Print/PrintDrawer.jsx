@@ -8,6 +8,7 @@ import { useGlobalStore } from '../../../state/store';
 import { NumberInput } from '../../../componments/NumberInput';
 import MenuItem from '@mui/material/MenuItem';
 import { useTranslation } from 'react-i18next';
+import './styles.css'
 
 export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
   const { t } = useTranslation();
@@ -92,9 +93,9 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
         overflow: 'auto',
         minHeight: 0,
       }}>
-        <p>
+        <div>
           <div>
-            <p>
+            <div className={'inputLine'}>
               <NumberInput
                 value={pageStart}
                 min={1} max={pageEnd}
@@ -113,8 +114,8 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
                   setPageEnd(v)
                 }}
               />
-            </p>
-            <p>
+            </div>
+            <div className={'inputLine'}>
               <TextField
                 slotProps={{
                   inputLabel: {
@@ -133,12 +134,12 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
                   { label: t('configPrintDialog.printFilter_even'), value: 'even' },
                 ].map(item => (<MenuItem value={item.value}>{item.label}</MenuItem>))}
               </TextField>
-            </p>
+            </div>
           </div>
-        </p>
-        <p>
+        </div>
+        <div>
           <div>{t('configPrintDialog.printParams')}</div>
-          <p>
+          <div className={'inputLine'}>
             <div style={{ textAlign: 'right' }}>
               <Button
               size='small'
@@ -166,8 +167,8 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
               }}
             />
             mm
-          </p>
-          <p>
+          </div>
+          <div className={'inputLine'}>
             <NumberInput
               value={printConfig.scaleX}
               min={1} max={200}
@@ -187,8 +188,8 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
               }}
             />
             %
-          </p>
-        </p>
+          </div>
+        </div>
       </Box>
 
       <Divider />
