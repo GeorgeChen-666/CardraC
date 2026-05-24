@@ -19,13 +19,17 @@ export class SimpleStore {
     }
   }
 
-  get() {
+  get(defaultValue = {}) {
     try {
       const data = fs.readFileSync(this.configPath, 'utf-8');
-      return JSON.parse(data);
+      const result = JSON.parse(data);
+      if (!result || (typeof result === 'object' && Object.keys(result).length === 0)) {
+        return defaultValue;
+      }
+      return result;
     } catch (e) {
       console.error(`Failed to read config ${this.name}:`, e);
-      return {};
+      return defaultValue;
     }
   }
 

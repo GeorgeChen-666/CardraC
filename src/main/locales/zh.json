@@ -133,6 +133,7 @@
     "flipRemark": "建议打印前观察整包纸的整齐程度，选择尺寸比较一致的边作为轴来翻面（一般都是长边比短边更整齐）。这样即使纸张尺寸不标准，打印的偏移也会比较一致，比较好校准。"
   },
   "configPrintDialog": {
+    "targetPrinter": "目标打印机",
     "pageRange": "页面起止",
     "printFilter": "打印范围",
     "printFilter_all": "全部",

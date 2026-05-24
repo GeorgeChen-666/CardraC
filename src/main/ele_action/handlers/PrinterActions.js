@@ -5,18 +5,80 @@ import { printSVGs } from '../../functions';
 import { clearPrerenderCache, getConfigStore } from '../../services/store';
 
 
+function getSystemDefaultPrinterName() {
+  return new Promise((resolve) => {
+    const { exec } = require('child_process');
 
+    if (process.platform === 'win32') {
+      // ✅ 已修复：Default=TRUE 在下一行，Name=在后
+      exec('wmic printer get Name,Default /value', (err, stdout) => {
+        if (err) {
+          console.error('获取默认打印机失败:', err);
+          return resolve(null);
+        }
+
+        let defaultFound = false;
+        let defaultPrinter = null;
+
+        // 按行解析
+        const lines = stdout.split(/\r?\n/).map(line => line.trim());
+
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+
+          // 匹配 Default=TRUE
+          if (line === 'Default=TRUE') {
+            defaultFound = true;
+          }
+
+          // 匹配 Name= 并且上一行是 Default=TRUE
+          if (defaultFound && line.startsWith('Name=')) {
+            defaultPrinter = line.replace('Name=', '').trim();
+            break;
+          }
+
+          // 遇到空行重置状态
+          if (line === '') {
+            defaultFound = false;
+          }
+        }
+
+        resolve(defaultPrinter);
+      });
+    } else if (process.platform === 'darwin') {
+      // macOS
+      exec('lpstat -d', (err, stdout) => {
+        if (err) return resolve(null);
+        const match = stdout.match(/system default destination: (.+)/i);
+        resolve(match ? match[1].trim() : null);
+      });
+    } else {
+      // Linux
+      exec('lpstat -d', (err, stdout) => {
+        if (err) return resolve(null);
+        const match = stdout.match(/default destination: (.+)/i);
+        resolve(match ? match[1].trim() : null);
+      });
+    }
+  });
+}
 
 export default (mainWindow) => {
   ipcMain.on(eleActions.getPrinters, async (event, args) => {
-    const { returnChannel, progressChannel } = args;
+    const { returnChannel } = args;
 
-    // List available printers
-    const printers = await mainWindow.webContents.getPrintersAsync();
-    mainWindow.webContents.send(returnChannel, {
-      printers
-    });
+    try {
+      let printers = await mainWindow.webContents.getPrintersAsync();
+      const defaultPrinterName = await getSystemDefaultPrinterName();
+      printers = printers.map(p => ({
+        ...p,
+        isDefault: p.name === defaultPrinterName, // 模拟出来
+      }));
+      mainWindow.webContents.send(returnChannel, { printers });
 
+    } catch (err) {
+      mainWindow.webContents.send(returnChannel, { printers: [] });
+    }
   });
   ipcMain.on(eleActions.adjustGuidePrint, async (event, args) => {
     const { returnChannel, progressChannel } = args;

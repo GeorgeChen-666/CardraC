@@ -133,6 +133,7 @@
     "flipRemark": "It is recommended to observe the neatness of the entire pack of paper before printing, and choose the edges with relatively consistent sizes as the axis for flipping (generally, the long edges are neater than the short edges). This way, even if the paper sizes are not standard, the printing offsets will be relatively consistent, making calibration easier."
   },
   "configPrintDialog": {
+    "targetPrinter": "Target Printer",
     "pageRange": "Pages",
     "printFilter": "Print Filter",
     "printFilter_all": "All",

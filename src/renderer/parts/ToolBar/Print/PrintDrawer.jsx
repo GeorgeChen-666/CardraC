@@ -2,7 +2,7 @@ import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react
 import { Box, Divider, TextField } from '@mui/material';
 import Button from '@mui/material/Button';
 import { GuideDialog } from './GuideDialog';
-import { callMain } from '../../../functions';
+import { callMain, getPrinters } from '../../../functions';
 import { eleActions } from '../../../../shared/constants';
 import { useGlobalStore } from '../../../state/store';
 import { NumberInput } from '../../../componments/NumberInput';
@@ -26,6 +26,8 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
   const [pageStart, setPageStart] = React.useState(1);
   const [pageEnd, setPageEnd] = React.useState(exportPageCount);
   const [pageFilter, setPageFilter] = React.useState('all');
+  const [printers, setPrinters] = React.useState([]);
+  const [defaultPrinter, setDefaultPrinter] = React.useState(null);
 
   useEffect(() => {
     setPageStart(1);
@@ -36,10 +38,19 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
       console.log('openDrawer called'); //添加日志
       setOpen(true);
       onOpenChange?.(true);
-      const rs = await callMain(eleActions.loadPrintConfig);
-      setPrintConfig(rs);
+      const { printConfig } = await callMain(eleActions.loadPrintConfig);
+      console.log('loadPrintConfig', printConfig)
+      setPrintConfig(printConfig);
       setPageStart(1);
-      setPageFilter('all')
+      setPageFilter('all');
+      const { printers } = await getPrinters();
+      setPrinters(printers);
+      if(printConfig?.defaultPrinter) {
+        setDefaultPrinter(printConfig.defaultPrinter);
+      } else {
+        printers.forEach((p) => p.isDefault && setDefaultPrinter(p.name));
+      }
+      console.log('printers', printers)
     },
     closeDrawer: async () => {
       console.log('closeDrawer called'); //添加日志
@@ -96,13 +107,34 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
         <div>
           <div>
             <div className={'inputLine'}>
+              <TextField
+                slotProps={{
+                  inputLabel: {
+                    shrink: true,
+                  },
+                }}
+                sx={{ width: 260 }} label={t('configPrintDialog.targetPrinter')} select size='small'
+                onChange={(e, v) => {
+                  setDefaultPrinter(v?.props?.value);
+                  updatePrintConfig({ defaultPrinter: v?.props?.value });
+                }}
+                value={defaultPrinter}
+              >
+                {
+                  printers
+                    .map(p => ({ label: p?.name, value: p?.name }))
+                    .map(item => (<MenuItem value={item.value}>{item.label}</MenuItem>))
+                }
+              </TextField>
+            </div>
+            <div className={'inputLine'}>
               <NumberInput
                 value={pageStart}
                 min={1} max={pageEnd}
                 step={1}
                 width={145} label={t('configPrintDialog.pageRange')}
-                onChange={(e,v) => {
-                  setPageStart(v)
+                onChange={(e, v) => {
+                  setPageStart(v);
                 }}
               />
               <NumberInput
@@ -110,8 +142,8 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
                 min={pageStart} max={pageEnd}
                 step={1}
                 width={145}
-                onChange={(e,v) => {
-                  setPageEnd(v)
+                onChange={(e, v) => {
+                  setPageEnd(v);
                 }}
               />
             </div>
@@ -123,8 +155,8 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
                   },
                 }}
                 sx={{ width: 260 }} label={t('configPrintDialog.printFilter')} select size='small'
-                onChange={(e,v) => {
-                  setPageFilter(v?.props?.value)
+                onChange={(e, v) => {
+                  setPageFilter(v?.props?.value);
                 }}
                 value={pageFilter}
               >
@@ -142,19 +174,19 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
           <div className={'inputLine'}>
             <div style={{ textAlign: 'right' }}>
               <Button
-              size='small'
-              onClick={() => {
-                dialogGuideRef.current.openDialog();
-              }}
-            >{t('configPrintDialog.adjustOffsetGuide')}</Button>
+                size='small'
+                onClick={() => {
+                  dialogGuideRef.current.openDialog();
+                }}
+              >{t('configPrintDialog.adjustOffsetGuide')}</Button>
             </div>
             <NumberInput
               value={printConfig.offsetX}
               min={0} max={50}
               step={0.1}
               width={145} label={t('configDialog.offsetXY')}
-              onChange={(e,v) => {
-                updatePrintConfig({offsetX:v});
+              onChange={(e, v) => {
+                updatePrintConfig({ offsetX: v });
               }}
             />
             <NumberInput

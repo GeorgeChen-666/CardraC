@@ -71,11 +71,11 @@ export default (mainWindow) => {
   });
   ipcMain.on(eleActions.savePrintConfig, (event, args) => {
     const { printConfig } = args;
-    printStore.set('printConfig', printConfig);
+    printStore.set(printConfig);
   });
   ipcMain.on(eleActions.loadPrintConfig, (event, args) => {
     const { returnChannel } = args;
-    const result = printStore.get('printConfig', {
+    const result = printStore.get({
         scaleX: 100,
         scaleY: 100,
         offsetX: 0,
