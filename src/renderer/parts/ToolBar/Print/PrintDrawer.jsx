@@ -17,7 +17,7 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
   const dialogGuideRef = useRef(null);
   const cancelRef = React.useRef();
   const { Global } = useGlobalStore.selectors;
-
+  const { getExportPageCount } = useGlobalStore.getState();
   const {
     printPages
   } = useGlobalStore.getState();
@@ -36,6 +36,7 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
   useImperativeHandle(ref, () => ({
     openDrawer: async () => {
       console.log('openDrawer called'); //添加日志
+      await getExportPageCount();
       setOpen(true);
       onOpenChange?.(true);
       const { printConfig } = await callMain(eleActions.loadPrintConfig);
