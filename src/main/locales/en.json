@@ -154,7 +154,12 @@
     "guideStep2_button1": "Completed",
     "guideStep3_title": "Apply offset",
     "guideStep3_body": "The offset is about to be set: OffsetX {{x}}, OffsetY {{y}}",
-    "guideStep3_button1": "Apply"
+    "guideStep3_button1": "Apply",
+    "pageNumber": "Page Number",
+    "pageNumberError": "Format incorrect.",
+    "custom": "Custom",
+    "default": "Default",
+    "paperSize": "Paper Size"
   },
   "printPreview": {
     "contextMenu": {

@@ -154,7 +154,12 @@
     "guideStep2_button1": "测量完成",
     "guideStep3_title": "应用偏移量",
     "guideStep3_body": "需要设定偏移：横向{{x}}，纵向{{y}}",
-    "guideStep3_button1": "应用结果"
+    "guideStep3_button1": "应用结果",
+    "pageNumber": "页码",
+    "pageNumberError": "格式错误，.",
+    "custom": "自定义",
+    "default": "默认",
+    "paperSize": "纸张尺寸"
   },
   "printPreview": {
     "contextMenu": {

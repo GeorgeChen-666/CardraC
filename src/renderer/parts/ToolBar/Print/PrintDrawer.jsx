@@ -175,13 +175,13 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
                   }}
                   placeholder={'e.g. 1-5,8,11-13'}
                   sx={{ width: 260 }}
-                  label={'页码'}
+                  label={t('configPrintDialog.pageNumber')}
                   size='small'
                   value={customPageIndex}
                   onChange={(e) => setCustomPageIndex(e.target.value)}
                   onBlur={() => setIsPageRangeError(!validateRangeString(customPageIndex))}
                   error={isPageRangeError}
-                  helperText={isPageRangeError ? '格式不合法' : ''}
+                  helperText={isPageRangeError ? t('configPrintDialog.pageNumberError') : ''}
                 />
               )}
               {!isCustomPageIndex && (<TextField
@@ -207,7 +207,7 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
                 onChange={(e, v) => {
                   setIsCustomPageIndex(v)
                 }}
-              />自定义
+              />{t('configPrintDialog.custom')}
             </div>
             <div className={'inputLine'}>
               <TextField
@@ -216,14 +216,14 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
                     shrink: true,
                   },
                 }}
-                sx={{ width: 260 }} label={'纸张尺寸'} select size='small'
+                sx={{ width: 260 }} label={t('configPrintDialog.paperSize')} select size='small'
                 onChange={(e, v) => {
                   setPaperSize(v?.props?.value);
                   updatePrintConfig({ paperSize: v?.props?.value });
                 }}
                 value={paperSize}
               >
-                <MenuItem value={'_'}>默认</MenuItem>
+                <MenuItem value={'_'}>{t('configPrintDialog.default')}</MenuItem>
                 {(defaultPrinter?.paperSizes ?? []).map(item => (<MenuItem value={item}>{item}</MenuItem>))}
               </TextField>
             </div>
