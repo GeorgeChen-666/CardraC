@@ -12,7 +12,7 @@ import { useGlobalStore } from '../../../state/store';
 import { emptyImg } from '../../../../shared/constants';
 import { useTranslation } from 'react-i18next';
 
-export const ImageContextMenu = ({ anchorPosition, onClose, imageElement, setFrame }) => {
+export const ImageContextMenu = ({ anchorPosition, onClose, imageElement }) => {
   const open = Boolean(anchorPosition);
   const { t } = useTranslation();
   const {
@@ -40,7 +40,6 @@ export const ImageContextMenu = ({ anchorPosition, onClose, imageElement, setFra
             cardEditByIndex(index, side, imageData);
             await clearPreviewCache();
             await getExportPageCount();
-            setFrame(ov => ov + 1)
           }
         }
         catch (e) {
@@ -57,7 +56,6 @@ export const ImageContextMenu = ({ anchorPosition, onClose, imageElement, setFra
         .map((v, i) => i ? v : +v);
       cardEditByIndex(index, side, null);
       await clearPreviewCache();
-      setFrame(ov => ov + 1)
     }
     onClose();
   };
@@ -72,7 +70,6 @@ export const ImageContextMenu = ({ anchorPosition, onClose, imageElement, setFra
         cardEditByIndex(index, side, imageData);
         await clearPreviewCache();
         await getExportPageCount();
-        setFrame(ov => ov + 1)
       }
     }
     onClose();

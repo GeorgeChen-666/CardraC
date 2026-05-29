@@ -151,28 +151,14 @@ export class TaskPool {
   }
 
   /**
-   * 创建立即执行的柯里化任务（最高优先级，绕过队列）
-   * @param {Function} fn - 任务函数
-   * @returns {Function} 柯里化函数
+   * 创建立即执行的柯里化任务（最高优先级，插队到队列最前）
    */
-  taskImmediate(fn) {
-    return async (...args) => {
-      // 等待全局并发限制
-      while (TaskPool.globalRunningCount >= TaskPool.maxGlobalConcurrent) {
-        await new Promise(resolve => setImmediate(resolve));
-      }
-
-      TaskPool.incrementGlobal();
-      this.runningCount++;
-
-      try {
-        // ✅ 直接调用，不注入 task 对象
-        return await fn(...args);
-      } finally {
-        TaskPool.decrementGlobal();
-        this.runningCount--;
-        this._scheduleProcessQueue();
-      }
+  taskImmediate(fn, options = {}) {
+    return (...args) => {
+      return this.task(fn, {
+        ...options,
+        priority: Number.MAX_SAFE_INTEGER,  // 最高优先级，插队到队列最前
+      })(...args);
     };
   }
 

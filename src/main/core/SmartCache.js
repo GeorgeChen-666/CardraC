@@ -19,61 +19,57 @@ export class SmartCache {
     this.frequencyMap = new Map();
     this.diskCache = new FileKV({
       dir: path.join(cacheDir, `pid-${this.pid}`),
-      ttl: 1000 * 60 * 60 * 24 / 1000, // 单位秒
+      ttl: 1000 * 60 * 60 * 24 / 1000,
       pid: this.pid
     });
     this.allKeys = new Set();
     this.dbPath = dbPath;
     this.cacheDir = cacheDir;
+
+    this._writeQueue = new Map();   // key -> value 待写队列
+    this._writeTimer = null;
+    this._diskReadLock = new Map(); // key -> Promise 防并发读
+
     this.cleanupOldCaches();
     this.registerCleanup();
 
     const internalProps = new Set([
       'name', 'pid', 'maxMemorySize', 'memoryCache', 'frequencyMap',
       'diskCache', 'allKeys', 'dbPath', 'cacheDir',
+      '_writeQueue', '_writeTimer', '_diskReadLock',
       'get', 'set', 'delete', 'clear', 'has', 'keys', 'size',
       'getAverageFrequency', 'evictLFU', 'cleanupOldCaches',
       'isProcessRunning', 'registerCleanup', 'toPlainObject',
-      'toPlainObjectAsync', 'getFrequencyStats'
+      'toPlainObjectAsync', 'getFrequencyStats',
+      '_scheduleDiskWrite', 'flush'
     ]);
 
     return new Proxy(this, {
       get: (target, prop) => {
-        // ✅ 特殊处理
         if (prop === 'toJSON') return () => target.toPlainObject();
-
-        // ✅ 如果是内部属性或方法，直接返回
         if (internalProps.has(prop) || typeof target[prop] === 'function') {
           return typeof target[prop] === 'function'
             ? target[prop].bind(target)
             : target[prop];
         }
-
-        // ✅ 返回 Promise
         return target.get(prop);
       },
 
       set: (target, prop, value) => {
-        // ✅ 如果是内部属性，直接设置
         if (internalProps.has(prop)) {
           target[prop] = value;
           return true;
         }
-
-        // ✅ 调用异步 set，但不等待
         target.set(prop, value).catch(err => {
           console.error(`Error in proxy set:`, err);
         });
-
         return true;
       },
 
       deleteProperty: (target, prop) => {
-        // ✅ 调用异步 delete，但不等待
         target.delete(prop).catch(err => {
           console.error(`Error in proxy delete:`, err);
         });
-
         return true;
       },
 
@@ -85,6 +81,39 @@ export class SmartCache {
         }
       }
     });
+  }
+
+  _scheduleDiskWrite() {
+    if (this._writeTimer) return;
+    this._writeTimer = setTimeout(async () => {
+      this._writeTimer = null;
+      const queue = new Map(this._writeQueue);
+      this._writeQueue.clear();
+      for (const [key, value] of queue) {
+        try {
+          await this.diskCache.set(key, value);
+        } catch (e) {
+          console.error(`Failed to write disk cache: ${key}`, e);
+        }
+      }
+    }, 500);
+  }
+
+  // 强制立即写盘，应用退出前调用
+  async flush() {
+    if (this._writeTimer) {
+      clearTimeout(this._writeTimer);
+      this._writeTimer = null;
+    }
+    const queue = new Map(this._writeQueue);
+    this._writeQueue.clear();
+    for (const [key, value] of queue) {
+      try {
+        await this.diskCache.set(key, value);
+      } catch (e) {
+        console.error(`Failed to flush disk cache: ${key}`, e);
+      }
+    }
   }
 
   getAverageFrequency() {
@@ -103,11 +132,19 @@ export class SmartCache {
       }
     }
     if (leastFreqKey) {
+      if (!this._writeQueue.has(leastFreqKey)) {
+        const value = this.memoryCache.get(leastFreqKey);
+        if (value !== undefined) {
+          this._writeQueue.set(leastFreqKey, value);
+          this._scheduleDiskWrite();
+        }
+      }
       this.memoryCache.delete(leastFreqKey);
       this.frequencyMap.delete(leastFreqKey);
       console.log(`💾 LFU 淘汰到磁盘: ${leastFreqKey} (访问次数: ${minFreq})`);
     }
   }
+
 
   async get(key) {
     if (this.memoryCache.has(key)) {
@@ -115,21 +152,34 @@ export class SmartCache {
       return this.memoryCache.get(key);
     }
 
-    const value = await this.diskCache.get(key);
-    // const value = await taskPool.taskImmediate(this.diskCache.get.bind(this.diskCache))(key);
-
-    if (value !== undefined) {
-      if (this.memoryCache.size >= this.maxMemorySize) {
-        this.evictLFU();
-      }
-      this.memoryCache.set(key, value);
-      this.allKeys.add(key);
-      const avgFreq = this.getAverageFrequency();
-      this.frequencyMap.set(key, avgFreq);
-      console.log(`📥 从磁盘加载: ${key}, 初始热度: ${avgFreq}`);
+    // 先检查写队列，避免读到旧数据
+    if (this._writeQueue.has(key)) {
+      return this._writeQueue.get(key);
     }
 
-    return value;
+    // 防止同一个 key 并发读盘
+    if (this._diskReadLock.has(key)) {
+      return this._diskReadLock.get(key);
+    }
+
+    const readPromise = this.diskCache.get(key).then(value => {
+      this._diskReadLock.delete(key);
+      if (value !== undefined) {
+        if (this.memoryCache.size >= this.maxMemorySize) this.evictLFU();
+        this.memoryCache.set(key, value);
+        this.allKeys.add(key);
+        const avgFreq = this.getAverageFrequency();
+        this.frequencyMap.set(key, avgFreq);
+        console.log(`📥 从磁盘加载: ${key}, 初始热度: ${avgFreq}`);
+      }
+      return value;
+    }).catch(e => {
+      this._diskReadLock.delete(key);
+      throw e;
+    });
+
+    this._diskReadLock.set(key, readPromise);
+    return readPromise;
   }
 
   async set(key, value) {
@@ -139,16 +189,18 @@ export class SmartCache {
     }
     this.memoryCache.set(key, value);
     if (!this.frequencyMap.has(key)) {
-      const avgFreq = this.getAverageFrequency();
-      this.frequencyMap.set(key, avgFreq);
+      this.frequencyMap.set(key, this.getAverageFrequency());
     }
-    await this.diskCache.set(key, value);
+    // 写入队列，延迟批量写盘
+    this._writeQueue.set(key, value);
+    this._scheduleDiskWrite();
   }
 
   async delete(key) {
     this.allKeys.delete(key);
     this.memoryCache.delete(key);
     this.frequencyMap.delete(key);
+    this._writeQueue.delete(key);
     await this.diskCache.delete(key);
   }
 
@@ -156,6 +208,11 @@ export class SmartCache {
     this.allKeys.clear();
     this.memoryCache.clear();
     this.frequencyMap.clear();
+    this._writeQueue.clear();
+    if (this._writeTimer) {
+      clearTimeout(this._writeTimer);
+      this._writeTimer = null;
+    }
     await this.diskCache.clear();
   }
 
@@ -172,7 +229,7 @@ export class SmartCache {
   }
 
   getFrequencyStats() {
-    const stats = {
+    return {
       total: this.frequencyMap.size,
       average: this.getAverageFrequency(),
       min: Math.min(...this.frequencyMap.values()),
@@ -181,7 +238,6 @@ export class SmartCache {
         .sort((a, b) => b[1] - a[1])
         .slice(0, 10)
     };
-    return stats;
   }
 
   cleanupOldCaches() {
@@ -213,8 +269,9 @@ export class SmartCache {
   }
 
   registerCleanup() {
-    const cleanup = () => {
+    const cleanup = async () => {
       try {
+        await this.flush(); // 退出前强制写盘
         if (fs.existsSync(this.dbPath)) fs.unlinkSync(this.dbPath);
         [`${this.dbPath}-wal`, `${this.dbPath}-shm`].forEach(f => {
           if (fs.existsSync(f)) fs.unlinkSync(f);
@@ -222,10 +279,10 @@ export class SmartCache {
       } catch (err) {}
     };
     let called = false;
-    const safe = () => { if (!called) { called = true; cleanup(); } };
+    const safe = async () => { if (!called) { called = true; await cleanup(); } };
     process.on('exit', safe);
-    process.on('SIGINT', () => { safe(); process.exit(0); });
-    process.on('SIGTERM', () => { safe(); process.exit(0); });
+    process.on('SIGINT', async () => { await safe(); process.exit(0); });
+    process.on('SIGTERM', async () => { await safe(); process.exit(0); });
   }
 
   toPlainObject(fast = true) {
@@ -233,8 +290,10 @@ export class SmartCache {
     for (const key of this.allKeys) {
       if (this.memoryCache.has(key)) {
         obj[key] = this.memoryCache.get(key);
+      } else if (this._writeQueue.has(key)) {
+        obj[key] = this._writeQueue.get(key);
       } else if (fast) {
-        obj[key] = "==disk data==";
+        obj[key] = '==disk data==';
       } else {
         obj[key] = undefined;
       }
@@ -247,8 +306,10 @@ export class SmartCache {
     for (const key of this.allKeys) {
       if (this.memoryCache.has(key)) {
         obj[key] = this.memoryCache.get(key);
+      } else if (this._writeQueue.has(key)) {
+        obj[key] = this._writeQueue.get(key);
       } else if (fast) {
-        obj[key] = "==disk data==";
+        obj[key] = '==disk data==';
       } else {
         obj[key] = await this.get(key);
       }

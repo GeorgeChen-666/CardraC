@@ -1,5 +1,5 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
-import { Box, Divider, TextField } from '@mui/material';
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { Box, Checkbox, Divider, TextField } from '@mui/material';
 import Button from '@mui/material/Button';
 import { GuideDialog } from './GuideDialog';
 import { callMain, getPrinters } from '../../../functions';
@@ -15,7 +15,6 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
   const [open, setOpen] = React.useState(false);
   const [printConfig, setPrintConfig] = React.useState({});
   const dialogGuideRef = useRef(null);
-  const cancelRef = React.useRef();
   const { Global } = useGlobalStore.selectors;
   const { getExportPageCount } = useGlobalStore.getState();
   const {
@@ -28,7 +27,8 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
   const [pageFilter, setPageFilter] = React.useState('all');
   const [printers, setPrinters] = React.useState([]);
   const [defaultPrinter, setDefaultPrinter] = React.useState(null);
-
+  const [paperSize, setPaperSize] = React.useState('_');
+  const [isCustomPageIndex, setIsCustomPageIndex] = React.useState(false);
   useEffect(() => {
     setPageStart(1);
     setPageEnd(exportPageCount);
@@ -46,10 +46,10 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
       setPageFilter('all');
       const { printers } = await getPrinters();
       setPrinters(printers);
-      if(printConfig?.defaultPrinter) {
-        setDefaultPrinter(printConfig.defaultPrinter);
-      } else {
-        printers.forEach((p) => p.isDefault && setDefaultPrinter(p.name));
+      const saved = printers.find(p => p.printerName === printConfig?.defaultPrinter);
+      setDefaultPrinter(saved ?? printers.find(p => p.isDefault)?.printerName);
+      if(printConfig?.paperSize) {
+        setPaperSize(printConfig.paperSize);
       }
       console.log('printers', printers)
     },
@@ -77,7 +77,24 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
       callMain(eleActions.savePrintConfig, {printConfig: result})
       return result
     });
-
+  }
+  const [customPageIndex, setCustomPageIndex] = useState('');
+  const [isPageRangeError, setIsPageRangeError] = useState(false);
+  function validateRangeString(str) {
+    if (!str || typeof str !== 'string') return false;
+    const pattern = /^(\d+(-\d+)?\/)*(\d+(-\d+)?\/?)?$/;
+    if (!pattern.test(str)) return false;
+    const isValidPage = (num) => Number.isInteger(num) && num > 0;
+    const parts = str.split('/').filter(Boolean);
+    for (const part of parts) {
+      if (part.includes('-')) {
+        const [start, end] = part.split('-').map(Number);
+        if (!isValidPage(start) || !isValidPage(end) || start >= end) return false;
+      } else {
+        if (!isValidPage(Number(part))) return false;
+      }
+    }
+    return true;
   }
   return (
     <Box
@@ -117,18 +134,18 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
                 sx={{ width: 260 }} label={t('configPrintDialog.targetPrinter')} select size='small'
                 onChange={(e, v) => {
                   setDefaultPrinter(v?.props?.value);
-                  updatePrintConfig({ defaultPrinter: v?.props?.value });
+                  updatePrintConfig({ defaultPrinter: v?.props?.value?.printerName });
                 }}
                 value={defaultPrinter}
               >
                 {
                   printers
-                    .map(p => ({ label: p?.name, value: p?.name }))
+                    .map(p => ({ label: p?.printerName, value: p }))
                     .map(item => (<MenuItem value={item.value}>{item.label}</MenuItem>))
                 }
               </TextField>
             </div>
-            <div className={'inputLine'}>
+            {!isCustomPageIndex && (<div className={'inputLine'} style={{ paddingBottom: 0 }}>
               <NumberInput
                 value={pageStart}
                 min={1} max={pageEnd}
@@ -147,9 +164,27 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
                   setPageEnd(v);
                 }}
               />
-            </div>
+            </div>)}
             <div className={'inputLine'}>
-              <TextField
+              {isCustomPageIndex && (
+                <TextField
+                  slotProps={{
+                    inputLabel: {
+                      shrink: true,
+                    },
+                  }}
+                  placeholder={'e.g. 1-5,8,11-13'}
+                  sx={{ width: 260 }}
+                  label={'页码'}
+                  size='small'
+                  value={customPageIndex}
+                  onChange={(e) => setCustomPageIndex(e.target.value)}
+                  onBlur={() => setIsPageRangeError(!validateRangeString(customPageIndex))}
+                  error={isPageRangeError}
+                  helperText={isPageRangeError ? '格式不合法' : ''}
+                />
+              )}
+              {!isCustomPageIndex && (<TextField
                 slotProps={{
                   inputLabel: {
                     shrink: true,
@@ -166,10 +201,35 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
                   { label: t('configPrintDialog.printFilter_odd'), value: 'odd' },
                   { label: t('configPrintDialog.printFilter_even'), value: 'even' },
                 ].map(item => (<MenuItem value={item.value}>{item.label}</MenuItem>))}
+              </TextField>)}
+              <Checkbox
+                checked={isCustomPageIndex}
+                onChange={(e, v) => {
+                  setIsCustomPageIndex(v)
+                }}
+              />自定义
+            </div>
+            <div className={'inputLine'}>
+              <TextField
+                slotProps={{
+                  inputLabel: {
+                    shrink: true,
+                  },
+                }}
+                sx={{ width: 260 }} label={'纸张尺寸'} select size='small'
+                onChange={(e, v) => {
+                  setPaperSize(v?.props?.value);
+                  updatePrintConfig({ paperSize: v?.props?.value });
+                }}
+                value={paperSize}
+              >
+                <MenuItem value={'_'}>默认</MenuItem>
+                {(defaultPrinter?.paperSizes ?? []).map(item => (<MenuItem value={item}>{item}</MenuItem>))}
               </TextField>
             </div>
           </div>
         </div>
+        <hr/>
         <div>
           <div>{t('configPrintDialog.printParams')}</div>
           <div className={'inputLine'}>
@@ -234,18 +294,38 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
         justifyContent: 'flex-end',
         flexShrink: 0,
       }}>
-        <Button ref={cancelRef} onClick={() => {
+        <Button
+          disabled={isCustomPageIndex && isPageRangeError}
+          onClick={() => {
           handleClose();
-          const pageList = ((start, end, isOdd = 0) =>
-            new Array(end - start + 1)
-              .fill(0).map((_, i) => i + start)
-              .filter((_, i) => (i % 2 === isOdd) || isOdd === 2)
-          )(pageStart, pageEnd, ['odd', 'even', 'all'].indexOf(pageFilter));
+          let pageList = [];
+          if(isCustomPageIndex) {
+            if(isPageRangeError) return;
+            const result = new Set();
+            str.split('、').split(',').forEach(part => {
+              if (part.includes('-')) {
+                const [start, end] = part.split('-').map(Number);
+                for (let i = start; i <= end; i++) {
+                  result.add(i);
+                }
+              } else {
+                result.add(Number(part));
+              }
+            });
+            pageList = Array.from(result).sort((a, b) => a - b);
+          }
+          else {
+            pageList = ((start, end, isOdd = 0) =>
+                new Array(end - start + 1)
+                  .fill(0).map((_, i) => i + start)
+                  .filter((_, i) => (i % 2 === isOdd) || isOdd === 2)
+            )(pageStart, pageEnd, ['odd', 'even', 'all'].indexOf(pageFilter));
+          }
           printPages({ pageList, printConfig });
         }} variant='contained'>
           {t('button.print')}
         </Button>
-        <Button ref={cancelRef} onClick={handleClose}>
+        <Button onClick={handleClose}>
           {t('button.cancel')}
         </Button>
       </Box>

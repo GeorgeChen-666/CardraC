@@ -5,41 +5,38 @@ import {
   getPagedImageListByCardList,
   isNeedRotation,
 } from './utils';
-import { emptyImg, layoutSides } from '../../../shared/constants';
+import { emptyImg, imageCacheType, layoutSides } from '../../../shared/constants';
 import { getConfigStore, ImageStorage, PreviewStorage } from '../store';
 import { SVGAdapter } from './adapter/SVGAdapter';
 import { filePathToImageKey, fixFloat } from '../../../shared/functions';
+import { taskPool } from '../../core/TaskPool';
 
 export const colorCache = new Map();
 const imageAverageColorSet = new Map();
-
+// taskImmediate
 const loadImageAverageColor = async () => {
   imageAverageColorSet.clear();
   const jobs = ImageStorage.keys().map(key => {
-    return (async () => {
-      if(!imageAverageColorSet.has(key)) {
-        try {
-          if (colorCache.has(key)) {
-            imageAverageColorSet.set(key, colorCache.get(key));
-          } else {
-            const averageColor = await getBorderAverageColors(await ImageStorage[key]);
-            imageAverageColorSet.set(key, averageColor);
-            colorCache.set(key, averageColor);
-          }
+    return taskPool.taskImmediate(async () => {
+      if (imageAverageColorSet.has(key)) return;
+      try {
+        if (colorCache.has(key)) {
+          imageAverageColorSet.set(key, colorCache.get(key));
+        } else {
+          const averageColor = await getBorderAverageColors(await ImageStorage[key]);
+          imageAverageColorSet.set(key, averageColor);
+          colorCache.set(key, averageColor);
         }
-        catch (e) {
-          console.log(e)
-        }
+      } catch (e) {
+        console.log(e);
       }
-    })()
+    })();
   });
   await Promise.all(jobs);
-}
-
-
+};
 
 export const exportFile = async (doc, state, pagesToRender = null) => {
-  // await taskPool.waitTasksByTag(imageCacheType.highQuality);
+  await taskPool.waitTasksByTag(imageCacheType.highQuality);
   const { Config } = getConfigStore();
 
   const {avoidDislocation, sides, lineWeight, cutlineColor, foldLineType, offsetX, offsetY, marginX, marginY, bleedX, bleedY, pageNumber, columns, rows, printOffsetX = 0, printOffsetY = 0} = Config;
@@ -283,7 +280,7 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
       }
 
       try {
-        const base64String = await ImageStorage[filePathToImageKey(actualImage.path)];
+        const base64String = actualImage.path.startsWith('data:image/') ? actualImage.path : await ImageStorage[filePathToImageKey(actualImage.path)];
         const cardMark = pathList?.[i] || `unknown.${type}`;
         doc.drawImage({
           data: { base64: base64String, ext: actualImage.ext, path: actualImage.path, id: actualImage.id },
@@ -390,51 +387,57 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
   return doc.finalize();
 }
 
-const previewTasks = new Map();
-// 预渲染函数
+const prerenderTask = taskPool.task(
+  async (task, pageIndex, state, Config, renderFunc, renderFuncId, quality) => {
+    const cacheKey = `${renderFuncId}-${pageIndex}`;
+    const startTime = performance.now();
+    console.log(`🎨 Page ${pageIndex + 1}: Starting render...`);
+
+    const doc = new SVGAdapter(Config, quality, true);
+    const svgString = await renderFunc(doc, state, [pageIndex]);
+
+    const base64Svg = Buffer.from(svgString, 'utf-8').toString('base64');
+    const result = `data:image/svg+xml;base64,${base64Svg}`;
+
+    const duration = (performance.now() - startTime).toFixed(2);
+    console.log(`Page ${pageIndex + 1}: Rendered in ${duration}ms`);
+
+    PreviewStorage[cacheKey] = result;
+    return result;
+  },
+  {
+    tag: 'prerenderPage',
+    priority: 50,
+    uniqueKey: (args) => `${args[3]}-${args[0]}`,  // renderFuncId-pageIndex
+  }
+);
+
 export async function prerenderPage(pageIndex, state, Config, renderFunc, renderFuncId, quality = 'low') {
   const cacheKey = `${renderFuncId}-${pageIndex}`;
+
   const cachedResult = await PreviewStorage[cacheKey];
   if (cachedResult) {
     console.log(`📦 Page ${pageIndex + 1}: Loaded from cache`);
     return cachedResult;
   }
 
-  if (previewTasks.has(cacheKey)) {
+  // uniqueKey 去重，已有任务直接等结果
+  const existingTask = taskPool.getTaskByTagAndUniqueKey('prerenderPage', `${renderFuncId}-${pageIndex}`);
+  if (existingTask) {
     console.log(`⏳ Page ${pageIndex + 1}: Waiting for existing render task`);
-    return previewTasks.get(cacheKey);
+    try {
+      return await taskPool.waitTask(existingTask.id);
+    } catch (e) {
+      console.error(`Page ${pageIndex + 1}: Failed`, e);
+      throw e;
+    }
   }
 
-  const task = (async () => {
-    //开始计时
-    const startTime = performance.now();
-    console.log(`🎨 Page ${pageIndex + 1}: Starting render...`);
-
-    try {
-      const doc = new SVGAdapter(Config, quality, true);
-      const svgString = await renderFunc(doc, state, [pageIndex]);
-
-      const base64Svg = Buffer.from(svgString, 'utf-8').toString('base64');
-      const result = `data:image/svg+xml;base64,${base64Svg}`;
-
-      //结束计时
-      const endTime = performance.now();
-      const duration = (endTime - startTime).toFixed(2);
-      console.log(`Page ${pageIndex + 1}: Rendered in ${duration}ms`);
-
-      PreviewStorage[cacheKey] = result;
-      return result;
-    } catch (error) {
-      //错误也记录时间
-      const endTime = performance.now();
-      const duration = (endTime - startTime).toFixed(2);
-      console.error(`Page ${pageIndex + 1}: Failed after ${duration}ms`, error);
-      throw error;
-    } finally {
-      previewTasks.delete(cacheKey);
-    }
-  })();
-
-  previewTasks.set(cacheKey, task);
-  return task;
+  try {
+    const taskId = prerenderTask(pageIndex, state, Config, renderFunc, renderFuncId, quality);
+    return await taskPool.waitTask(taskId);
+  } catch (error) {
+    console.error(`Page ${pageIndex + 1}: Failed`, error);
+    throw error;
+  }
 }

@@ -1,93 +1,38 @@
 import { ipcMain } from 'electron';
 import { eleActions, initialState, layoutSides } from '../../../shared/constants';
 import { exportFile, prerenderPage } from '../../services/file_render';
-import { printSVGs } from '../../functions';
+import { printPNGs, printSVGs } from '../../functions';
 import { clearPrerenderCache, getConfigStore } from '../../services/store';
 
 const { exec } = require('child_process');
 
-// 万能获取默认打印机：Win11/Win10/Win7/macOS/Linux 全兼容
-async function getSystemDefaultPrinterName() {
-  try {
-    if (process.platform === 'win32') {
-      // 1. 优先用 PowerShell CIM（Win10/11 通用，无WMIC）
-      const psName = await getDefaultByPowerShell();
-      if (psName) return psName;
+async function getPrinters() {
+  return new Promise((resolve, reject) => {
+    const cmd = 'powershell -NoProfile -Command "Add-Type -AssemblyName System.Drawing; $default = [System.Drawing.Printing.PrinterSettings]::DefaultPageSettings.PrinterName; $list = @(); foreach($p in [System.Drawing.Printing.PrinterSettings]::InstalledPrinters){$s=New-Object System.Drawing.Printing.PrinterSettings;$s.PrinterName=$p;$sizes=$s.PaperSizes|Select-Object -ExpandProperty PaperName|Sort-Object|Get-Unique; $o=[PSCustomObject]@{printerName=$p;isDefault=($p -eq $default);paperSizes=@($sizes)};$list+=$o}; $list|ConvertTo-Json -Depth 5"';
 
-      // 2. 降级用 WMIC（老系统兼容）
-      const wmicName = await getDefaultByWMIC();
-      if (wmicName) return wmicName;
-    }
-
-    // macOS / Linux
-    if (process.platform === 'darwin' || process.platform === 'linux') {
-      const posixName = await getDefaultByPosix();
-      if (posixName) return posixName;
-    }
-  } catch (e) {}
-
-  return null;
-}
-
-// Windows 10/11 推荐（无WMIC）
-function getDefaultByPowerShell() {
-  return new Promise(resolve => {
-    exec(
-      'powershell -Command "Get-CimInstance -ClassName Win32_Printer | Where-Object { $_.Default -eq $true } | Select-Object -ExpandProperty Name"',
-      (err, stdout) => {
-        if (err || !stdout?.trim()) return resolve(null);
-        resolve(stdout.trim());
+    exec(cmd, { encoding: 'utf8' }, (err, stdout, stderr) => {
+      if (err) {
+        console.error('执行错误:', err);
+        return reject(err);
       }
-    );
-  });
-}
-
-// Windows 老系统兼容
-function getDefaultByWMIC() {
-  return new Promise(resolve => {
-    exec('wmic printer get Name,Default /value', (err, stdout) => {
-      if (err || !stdout) return resolve(null);
-
-      let defaultFound = false;
-      let defaultPrinter = null;
-      const lines = stdout.split(/\r?\n/).map(l => l.trim());
-
-      for (const line of lines) {
-        if (line === 'Default=TRUE') defaultFound = true;
-        if (defaultFound && line.startsWith('Name=')) {
-          defaultPrinter = line.replace('Name=', '').trim();
-          break;
-        }
-        if (line === '') defaultFound = false;
+      try {
+        const result = JSON.parse(stdout.trim());
+        resolve(result); // ✅ 正常返回结果
+      } catch (e) {
+        console.error('JSON 解析失败:', e);
+        reject(e);
       }
-
-      resolve(defaultPrinter);
     });
   });
 }
 
-// macOS / Linux
-function getDefaultByPosix() {
-  return new Promise(resolve => {
-    exec('lpstat -d', (err, stdout) => {
-      if (err || !stdout) return resolve(null);
-      const match = stdout.match(/(default destination|system default destination):\s*(.+)/i);
-      resolve(match?.[2]?.trim() || null);
-    });
-  });
-}
 
 export default (mainWindow) => {
   ipcMain.on(eleActions.getPrinters, async (event, args) => {
     const { returnChannel } = args;
 
     try {
-      let printers = await mainWindow.webContents.getPrintersAsync();
-      const defaultPrinterName = await getSystemDefaultPrinterName();
-      printers = printers.map(p => ({
-        ...p,
-        isDefault: p.name === defaultPrinterName, // 模拟出来
-      }));
+      const printers = await getPrinters();
       mainWindow.webContents.send(returnChannel, { printers });
 
     } catch (err) {
@@ -136,6 +81,7 @@ export default (mainWindow) => {
         pageWidthMm: Config.pageWidth,
         pageHeightMm: Config.pageHeight,
         landscape: Config.landscape,
+        paperSize: printConfig.paperSize,
         offsetXmm: printConfig.offsetX,
         offsetYmm: printConfig.offsetY,
         scaleX: printConfig.scaleX / 100,

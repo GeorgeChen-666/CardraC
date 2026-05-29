@@ -81,7 +81,7 @@ export default (mainWindow) => {
         offsetX: 0,
         offsetY: 0,
       })
-    mainWindow.webContents.send(returnChannel, result);
+    mainWindow.webContents.send(returnChannel, {printConfig: result});
   });
   // 新增：获取默认路径
   ipcMain.on(eleActions.getDefaultPath, (event, args) => {

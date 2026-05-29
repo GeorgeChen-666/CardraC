@@ -2,59 +2,77 @@ import path from 'path';
 import fs from 'fs';
 import { getAppDataPath } from '../../shared/functions';
 
+const WRITE_DEBOUNCE_MS = 500;
+
 export class SimpleStore {
   constructor(name = 'config', cwd = null) {
-    this.configDir = path.join(getAppDataPath() , 'cardrac');
+    this.configDir = path.join(getAppDataPath(), 'cardrac');
     this.configPath = path.join(this.configDir, `${name}.json`);
     this.name = name;
+    this._cache = null;
+    this._writeTimer = null;
+    this._writing = false;  // 写锁
 
-    // 确保目录存在
     if (!fs.existsSync(this.configDir)) {
       fs.mkdirSync(this.configDir, { recursive: true });
     }
-
-    // 初始化配置文件
     if (!fs.existsSync(this.configPath)) {
       fs.writeFileSync(this.configPath, '{}', 'utf-8');
     }
+    this.registerCleanup();
+  }
+
+  async _doWrite() {
+    if (this._writing) return;
+    this._writing = true;
+    try {
+      await fs.promises.writeFile(this.configPath, JSON.stringify(this._cache, null, 2), 'utf-8');
+    } catch (e) {
+      console.error(`Failed to write config ${this.name}:`, e);
+    } finally {
+      this._writing = false;
+    }
+  }
+
+  _scheduleWrite() {
+    if (this._writeTimer) clearTimeout(this._writeTimer);
+    this._writeTimer = setTimeout(() => {
+      this._writeTimer = null;
+      this._doWrite();
+    }, WRITE_DEBOUNCE_MS);
   }
 
   get(defaultValue = {}) {
+    if (this._cache !== null) return Object.keys(this._cache).length === 0 ? defaultValue : this._cache;
     try {
-      const data = fs.readFileSync(this.configPath, 'utf-8');
-      const result = JSON.parse(data);
-      if (!result || (typeof result === 'object' && Object.keys(result).length === 0)) {
-        return defaultValue;
-      }
-      return result;
+      const data = fs.readFileSync(this.configPath, 'utf-8').trim();
+      this._cache = (data ? JSON.parse(data) : null) || {};
+      return Object.keys(this._cache).length === 0 ? defaultValue : this._cache;
     } catch (e) {
       console.error(`Failed to read config ${this.name}:`, e);
+      this._cache = {};
       return defaultValue;
     }
   }
 
   set(value) {
-    try {
-      const current = this.get();
-      const updated = { ...current, ...value };
-      fs.writeFileSync(this.configPath, JSON.stringify(updated, null, 2), 'utf-8');
-    } catch (e) {
-      console.error(`Failed to write config ${this.name}:`, e);
-    }
+    const current = this.get();
+    this._cache = { ...current, ...value };
+    this._scheduleWrite();
   }
 
-  //新增：清空配置
   clear() {
-    try {
-      fs.writeFileSync(this.configPath, '{}', 'utf-8');
-    } catch (e) {
-      console.error(`Failed to clear config ${this.name}:`, e);
-    }
+    this._cache = {};
+    this._scheduleWrite();
   }
 
-  //新增：删除配置文件
   delete() {
     try {
+      if (this._writeTimer) {
+        clearTimeout(this._writeTimer);
+        this._writeTimer = null;
+      }
+      this._cache = null;
       if (fs.existsSync(this.configPath)) {
         fs.unlinkSync(this.configPath);
       }
@@ -62,4 +80,35 @@ export class SimpleStore {
       console.error(`Failed to delete config ${this.name}:`, e);
     }
   }
+
+  async flush() {
+    if (this._writeTimer) {
+      clearTimeout(this._writeTimer);
+      this._writeTimer = null;
+    }
+    await this._doWrite();
+  }
+
+  registerCleanup() {
+    const cleanup = async () => {
+      try {
+        await this.flush();
+      } catch (e) {
+        console.error(`Failed to flush config ${this.name} on exit:`, e);
+      }
+    };
+
+    let called = false;
+    const safe = async () => {
+      if (!called) {
+        called = true;
+        await cleanup();
+      }
+    };
+
+    process.on('exit', safe);
+    process.on('SIGINT', async () => { await safe(); process.exit(0); });
+    process.on('SIGTERM', async () => { await safe(); process.exit(0); });
+  }
+
 }

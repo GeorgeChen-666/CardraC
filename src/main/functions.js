@@ -6,6 +6,7 @@ import { expandPath } from '../shared/functions';
 
 export async function getBorderAverageColors(base64String, borderWidth = 5) {
   try {
+    if(!base64String) return null;
     const buffer = Buffer.from(base64String.split(',')[1], 'base64');
     const baseImage = sharp(buffer);
     const metadata = await baseImage.metadata();
@@ -134,10 +135,6 @@ export const saveDataToFile = async (data, filePath) => {
   await fs.writeFileSync(filePath, buffer);
 };
 
-
-
-
-
 /**
  * 打印 SVG 数组
  * @param printerName string - 打印机名
@@ -161,7 +158,8 @@ export async function printSVGs(printerName, svgDataList, options = {}) {
     scaleX = 1,
     scaleY = 1,
     landscape = false,
-    silent = true
+    silent = true,
+    paperSize = ''
   } = options;
 
   const [width, height] = landscape ? [pageHeightMm, pageWidthMm] : [pageWidthMm, pageHeightMm];
@@ -173,7 +171,9 @@ export async function printSVGs(printerName, svgDataList, options = {}) {
   fs.writeFileSync(tempFile, html);
 
   const win = new BrowserWindow({
-    show: true,
+    show: false,
+    offscreen: false,
+    enableWebGL: true,
     webPreferences: { zoomFactor: 3 }
   });
 
@@ -181,7 +181,7 @@ export async function printSVGs(printerName, svgDataList, options = {}) {
     await win.loadFile(tempFile);
     await waitForLoad(win);
 
-    return await executePrint(win, printerName, { width, height, silent });
+    return await executePrint(win, printerName, { paperSize });
   } finally {
     win.destroy();
     fs.unlinkSync(tempFile);
@@ -208,7 +208,6 @@ function decodeSVG(data) {
   return data;
 }
 
-// ✅ 单独的 HTML 构建函数，IDE 不会报红
 function buildPrintHTML(svgDataList, { width, height, offsetXmm, offsetYmm, scaleX, scaleY }) {
   const pageStyle = `width:${width}mm;height:${height}mm;position:relative;page-break-after:always;overflow:hidden`;
   const contentStyle = `position:absolute;left:${offsetXmm}mm;top:${offsetYmm}mm;transform:scale(${scaleX},${scaleY});transform-origin:0 0`;
@@ -265,20 +264,16 @@ async function waitForLoad(win) {
   await new Promise(r => setTimeout(r, 1000));
 }
 
-async function executePrint(win, printerName, { width, height, silent }) {
+async function executePrint(win, printerName, { paperSize }) {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => reject(new Error('Print timeout')), 30000);
 
     win.webContents.print({
-      silent,
-      printBackground: true,
+      silent: true,
       deviceName: printerName,
-      margins: { marginType: 'none' },
-      pageSize: {
-        width: width * 1000,
-        height: height * 1000
-      },
-      dpi: { horizontal: 300, vertical: 300 }
+      scaleFactor:100,
+      pageSize: paperSize,
+      // dpi: { horizontal: 300, vertical: 300 }
     }, (success, error) => {
       clearTimeout(timeout);
       resolve({

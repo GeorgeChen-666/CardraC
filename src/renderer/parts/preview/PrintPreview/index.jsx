@@ -36,6 +36,7 @@ export const PrintPreview = forwardRef((props, ref) => {
   const containerRef = useRef(null);
   const imageRef = useRef(null);
   const svgRef = useRef(null);
+  const hasManualZoom = useRef(false);
 
   const isSvg = imageData && imageData.includes('svg');
   const ZOOM_STEP = 0.1;
@@ -48,6 +49,7 @@ export const PrintPreview = forwardRef((props, ref) => {
   };
 
   const fitToContainer = () => {
+    hasManualZoom.current = false;
     if (!containerRef.current) return;
 
     const container = containerRef.current.getBoundingClientRect();
@@ -76,7 +78,7 @@ export const PrintPreview = forwardRef((props, ref) => {
   };
 
   useEffect(() => {
-    if (imageSize.width && imageSize.height) {
+    if (imageSize.width && imageSize.height && !hasManualZoom.current) {
       fitToContainer();
     }
   }, [isDrawerOpen, imageSize]);
@@ -109,7 +111,7 @@ export const PrintPreview = forwardRef((props, ref) => {
       }
       return;
     }
-
+    hasManualZoom.current = true;
     const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
     const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale + delta));
 
@@ -165,7 +167,7 @@ export const PrintPreview = forwardRef((props, ref) => {
   };
 
   useEffect(() => {
-    if (isSvg && imageSize.width && imageSize.height) {
+    if (isSvg && imageSize.width && imageSize.height && !hasManualZoom.current) {
       setTimeout(() => fitToContainer(), 0);
     }
   }, [imageSize, isSvg]);
@@ -185,7 +187,9 @@ export const PrintPreview = forwardRef((props, ref) => {
     if (!containerRef.current) return;
 
     const resizeObserver = new ResizeObserver(() => {
-      fitToContainer();
+      if (!hasManualZoom.current) {
+        fitToContainer();
+      }
     });
 
     resizeObserver.observe(containerRef.current);
@@ -407,7 +411,6 @@ export const PrintPreview = forwardRef((props, ref) => {
           anchorPosition={contextMenu ? { top: contextMenu.top, left: contextMenu.left } : null}
           onClose={handleCloseContextMenu}
           imageElement={contextMenu?.imageElement}
-          setFrame={setFrame}
         />
       </div>
     </>
