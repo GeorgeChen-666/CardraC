@@ -159,7 +159,8 @@
     "pageNumberError": "Format incorrect.",
     "custom": "Custom",
     "default": "Default",
-    "paperSize": "Paper Size"
+    "paperSize": "Paper Size",
+    "offsetXY": "Center offset X/Y"
   },
   "printPreview": {
     "contextMenu": {

@@ -6,7 +6,7 @@ const WRITE_DEBOUNCE_MS = 500;
 
 export class SimpleStore {
   constructor(name = 'config', cwd = null) {
-    this.configDir = path.join(getAppDataPath(), 'cardrac');
+    this.configDir = cwd ? path.join(cwd) : path.join(getAppDataPath(), 'cardrac');
     this.configPath = path.join(this.configDir, `${name}.json`);
     this.name = name;
     this._cache = null;

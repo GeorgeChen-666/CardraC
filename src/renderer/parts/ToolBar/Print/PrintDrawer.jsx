@@ -33,25 +33,52 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
     setPageStart(1);
     setPageEnd(exportPageCount);
   }, [exportPageCount]);
+
+  const updatePrintConfig = (args) => {
+    setPrintConfig((prevState) => {
+      const result = {...prevState, ...args}
+      callMain(eleActions.savePrintConfig, {printConfig: result})
+      return result
+    });
+  }
+
   useImperativeHandle(ref, () => ({
     openDrawer: async () => {
-      console.log('openDrawer called'); //添加日志
+      console.log('openDrawer called');
       await getExportPageCount();
       setOpen(true);
       onOpenChange?.(true);
-      const { printConfig } = await callMain(eleActions.loadPrintConfig);
-      console.log('loadPrintConfig', printConfig)
-      setPrintConfig(printConfig);
       setPageStart(1);
       setPageFilter('all');
+
       const { printers } = await getPrinters();
       setPrinters(printers);
-      const saved = printers.find(p => p.printerName === printConfig?.defaultPrinter);
-      setDefaultPrinter(saved ?? printers.find(p => p.isDefault)?.printerName);
-      if(printConfig?.paperSize) {
+
+      const defaultP = printers.find(p => p.isDefault);
+      setDefaultPrinter(defaultP);
+
+      updatePrintConfig({
+        defaultPrinter: defaultP?.printerName,
+        paperWidth: defaultP?.defaultWidthMm,
+        paperHeight: defaultP?.defaultHeightMm,
+        isLandscape: defaultP?.isLandscape,
+      });
+
+      const { printConfig } = await callMain(eleActions.loadPrintConfig);
+      console.log('loadPrintConfig', printConfig);
+      setPrintConfig(printConfig);
+
+      // 恢复已保存的打印机选择
+      if (printConfig?.defaultPrinter) {
+        const saved = printers.find(p => p.printerName === printConfig.defaultPrinter);
+        if (saved) setDefaultPrinter(saved);
+      }
+
+      if (printConfig?.paperSize) {
         setPaperSize(printConfig.paperSize);
       }
-      console.log('printers', printers)
+
+      console.log('printers', printers);
     },
     closeDrawer: async () => {
       console.log('closeDrawer called'); //添加日志
@@ -71,13 +98,6 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
     onOpenChange?.(false);
   };
 
-  const updatePrintConfig = (args) => {
-    setPrintConfig((prevState) => {
-      const result = {...prevState, ...args}
-      callMain(eleActions.savePrintConfig, {printConfig: result})
-      return result
-    });
-  }
   const [customPageIndex, setCustomPageIndex] = useState('');
   const [isPageRangeError, setIsPageRangeError] = useState(false);
   function validateRangeString(str) {
@@ -134,7 +154,13 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
                 sx={{ width: 260 }} label={t('configPrintDialog.targetPrinter')} select size='small'
                 onChange={(e, v) => {
                   setDefaultPrinter(v?.props?.value);
-                  updatePrintConfig({ defaultPrinter: v?.props?.value?.printerName });
+                  const defaultPrinter = v?.props?.value;
+                  updatePrintConfig({
+                    defaultPrinter: defaultPrinter?.printerName,
+                    paperWidth: defaultPrinter?.defaultWidthMm,
+                    paperHeight: defaultPrinter?.defaultHeightMm,
+                    isLandscape: defaultPrinter?.isLandscape
+                  });
                 }}
                 value={defaultPrinter}
               >
@@ -223,9 +249,15 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
                 }}
                 value={paperSize}
               >
-                <MenuItem value={'_'}>{t('configPrintDialog.default')}</MenuItem>
+                {defaultPrinter && <MenuItem value={'_'}>{t('configPrintDialog.default')}{`(${defaultPrinter?.defaultPaperSize})`}</MenuItem>}
                 {(defaultPrinter?.paperSizes ?? []).map(item => (<MenuItem value={item}>{item}</MenuItem>))}
               </TextField>
+              <Checkbox
+                checked={printConfig?.isLandscape ?? defaultPrinter?.isLandscape}
+                onChange={(e, v) => {
+                  updatePrintConfig({ isLandscape: v });
+                }}
+              />{t('configDialog.landscape')}
             </div>
           </div>
         </div>
@@ -245,7 +277,7 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
               value={printConfig.offsetX}
               min={0} max={50}
               step={0.1}
-              width={145} label={t('configDialog.offsetXY')}
+              width={145} label={t('configPrintDialog.offsetXY')}
               onChange={(e, v) => {
                 updatePrintConfig({ offsetX: v });
               }}

@@ -74,7 +74,7 @@ export function BaseToolbar({ SubMenu }) {
         label={t('toolbar.btnAdd')}
         icon={<NoteAddIcon />}
         onClick={async () => {
-          newProject();
+          await newProject();
           await getExportPageCount();
           mergeGlobal({ imageVersion: Date.now() });
         }}

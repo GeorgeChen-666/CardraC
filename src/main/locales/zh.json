@@ -159,7 +159,8 @@
     "pageNumberError": "格式错误，.",
     "custom": "自定义",
     "default": "默认",
-    "paperSize": "纸张尺寸"
+    "paperSize": "纸张尺寸",
+    "offsetXY": "居中偏移 X/Y"
   },
   "printPreview": {
     "contextMenu": {
