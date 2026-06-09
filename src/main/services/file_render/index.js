@@ -17,7 +17,7 @@ const imageAverageColorSet = new Map();
 const loadImageAverageColor = async () => {
   imageAverageColorSet.clear();
   const jobs = ImageStorage.keys().map(key => {
-    return taskPool.taskImmediate(async () => {
+    const taskId =  taskPool.taskImmediate(async () => {
       if (imageAverageColorSet.has(key)) return;
       try {
         if (colorCache.has(key)) {
@@ -31,6 +31,7 @@ const loadImageAverageColor = async () => {
         console.log(e);
       }
     })();
+    return taskPool.waitTask(taskId);
   });
   await Promise.all(jobs);
 };

@@ -55,14 +55,16 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
       setPrinters(printers);
 
       const defaultP = printers.find(p => p.isDefault);
-      setDefaultPrinter(defaultP);
+      if(defaultP) {
+        setDefaultPrinter(defaultP);
 
-      updatePrintConfig({
-        defaultPrinter: defaultP?.printerName,
-        paperWidth: defaultP?.defaultWidthMm,
-        paperHeight: defaultP?.defaultHeightMm,
-        isLandscape: defaultP?.isLandscape,
-      });
+        updatePrintConfig({
+          defaultPrinter: defaultP?.printerName,
+          paperWidth: defaultP?.defaultWidthMm,
+          paperHeight: defaultP?.defaultHeightMm,
+          isLandscape: defaultP?.isLandscape,
+        });
+      }
 
       const { printConfig } = await callMain(eleActions.loadPrintConfig);
       console.log('loadPrintConfig', printConfig);
@@ -244,13 +246,17 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
                 }}
                 sx={{ width: 260 }} label={t('configPrintDialog.paperSize')} select size='small'
                 onChange={(e, v) => {
+                  const selectedSize = defaultPrinter?.paperSizes?.find(s => s.name === v?.props?.value);
                   setPaperSize(v?.props?.value);
-                  updatePrintConfig({ paperSize: v?.props?.value });
+                  updatePrintConfig({
+                    paperSize: v?.props?.value,
+                    ...(selectedSize ? { paperWidth: selectedSize.widthMm, paperHeight: selectedSize.heightMm } : {})
+                  });
                 }}
                 value={paperSize}
               >
                 {defaultPrinter && <MenuItem value={'_'}>{t('configPrintDialog.default')}{`(${defaultPrinter?.defaultPaperSize})`}</MenuItem>}
-                {(defaultPrinter?.paperSizes ?? []).map(item => (<MenuItem value={item}>{item}</MenuItem>))}
+                {(defaultPrinter?.paperSizes ?? []).map(item => (<MenuItem value={item}>{item.name}</MenuItem>))}
               </TextField>
               <Checkbox
                 checked={printConfig?.isLandscape ?? defaultPrinter?.isLandscape}
@@ -329,32 +335,46 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
         <Button
           disabled={isCustomPageIndex && isPageRangeError}
           onClick={() => {
-          handleClose();
-          let pageList = [];
-          if(isCustomPageIndex) {
-            if(isPageRangeError) return;
-            const result = new Set();
-            str.split('、').split(',').forEach(part => {
-              if (part.includes('-')) {
-                const [start, end] = part.split('-').map(Number);
-                for (let i = start; i <= end; i++) {
-                  result.add(i);
+            handleClose();
+            let pageList = [];
+            if (isCustomPageIndex) {
+              if (isPageRangeError) return;
+              const result = new Set();
+              customPageIndex.split('/').forEach(part => {
+                if (part.includes('-')) {
+                  const [start, end] = part.split('-').map(Number);
+                  for (let i = start; i <= end; i++) result.add(i);
+                } else {
+                  result.add(Number(part));
                 }
-              } else {
-                result.add(Number(part));
+              });
+              pageList = Array.from(result).sort((a, b) => a - b);
+            } else {
+              pageList = ((start, end, isOdd = 0) =>
+                  new Array(end - start + 1)
+                    .fill(0).map((_, i) => i + start)
+                    .filter((_, i) => (i % 2 === isOdd) || isOdd === 2)
+              )(pageStart, pageEnd, ['odd', 'even', 'all'].indexOf(pageFilter));
+            }
+
+            // 解构 paperSize，_ 时用打印机默认尺寸
+            const resolvedPaperSize = paperSize === '_'
+              ? defaultPrinter?.defaultPaperSize
+              : paperSize;
+
+            const resolvedSize = paperSize === '_'
+              ? { paperWidthMm: defaultPrinter?.defaultWidthMm, paperHeightMm: defaultPrinter?.defaultHeightMm }
+              : { paperWidthMm: printConfig.paperWidth, paperHeightMm: printConfig.paperHeight };
+
+            printPages({
+              pageList,
+              printConfig: {
+                ...printConfig,
+                paperSize: resolvedPaperSize.name,
+                ...resolvedSize,
               }
             });
-            pageList = Array.from(result).sort((a, b) => a - b);
-          }
-          else {
-            pageList = ((start, end, isOdd = 0) =>
-                new Array(end - start + 1)
-                  .fill(0).map((_, i) => i + start)
-                  .filter((_, i) => (i % 2 === isOdd) || isOdd === 2)
-            )(pageStart, pageEnd, ['odd', 'even', 'all'].indexOf(pageFilter));
-          }
-          printPages({ pageList, printConfig });
-        }} variant='contained'>
+          }} variant='contained'>
           {t('button.print')}
         </Button>
         <Button onClick={handleClose}>

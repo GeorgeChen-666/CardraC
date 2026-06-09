@@ -84,9 +84,9 @@ export default (mainWindow) => {
       clearPrerenderCache();
       const result = await Promise.all([...pageList.map(v => prerenderPage(v - 1, state, Config, exportFile, 'exportFile', 'high'))]);
       const rs = await printSVGs(printConfig.defaultPrinter, result, {
-        pageWidthMm: Config.pageWidth,
-        pageHeightMm: Config.pageHeight,
-        landscape: Config.landscape,
+        pageWidthMm: printConfig.paperWidth,
+        pageHeightMm: printConfig.paperHeight,
+        landscape: printConfig.isLandscape,
         paperSize: printConfig.paperSize,
         offsetXmm: printConfig.offsetX,
         offsetYmm: printConfig.offsetY,
