@@ -213,6 +213,14 @@ export const useGlobalStore = /** @type {import('./store').useGlobalStore} */ (
         isSuccess && notificationSuccess();
       });
     },
+    adjustGuidePrint: ({ pageList, printConfig }) => {
+      get().loading(async () => {
+        const isSuccess = await callMain(eleActions.adjustGuidePrint, {
+          printConfig,
+        });
+        isSuccess && notificationSuccess();
+      });
+    },
     reloadLocalImage: () => {
       get().loading(async () => {
         const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList };

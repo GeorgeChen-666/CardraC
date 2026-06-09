@@ -259,7 +259,7 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
                 {(defaultPrinter?.paperSizes ?? []).map(item => (<MenuItem value={item}>{item.name}</MenuItem>))}
               </TextField>
               <Checkbox
-                checked={printConfig?.isLandscape ?? defaultPrinter?.isLandscape}
+                checked={!!(printConfig?.isLandscape ?? defaultPrinter?.isLandscape)}
                 onChange={(e, v) => {
                   updatePrintConfig({ isLandscape: v });
                 }}
@@ -275,7 +275,11 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
               <Button
                 size='small'
                 onClick={() => {
-                  dialogGuideRef.current.openDialog();
+                  dialogGuideRef.current.openDialog({
+                    paperSize,
+                    defaultPrinter,
+                    printConfig,
+                  });
                 }}
               >{t('configPrintDialog.adjustOffsetGuide')}</Button>
             </div>
@@ -333,7 +337,7 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
         flexShrink: 0,
       }}>
         <Button
-          disabled={isCustomPageIndex && isPageRangeError}
+          disabled={printers.length === 0 || (isCustomPageIndex && isPageRangeError)}
           onClick={() => {
             handleClose();
             let pageList = [];
@@ -360,7 +364,7 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
             // 解构 paperSize，_ 时用打印机默认尺寸
             const resolvedPaperSize = paperSize === '_'
               ? defaultPrinter?.defaultPaperSize
-              : paperSize;
+              : paperSize.name;
 
             const resolvedSize = paperSize === '_'
               ? { paperWidthMm: defaultPrinter?.defaultWidthMm, paperHeightMm: defaultPrinter?.defaultHeightMm }
@@ -370,7 +374,7 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
               pageList,
               printConfig: {
                 ...printConfig,
-                paperSize: resolvedPaperSize.name,
+                paperSize: resolvedPaperSize,
                 ...resolvedSize,
               }
             });

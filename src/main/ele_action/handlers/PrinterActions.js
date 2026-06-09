@@ -40,7 +40,7 @@ export default (mainWindow) => {
     }
   });
   ipcMain.on(eleActions.adjustGuidePrint, async (event, args) => {
-    const { returnChannel, progressChannel } = args;
+    const { returnChannel, progressChannel, printConfig } = args;
 
     function renderGuidePrintFunction (doc, state, pagesToRender = null) {
       const LS = 15;
@@ -56,18 +56,22 @@ export default (mainWindow) => {
     }
 
     try {
-      const printConfig = printStore.get({});
       const landscape = printConfig?.isLandscape ?? false;
-      const paperSize = printConfig?.paperSize && printConfig.paperSize !== '_'
-        ? printConfig.paperSize
-        : undefined;
+      const paperWidth = printConfig?.paperWidth;
+      const paperHeight = printConfig?.paperHeight;
 
       const result = await prerenderPage(1, {}, {
         ...initialState.Config,
         sides: layoutSides.oneSide,
-        landscape
+        landscape,
       }, renderGuidePrintFunction, 'renderGuidePrintFunction')
-      const rs = await printSVGs('', [result])
+
+      const rs = await printSVGs('', [result], {
+        pageWidthMm: paperWidth,
+        pageHeightMm: paperHeight,
+        landscape,
+        paperSize: printConfig?.paperSize !== '_' ? printConfig?.paperSize : undefined,
+      })
       mainWindow.webContents.send(returnChannel, rs.success);
     } catch (e) {
       mainWindow.webContents.send(returnChannel, false);
@@ -82,7 +86,7 @@ export default (mainWindow) => {
     // List available printers
     try {
       clearPrerenderCache();
-      const result = await Promise.all([...pageList.map(v => prerenderPage(v - 1, state, Config, exportFile, 'exportFile', 'high'))]);
+      const result = await Promise.all([...pageList.map(v => prerenderPage(v - 1, state, {...Config, landscape: printConfig.isLandscape}, exportFile, 'exportFile', 'high'))]);
       const rs = await printSVGs(printConfig.defaultPrinter, result, {
         pageWidthMm: printConfig.paperWidth,
         pageHeightMm: printConfig.paperHeight,

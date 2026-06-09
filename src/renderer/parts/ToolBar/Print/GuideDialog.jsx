@@ -18,16 +18,21 @@ import { eleActions } from '../../../../shared/constants';
 import { NumberInput } from '../../../componments/NumberInput';
 import { useTranslation } from 'react-i18next';
 import { fixFloat } from '../../../../shared/functions';
+import { useGlobalStore } from '../../../state/store';
 
 
 
 export const GuideDialog = forwardRef(({ updatePrintConfig },ref) => {
   const { t } = useTranslation();
+  const [dialogParams, setDialogParams] = React.useState({});
   const [activeStep, setActiveStep] = React.useState(0);
   const [size1, setSize1] = React.useState(15);
   const [size2, setSize2] = React.useState(15);
   const [size3, setSize3] = React.useState(15);
   const [size4, setSize4] = React.useState(15);
+  const {
+    adjustGuidePrint
+  } = useGlobalStore.getState();
   const steps = [
     {
       label: t('configPrintDialog.guideStep1_title'),
@@ -36,7 +41,23 @@ export const GuideDialog = forwardRef(({ updatePrintConfig },ref) => {
         next: {
           label: t('configPrintDialog.guideStep1_button1'),
           onClick: async () => {
-            const rs = await callMain(eleActions.adjustGuidePrint);
+            const { paperSize, defaultPrinter, printConfig } = dialogParams;
+
+            const resolvedPaperSize = paperSize === '_'
+              ? defaultPrinter?.defaultPaperSize
+              : paperSize.name;
+
+            const resolvedSize = paperSize === '_'
+              ? { paperWidthMm: defaultPrinter?.defaultWidthMm, paperHeightMm: defaultPrinter?.defaultHeightMm }
+              : { paperWidthMm: printConfig.paperWidth, paperHeightMm: printConfig.paperHeight };
+
+            const rs = await adjustGuidePrint({
+              printConfig: {
+                ...printConfig,
+                paperSize: resolvedPaperSize,
+                ...resolvedSize,
+              }
+            });
             if(rs) {
               setActiveStep((prevActiveStep) => prevActiveStep + 1);
             }
@@ -137,13 +158,14 @@ export const GuideDialog = forwardRef(({ updatePrintConfig },ref) => {
   const [open, setOpen] = React.useState(false);
   const cancelRef = React.useRef()
   useImperativeHandle(ref, () => ({
-    openDialog: () => {
+    openDialog: (params = {}) => {
       setActiveStep(0);
       setOpen(true);
       setSize1(15);
       setSize2(15);
       setSize3(15);
       setSize4(15);
+      setDialogParams(params);
     },
   }));
   const [v, setV] = useState('')

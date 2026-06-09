@@ -162,7 +162,7 @@ export async function printSVGs(printerName, svgDataList, options = {}) {
     paperSize = ''
   } = options;
 
-  const [width, height] = landscape ? [pageHeightMm, pageWidthMm] : [pageWidthMm, pageHeightMm];
+  const [width, height] = landscape?[pageHeightMm, pageWidthMm]:[pageWidthMm, pageHeightMm];
 
   // ✅ 提取 HTML 生成，避免 IDE 报红
   const html = buildPrintHTML(svgDataList, { width, height, offsetXmm, offsetYmm, scaleX, scaleY });
@@ -181,7 +181,7 @@ export async function printSVGs(printerName, svgDataList, options = {}) {
     await win.loadFile(tempFile);
     await waitForLoad(win);
 
-    return await executePrint(win, printerName, { paperSize });
+    return await executePrint(win, printerName, { paperSize, landscape });
   } finally {
     win.destroy();
     fs.unlinkSync(tempFile);
@@ -264,11 +264,12 @@ async function waitForLoad(win) {
   await new Promise(r => setTimeout(r, 1000));
 }
 
-async function executePrint(win, printerName, { paperSize }) {
+async function executePrint(win, printerName, { paperSize, landscape }) {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => reject(new Error('Print timeout')), 30000);
 
     win.webContents.print({
+      landscape,
       silent: true,
       deviceName: printerName,
       scaleFactor:100,
