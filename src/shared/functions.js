@@ -175,7 +175,7 @@ export const expandPath = (filePath) => {
   return filePath;
 };
 
-export const imagePathToImageSrc = (imagePath, {quality = 'auto', version = 1}) =>
+export const imagePathToImageSrc = (imagePath, {quality = 'auto', version = 1} = {}) =>
   imagePath
     ? `cardrac://image/${fixPath(imagePath)}?quality=${quality}&version=${version}`
     : emptyImg.path;

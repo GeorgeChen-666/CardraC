@@ -136,7 +136,7 @@ export default (mainWindow) => {
       const imageKey = filePathToImageKey(imagePath);
       const expandedPath = expandPath(imagePath);
 
-      // ✅ 第一步：先拿低质量图（快速响应）
+      // 第一步：先拿低质量图（快速响应）
       let overviewData = await OverviewStorage[imageKey];
       if (!overviewData) {
         compressThumbnail(expandedPath, { maxWidth: 100 });
@@ -150,24 +150,44 @@ export default (mainWindow) => {
         } catch (_) {}
       }
 
-      // ✅ 第二步：如果需要高清，尝试升级
-      if (requestedQuality !== 'low') {
-        let highData = await ImageStorage[imageKey];
-        if (!highData) {
-          const highTask = taskPool.getTaskByTagAndUniqueKey(imageCacheType.highQuality, expandedPath);
-          if (highTask?.status === 'pending' || highTask?.status === 'running') {
-            // 高清还在处理中，先返回低质量图
-            if (overviewData) return buildImageResponse(overviewData, imagePath);
-          } else if (!highTask) {
-            const ext = imagePath.split('.').pop();
-            compressHighQuality(expandedPath, { format: ext, ...getCompressParams() });
-          }
+      // 第二步：low 模式直接返回低清
+      if (requestedQuality === 'low') {
+        if (overviewData) return buildImageResponse(overviewData, imagePath);
+        return createResponse(null, 'image/svg+xml', 404);
+      }
+
+      // 第三步：尝试获取高清
+      let highData = await ImageStorage[imageKey];
+
+      if (!highData) {
+        const highTask = taskPool.getTaskByTagAndUniqueKey(imageCacheType.highQuality, expandedPath);
+
+        if (highTask?.status === 'pending' || highTask?.status === 'running') {
+          // 等待进行中的任务
+          try {
+            await Promise.race([
+              taskPool.waitTask(highTask.id),
+              new Promise((_, reject) => setTimeout(() => reject(), 15000))
+            ]);
+            highData = await ImageStorage[imageKey];
+          } catch (_) {}
         } else {
-          return buildImageResponse(highData, imagePath);
+          // 没有任务，触发并等待
+          const ext = imagePath.split('.').pop();
+          const taskId = compressHighQuality(expandedPath, { format: ext, ...getCompressParams() });
+          try {
+            await Promise.race([
+              taskPool.waitTask(taskId),
+              new Promise((_, reject) => setTimeout(() => reject(), 15000))
+            ]);
+            highData = await ImageStorage[imageKey];
+          } catch (_) {}
         }
       }
 
-      // ✅ 第三步：返回低质量图，实在没有就返回默认空白
+      if (highData) return buildImageResponse(highData, imagePath);
+
+      // 高清获取失败，降级返回低清
       if (overviewData) return buildImageResponse(overviewData, imagePath);
       return createResponse(null, 'image/svg+xml', 404);
 

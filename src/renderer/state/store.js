@@ -202,7 +202,7 @@ export const useGlobalStore = /** @type {import('./store').useGlobalStore} */ (
       });
     },
     printPages: ({ pageList, printConfig }) => {
-      get().loading(async () => {
+      return get().loading(async () => {
         const param = {
           globalBackground: get().Config.globalBackground,
           CardList: get().CardList,
@@ -211,14 +211,16 @@ export const useGlobalStore = /** @type {import('./store').useGlobalStore} */ (
         };
         const isSuccess = await callMain(eleActions.printPages, param);
         isSuccess && notificationSuccess();
+        return isSuccess;
       });
     },
     adjustGuidePrint: ({ pageList, printConfig }) => {
-      get().loading(async () => {
+      return get().loading(async () => {
         const isSuccess = await callMain(eleActions.adjustGuidePrint, {
           printConfig,
         });
         isSuccess && notificationSuccess();
+        return isSuccess;
       });
     },
     reloadLocalImage: () => {
@@ -607,9 +609,6 @@ useGlobalStore.subscribe(
 
 setGlobalStore(useGlobalStore);
 const state = useGlobalStore.getState();
-// onOpenProjectFile((data) => {
-//   state.fillState(data);
-// });
 
 let config = await loadConfig();
 await initI18n(config.Global);

@@ -52,7 +52,7 @@ export const defaultTheme = createTheme({
     MuiDialogTitle: {
       styleOverrides: {
         root: {
-          padding: '4px 10px',
+          padding: '4px 10px!important',
           fontSize: '1rem',
           fontWeight: 'normal',
           borderBottom: mainBorder.border,
@@ -62,7 +62,8 @@ export const defaultTheme = createTheme({
     MuiDialogContent: {
       styleOverrides: {
         root: {
-          paddingTop: '20px!important'
+          paddingTop: '20px!important',
+          overflowX: 'hidden'
         }
       }
     },

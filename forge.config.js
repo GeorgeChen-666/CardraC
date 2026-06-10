@@ -184,8 +184,7 @@ module.exports = {
       unpack: "**/node_modules/{sharp,@img}/**/*"
     },
     extraResource: [
-      'src/main/locales',
-      'node_modules/sql.js/dist/sql-wasm.wasm'
+      'src/main/locales'
     ],
     prune: true,
     derefSymlinks: true

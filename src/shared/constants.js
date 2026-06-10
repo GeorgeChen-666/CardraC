@@ -27,7 +27,8 @@ export const eleActions = Object.freeze({
   setDefaultPath: 'set-default-path',
   listDrives: 'list-drives',
   browsePath: 'browse-path',
-  backendJobProgress: 'backend-job-progress'
+  backendJobProgress: 'backend-job-progress',
+  backendUiFillState: 'backend-ui-fill-state'
 });
 
 export const layoutSides = Object.freeze({

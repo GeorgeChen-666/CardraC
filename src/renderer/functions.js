@@ -228,7 +228,12 @@ export function immutableMerge(oldVal, newVal) {
   // 其它类型直接替换
   return newVal;
 }
-
+ipcRenderer.on(eleActions.backendUiFillState, (event, args) => {
+  const { key, state } = args || {};
+  if (!key) return;
+  const store = useGlobalStore.getState();
+  store.fillState(state);
+})
 ipcRenderer.on(eleActions.backendJobProgress, (event, args) => {
   const { key, progress } = args || {};
 

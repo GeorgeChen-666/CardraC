@@ -20,7 +20,7 @@ import { setDefaultPath, getDefaultPath, listDrives, browsePath } from '../../..
 import { BreadcrumbBar } from './BreadcrumbBar';
 import { FileGrid } from './FileGrid';
 import { FileList } from './FileList';
-import { homeDir, waitTime } from '../../../../shared/functions';
+import { filePathToImageKey, homeDir, imagePathToImageSrc, waitTime } from '../../../../shared/functions';
 
 console.debug = () => {};
 
@@ -54,6 +54,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
     { id: 'downloads', name: t('fileBrowser.quickAccess.downloads'), icon: '⬇️', path: `${homeDir}/Downloads` },
     { id: 'pictures', name: t('fileBrowser.quickAccess.pictures'), icon: '🖼️', path: `${homeDir}/Pictures` },
   ], [t]);
+  const [hoveredFile, setHoveredFile] = useState(null);
 
   const historyStack = useRef([]);
   const forwardStack = useRef([]);
@@ -338,6 +339,21 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
           ))}
         </div>
 
+        {hoveredFile && (
+          <div className="sidebar-preview">
+            {hoveredFile.thumbnailUrl && (
+              <>
+                <img
+                  src={imagePathToImageSrc(hoveredFile?._raw?.safePath, { quality: 'high' })}
+                  alt={hoveredFile.name}
+                  className="sidebar-preview-img"
+                />
+                <div className="sidebar-preview-title">{hoveredFile.name}</div>
+              </>
+            )}
+          </div>
+        )}
+
       </div>
   );
 
@@ -465,6 +481,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
                     selectedFiles={selectedFiles}
                     onFileClick={handleFileClick}
                     onFileDoubleClick={handleFileDoubleClick}
+                    onFileHover={setHoveredFile}
                   />}
                   {['S', 'M', 'L'].includes(viewMode) && <FileGrid
                     size={viewMode}
@@ -472,6 +489,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
                     selectedFiles={selectedFiles}
                     onFileClick={handleFileClick}
                     onFileDoubleClick={handleFileDoubleClick}
+                    onFileHover={setHoveredFile}
                   />}
                 </div>
               )}
@@ -489,6 +507,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
         }}>
           <FileOrganizer
               ref={customComponentRef}
+              onFileHover={setHoveredFile}
               selectedFiles={selectedFiles}
               setSelectedFiles={setSelectedFiles}
               multiSelect={options.multiSelect}

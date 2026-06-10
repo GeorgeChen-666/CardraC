@@ -32,7 +32,8 @@ const FileGridItem = React.memo(({
                                    config,
                                    size,
                                    onFileClick,
-                                   onFileDoubleClick
+                                   onFileDoubleClick,
+                                   onFileHover
                                  }) => {
   const itemRef = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -103,6 +104,8 @@ const FileGridItem = React.memo(({
       className={`grid-file-item ${isSelected ? 'selected' : ''} size-${size}`}
       onClick={(e) => onFileClick(file, e)}
       onDoubleClick={() => onFileDoubleClick(file)}
+      onMouseEnter={() => onFileHover?.(file)}
+      onMouseLeave={() => onFileHover?.(null)}
       style={{
         minHeight: config.itemHeight
       }}
@@ -127,7 +130,8 @@ export const FileGrid = React.memo(({
                                       selectedFiles,
                                       onFileClick,
                                       onFileDoubleClick,
-                                      size = 'S'
+                                      size = 'S',
+                                      onFileHover
                                     }) => {
   const { t } = useTranslation();
   const config = SIZE_CONFIG[size];
@@ -150,6 +154,7 @@ export const FileGrid = React.memo(({
             size={size}
             onFileClick={onFileClick}
             onFileDoubleClick={onFileDoubleClick}
+            onFileHover={onFileHover}
           />
         );
       })}

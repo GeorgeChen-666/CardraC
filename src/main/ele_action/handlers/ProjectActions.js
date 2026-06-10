@@ -270,7 +270,7 @@ export default (mainWindow) => {
     setTimeout(() => {
       loadCpnpFile(filePath, {
         //onProgress: (v) => mainWindow.webContents.send(progressChannel, v),
-        onFinish: (projectJson) => mainWindow.webContents.send('open-project-file', projectJson),
+        onFinish: (projectJson) => mainWindow.webContents.send(eleActions.backendUiFillState, projectJson),
         onError: () => {
           mainWindow.webContents.send('notification', {
             status: 'error',

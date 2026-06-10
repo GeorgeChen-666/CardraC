@@ -4,7 +4,7 @@ import ImageIcon from '@mui/icons-material/Image';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import { useTranslation } from 'react-i18next';
 
-export const FileList = React.memo(({ files, selectedFiles, onFileClick, onFileDoubleClick }) => {
+export const FileList = React.memo(({ files, selectedFiles, onFileClick, onFileDoubleClick, onFileHover }) => {
   const { t } = useTranslation();
   const getFileIcon = (file) => {
     if (file.isDir) return <FolderIcon sx={{ color: '#ffd700' }} />;
@@ -53,6 +53,8 @@ export const FileList = React.memo(({ files, selectedFiles, onFileClick, onFileD
               className={`file-list-row ${isSelected ? 'selected' : ''}`}
               onClick={(e) => onFileClick(file, e)}
               onDoubleClick={() => onFileDoubleClick(file)}
+              onMouseEnter={() => onFileHover?.(file)}
+              onMouseLeave={() => onFileHover?.(null)}
             >
               <div className="file-list-cell file-name-cell">
                 <div className="file-name-content">

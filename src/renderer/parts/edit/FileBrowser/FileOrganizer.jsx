@@ -19,7 +19,8 @@ export const FileOrganizer = forwardRef(({
                                            onFileNameChange,
                                            onFileTypeChange,
                                            lockedFiles,
-                                           setLockedFiles
+                                           setLockedFiles,
+                                           onFileHover,
                                          }, ref) => {
   const { t } = useTranslation();
   const scrollRef = useRef(null);
@@ -197,8 +198,11 @@ export const FileOrganizer = forwardRef(({
     }));
   })();
 
-  const FileSlot = ({ file, label, isNextToFill }) => (
-    <Box sx={{
+  const FileSlot = ({ file, label, isNextToFill, onFileHover }) => (
+    <Box
+      onMouseEnter={() => onFileHover?.(file)}
+      onMouseLeave={() => onFileHover?.(null)}
+      sx={{
       width: 60,
       height: 60,
       border: '2px solid',
@@ -298,9 +302,10 @@ export const FileOrganizer = forwardRef(({
             >
               {showFileIcon && (
                 <Box sx={{ display: 'flex', gap: '4px', p: '4px', border: '1px dashed', borderColor: 'divider', borderRadius: 1 }}>
-                  <FileSlot file={pair.front} label={isDoubleSides ? t('fileBrowser.bottomBar.face') : null} isNextToFill={false} />
+                  <FileSlot onFileHover={onFileHover} file={pair.front} label={isDoubleSides ? t('fileBrowser.bottomBar.face') : null} isNextToFill={false} />
                   {isDoubleSides && (
                     <FileSlot
+                      onFileHover={onFileHover}
                       file={pair.back}
                       label={t('fileBrowser.bottomBar.back')}
                       isNextToFill={isBackNextToFill}
