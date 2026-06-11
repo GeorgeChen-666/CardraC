@@ -124,7 +124,7 @@ export function BaseToolbar({ SubMenu }) {
       <span style={{ color: '#666', padding: '4px' }}>|</span>
       {[layoutSides.doubleSides, layoutSides.foldInHalf].includes(Config.sides()) && (
         <GeneralIconButton
-          label={t('toolbar.btnGlobalBackground')}
+          label={t('toolbar.btnGlobalBack')}
           icon={<img src={imagePathToImageSrc(globalBackground?.path, { version: imageVersion })} width={'21px'}
                      height={'21px'} alt='' />}
           onClick={async () => {

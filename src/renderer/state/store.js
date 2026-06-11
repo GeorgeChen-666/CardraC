@@ -492,17 +492,13 @@ export const useGlobalStore = /** @type {import('./store').useGlobalStore} */ (
         return { ...state, CardList: newCardList };
       });
     },
-    selectedCardsFillBackWithEach: (backImageList) => {
+    selectedCardsEditEach: (callback) => {
       get().setWithHistory(state => {
-        let imageIndex = 0;
         const newCardList = state.CardList.map(c => {
-          if (!c.selected) return c;  // 未选中的保持原引用
-          const newBack = backImageList?.[imageIndex];
-          imageIndex++;
-          //创建新对象（不修改原对象）
-          return { ...c, back: newBack };
+          if (!c.selected) return c;
+          const result = callback(c);
+          return result ?? c;
         });
-
         return { ...state, CardList: newCardList };
       });
     },

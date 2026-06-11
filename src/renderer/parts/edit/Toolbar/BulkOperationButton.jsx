@@ -9,6 +9,8 @@ import { useTranslation } from 'react-i18next';
 import { openImage, openMultiImage } from '../../../functions';
 import { NumberInput } from '../../../componments/NumberInput';
 import '../../ToolBar/style.css'
+import { emptyImgPath } from '../../../../shared/constants';
+import { SubMenuItem } from '../../../componments/SubMenuItem';
 
 export const BulkOperationButton = () => {
   const { t } = useTranslation();
@@ -28,7 +30,7 @@ export const BulkOperationButton = () => {
     selectedCardsRemove,
     selectedCardsDuplicate,
     selectedCardsEdit,
-    selectedCardsFillBackWithEach,
+    selectedCardsEditEach,
     selectedCardsSwap,
   } = useGlobalStore.getState();
   const selectionIds = useGlobalStore(state => state.CardList.filter(c => c.selected).map(c => c.id));
@@ -58,19 +60,70 @@ export const BulkOperationButton = () => {
       }}>
         {t('toolbar.bulkMenu.duplidate')}
       </MenuItem>
-      <MenuItem onClick={async () => {
+      <SubMenuItem label={ t('cardEditor.face') } onClose={handleClose}>
+        <MenuItem onClick={async () => {
+          handleClose();
+          const [ imageData ] = await openImage();
+          imageData && selectedCardsEdit({ face: imageData?.face });
+        }}>
+          {t('toolbar.bulkMenu.menuFillFace')}
+        </MenuItem>
+        <MenuItem onClick={async () => {
+          handleClose();
+          const imageDataList = await openMultiImage();
+          if (!imageDataList?.length) return;
+
+          let imageIndex = 0;
+          selectedCardsEditEach((card) => {
+            const newFace = imageDataList[imageIndex]?.face;
+            imageIndex++;
+            return { ...card, face: newFace };
+          });
+        }}>
+          {t('toolbar.bulkMenu.menuFillMultiFace')}
+        </MenuItem>
+        <MenuItem onClick={async () => {
+          handleClose();
+          selectedCardsEdit({ face: emptyImgPath });
+        }}>
+          {t('cardEditor.clearFace')}
+        </MenuItem>
+      </SubMenuItem>
+      <SubMenuItem label={ t('cardEditor.back') } onClose={handleClose}>
+        <MenuItem onClick={async () => {
+          handleClose();
+          const [ imageData ] = await openImage();
+          imageData && selectedCardsEdit({ back: imageData?.face });
+        }}>
+          {t('toolbar.bulkMenu.menuFillBack')}
+        </MenuItem>
+        <MenuItem onClick={async () => {
+          handleClose();
+          const imageDataList = await openMultiImage();
+          if (!imageDataList?.length) return;
+
+          let imageIndex = 0;
+          selectedCardsEditEach((card) => {
+            const newBack = imageDataList[imageIndex]?.face;
+            imageIndex++;
+            return { ...card, back: newBack };
+          });
+        }}>
+          {t('toolbar.bulkMenu.menuFillMultiBack')}
+        </MenuItem>
+        <MenuItem onClick={async () => {
+          handleClose();
+          selectedCardsEdit({ back: emptyImgPath });
+        }}>
+          {t('cardEditor.clearBack')}
+        </MenuItem>
+      </SubMenuItem>
+
+      <MenuItem onClick={() => {
         handleClose();
-        const [ imageData ] = await openImage();
-        imageData && selectedCardsEdit({ back: imageData?.face });
+        selectedCardsSwap();
       }}>
-        {t('toolbar.bulkMenu.menuFillBackground')}
-      </MenuItem>
-      <MenuItem onClick={async () => {
-        handleClose();
-        const imageDataList = await openMultiImage();
-        imageDataList?.length > 0 && selectedCardsFillBackWithEach(imageDataList.map(data => data.face));
-      }}>
-        {t('toolbar.bulkMenu.menuFillMultiBackground')}
+        {t('toolbar.bulkMenu.menuSwap')}
       </MenuItem>
       <MenuItem onClick={() => {
       }}>
@@ -87,12 +140,6 @@ export const BulkOperationButton = () => {
           selectedCardsEdit({ repeat });
           // mergeConfig({ autoConfigFlip: false });
         }}>{t('button.ok')}</Link>
-      </MenuItem>
-      <MenuItem onClick={() => {
-        handleClose();
-        selectedCardsSwap();
-      }}>
-        {t('toolbar.bulkMenu.menuSwap')}
       </MenuItem>
       <MenuItem onClick={() => {
         handleClose();

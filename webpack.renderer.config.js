@@ -12,7 +12,6 @@ module.exports = {
   },
   devServer: {
     hot: true,
-    port: 3333,
     watchFiles: {
       paths: ['src/**/*', 'public/**/*'],
     },

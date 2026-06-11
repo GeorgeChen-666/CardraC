@@ -6,7 +6,7 @@ import Button from '@mui/material/Button';
 import React from 'react';
 import { useGlobalStore } from '../../../state/store';
 import { openMultiImage } from '../../../functions';
-import { layoutSides } from '../../../../shared/constants';
+import { emptyImgPath, layoutSides } from '../../../../shared/constants';
 
 export default () => {
   const { t } = useTranslation();
@@ -26,7 +26,7 @@ export default () => {
         fullWidth
         onClick={(e) => {
           e.stopPropagation();
-          cardAdd([{}])
+          cardAdd([{ face: emptyImgPath, back: emptyImgPath }])
         }}
       >
         {t('cardEditor.addEmpty')}

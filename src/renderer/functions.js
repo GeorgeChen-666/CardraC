@@ -3,6 +3,7 @@ import { backendJobKey, eleActions, emptyImg } from '../shared/constants';
 import { filePathToImageKey, fixPath } from '../shared/functions';
 import { getGlobalState } from './global';
 import { useGlobalStore } from './state/store';
+import { triggerNotification } from './parts/Notification';
 
 
 
@@ -228,9 +229,18 @@ export function immutableMerge(oldVal, newVal) {
   // 其它类型直接替换
   return newVal;
 }
+
+ipcRenderer.on(eleActions.backendNotification, (event, args) => {
+  const { status, description, descriptionKey } = args || {};
+  triggerNotification({
+    msg: description,
+    msgKey: descriptionKey,
+    variant: status,
+    autoHideDuration: 3000,
+  })
+})
 ipcRenderer.on(eleActions.backendUiFillState, (event, args) => {
-  const { key, state } = args || {};
-  if (!key) return;
+  const state = args || {};
   const store = useGlobalStore.getState();
   store.fillState(state);
 })

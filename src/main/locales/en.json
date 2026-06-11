@@ -30,7 +30,7 @@
     "btnLang" : "Language Setting.",
     "btnConfig" : "Settings.",
     "btnExport" : "Export {{format}}.",
-    "btnGlobalBackground" : "Global Default Background.",
+    "btnGlobalBack" : "Global Default Back.",
     "lblSwitchView": "Switch View",
     "compressLevel": "Compress Level",
     "btnPrev": "Prev Page",
@@ -51,8 +51,10 @@
     "bulkMenu": {
       "labelSelection": "Selection({{count}}) ...",
       "menuRemove": "Remove",
-      "menuFillBackground": "Fill Background",
-      "menuFillMultiBackground": "Fill Multi Background",
+      "menuFillFace": "Fill Face",
+      "menuFillMultiFace": "Fill Multi Face",
+      "menuFillBack": "Fill Back",
+      "menuFillMultiBack": "Fill Multi Back",
       "menuSetCount": "Set Count",
       "menuSwap": "Swap Face/Back",
       "duplidate": "Duplidate"
@@ -67,9 +69,9 @@
     "btnRemove": "Remove image",
     "addEmpty" : "Add Empty",
     "face": "Face...",
-    "back": "Background...",
+    "back": "Back...",
     "clearFace": "Clear Face",
-    "clearBack": "Clear Background"
+    "clearBack": "Clear Back"
   },
   "configDialog": {
     "setup": "Setup",

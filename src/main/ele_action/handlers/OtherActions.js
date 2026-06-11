@@ -56,9 +56,9 @@ export default (mainWindow) => {
       mainWindow.webContents.send(returnChannel, true);
     }
     catch (e) {
-      mainWindow.webContents.send('notification', {
+      mainWindow.webContents.send(eleActions.backendNotification, {
         status: 'error',
-        description: "util.operationFailed"
+        descriptionKey: "util.operationFailed"
       });
       mainWindow.webContents.send(returnChannel, false);
     }

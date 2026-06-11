@@ -1,12 +1,13 @@
-import { emptyImg } from '../../shared/constants';
+import { emptyImgContent, emptyImgPath } from '../../shared/constants';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
 import { SimpleStore } from '../core/SimpleStore';
 import { SmartCache } from '../core/SmartCache';
 
+
 export const defaultImageStorage = {
-  '_emptyImg': emptyImg.path,
+  [emptyImgPath]: emptyImgContent,
 };
 
 export const ImageStorage = new SmartCache('ImageStorage', {
@@ -16,8 +17,8 @@ export const ImageStorage = new SmartCache('ImageStorage', {
 export const OverviewStorage = new SmartCache('OverviewStorage');
 
 // 初始化默认图片
-ImageStorage['_emptyImg'] = defaultImageStorage['_emptyImg'];
-OverviewStorage['_emptyImg'] = defaultImageStorage['_emptyImg'];
+ImageStorage[emptyImgPath] = defaultImageStorage[emptyImgPath];
+OverviewStorage[emptyImgPath] = defaultImageStorage[emptyImgPath];
 
 // 在文件顶部添加缓存
 export const PreviewStorage = new SmartCache('PreviewStorage', {

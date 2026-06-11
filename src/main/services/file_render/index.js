@@ -5,7 +5,7 @@ import {
   getPagedImageListByCardList,
   isNeedRotation,
 } from './utils';
-import { emptyImg, imageCacheType, layoutSides } from '../../../shared/constants';
+import { emptyImg, emptyImgPath, imageCacheType, layoutSides } from '../../../shared/constants';
 import { getConfigStore, ImageStorage, PreviewStorage } from '../store';
 import { SVGAdapter } from './adapter/SVGAdapter';
 import { filePathToImageKey, fixFloat } from '../../../shared/functions';
@@ -258,7 +258,7 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
       if(Config.marginFilling) {
         try {
           doc.setLineStyle({width:0, color: 0});
-          const averageColor = imageAverageColorSet.get(filePathToImageKey(actualImage.path));
+          const averageColor = imageAverageColorSet.get(filePathToImageKey(actualImage.path) || emptyImgPath);
           const xOffset = fixFloat(scaledMarginX / 2);
           const yOffset = fixFloat(scaledMarginY / 2);
           const rectFill = {

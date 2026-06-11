@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import { eleActions } from '../../../shared/constants';
+import { eleActions, emptyImgPath } from '../../../shared/constants';
 import fs from 'fs';
 import { parser } from 'stream-json';
 import { chain } from 'stream-chain';
@@ -166,17 +166,17 @@ const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
       pipeline.on('error', reject);
     });
 
-    if (projectData.Config?.globalBackground?.path === '_emptyImg') {
+    if (projectData.Config?.globalBackground?.path === emptyImgPath) {
       projectData.Config.globalBackground = null;
     }
 
     projectData.CardList?.forEach(c => {
-      if (c.face?.path === '_emptyImg') c.face = null;
-      if (c.back?.path === '_emptyImg') c.back = null;
+      if (c.face?.path === emptyImgPath) c.face = null;
+      if (c.back?.path === emptyImgPath) c.back = null;
     });
 
-    if (!await ImageStorage['_emptyImg']) {
-      ImageStorage['_emptyImg'] = defaultImageStorage['_emptyImg'];
+    if (!await ImageStorage[emptyImgPath]) {
+      ImageStorage[emptyImgPath] = defaultImageStorage[emptyImgPath];
     }
 
     onProgress?.(1);
@@ -263,8 +263,6 @@ const saveCpnpFile = async (projectData, storages, filePath, onProgress) => {
 };
 
 export default (mainWindow) => {
-  const renderLog = (...args) => setTimeout(() => wsManager.send('console', args), 2000) ;
-
   const filePath = process.argv.find(arg => arg.endsWith('.cpnp'));
   if (filePath) {
     setTimeout(() => {
@@ -272,15 +270,14 @@ export default (mainWindow) => {
         //onProgress: (v) => mainWindow.webContents.send(progressChannel, v),
         onFinish: (projectJson) => mainWindow.webContents.send(eleActions.backendUiFillState, projectJson),
         onError: () => {
-          mainWindow.webContents.send('notification', {
+          mainWindow.webContents.send(eleActions.backendNotification, {
             status: 'error',
-            description: "util.invalidFile"
+            descriptionKey: "util.invalidFile"
           });
           //mainWindow.webContents.send(returnChannel, null);
         }
       });
     }, 1000);
-
   }
 
   ipcMain.on(eleActions.saveProject, async (event, args) => {
@@ -307,9 +304,9 @@ export default (mainWindow) => {
       mainWindow.webContents.send(returnChannel, true);
     } catch (e) {
       console.error('❌ Save project failed:', e);
-      mainWindow.webContents.send('notification', {
+      mainWindow.webContents.send(eleActions.backendNotification, {
         status: 'error',
-        description: "util.operationFailed"
+        descriptionKey: "util.operationFailed"
       });
       mainWindow.webContents.send(returnChannel, false);
     }
@@ -322,9 +319,9 @@ export default (mainWindow) => {
       onProgress: (v) => progressChannel && mainWindow.webContents.send(progressChannel, v),
       onFinish: (projectJson) => mainWindow.webContents.send(returnChannel, projectJson),
       onError: () => {
-        mainWindow.webContents.send('notification', {
+        mainWindow.webContents.send(eleActions.backendNotification, {
           status: 'error',
-          description: "util.invalidFile"
+          descriptionKey: "util.invalidFile"
         });
         mainWindow.webContents.send(returnChannel, null);
       }

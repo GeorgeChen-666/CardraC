@@ -20,7 +20,7 @@ import { setDefaultPath, getDefaultPath, listDrives, browsePath } from '../../..
 import { BreadcrumbBar } from './BreadcrumbBar';
 import { FileGrid } from './FileGrid';
 import { FileList } from './FileList';
-import { filePathToImageKey, homeDir, imagePathToImageSrc, waitTime } from '../../../../shared/functions';
+import { homeDir, imagePathToImageSrc } from '../../../../shared/functions';
 
 console.debug = () => {};
 
@@ -542,6 +542,8 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
           <ConfimButton
               ref={commitButtonRef}
               confirmMessage={t('fileBrowser.existConfirm')}
+              confirmButtonText={t('button.yes')}
+              cancelButtonText={t('button.no')}
               skipConfirm={skipConfirm}
               onClick={handleConfirm}
               variant="contained"

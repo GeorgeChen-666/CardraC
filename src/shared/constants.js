@@ -28,7 +28,8 @@ export const eleActions = Object.freeze({
   listDrives: 'list-drives',
   browsePath: 'browse-path',
   backendJobProgress: 'backend-job-progress',
-  backendUiFillState: 'backend-ui-fill-state'
+  backendUiFillState: 'backend-ui-fill-state',
+  backendNotification: 'backend-notification'
 });
 
 export const layoutSides = Object.freeze({
@@ -103,11 +104,15 @@ export const initialState = Object.freeze({
   CardList: [],
 })
 
+export const emptyImgPath = '_emptyImg'
+
 export const emptyImg = {
-  path: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
-    '12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg==',
+  path: '_emptyImg',
   ext: 'png',
 };
+
+export const emptyImgContent = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
+  '12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg=='
 
 export const imageCacheType = Object.freeze({
   thumbnails: 'thumbnails',

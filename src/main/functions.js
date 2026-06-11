@@ -17,7 +17,7 @@ export async function getBorderAverageColors(base64String, borderWidth = 5) {
       .raw()
       .toBuffer({ resolveWithObject: true });
 
-    const actualBorderWidth = Math.min(borderWidth, Math.floor(Math.min(width, height) / 2));
+    const actualBorderWidth = Math.max(1, Math.min(borderWidth, Math.ceil(Math.min(width, height) / 2)));
 
     let totalR = 0, totalG = 0, totalB = 0, totalA = 0;
     let pixelCount = 0, visiblePixelCount = 0;

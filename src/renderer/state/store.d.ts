@@ -88,7 +88,8 @@ interface StoreState {
   openProject: (params?: any) => void;
   saveProject: (params?: any) => void;
   exportFile: (params: { targetFileType: string; [key: string]: any }) => void;
-  printPages: (params: { pageList: any[]; printConfig: any }) => void;
+  printPages: (params: { pageList: any[]; printConfig: any }) => Promise<boolean | undefined>;
+  adjustGuidePrint: (params: { printConfig: any }) => Promise<boolean | undefined>;
   reloadLocalImage: () => void;
   getExportPageCount: () => Promise<void>;
   getExportPreview: (pageIndex: number, isSilence?: boolean) => Promise<any>;
@@ -111,14 +112,13 @@ interface StoreState {
   selectedCardsRemove: () => void;
   selectedCardsDuplicate: () => void;
   selectedCardsEdit: (newState: Partial<Card>) => void;
-  selectedCardsFillBackWithEach: (backImageList: any[]) => void;
+  selectedCardsEditEach: (callback: (card: Card) => Card | null | undefined) => void;
   selectedCardsSwap: () => void;
   editCardsConfig: (ids: string[], config: any) => void;
 
   // Backend jobs methods
   updateBackendJob: (key: string, updates: Partial<BackendJob>) => void;
   clearBackendJob: (key: string) => void;
-  clearAllBackendJobs: () => void;
 
   // History methods
   historyUndo: () => void;

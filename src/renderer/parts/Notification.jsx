@@ -35,12 +35,15 @@ export const Notification = () => {
   const { t } = useTranslation();
   const { enqueueSnackbar } = useSnackbar();
   window.enqueueSnackbar = enqueueSnackbar;
-  regNotification(({msgKey, variant, ...rest}) => enqueueSnackbar((msgKey ? t(msgKey) : ''),{
-    variant,
-    anchorOrigin: { horizontal: 'center', vertical: 'bottom' },
-    autoHideDuration: 3000,
-    ...rest
-  }));
+  regNotification(({ msg, msgKey, variant, ...rest }) => enqueueSnackbar(
+    msg ?? (msgKey ? t(msgKey) : ''),
+    {
+      variant,
+      anchorOrigin: { horizontal: 'center', vertical: 'bottom' },
+      autoHideDuration: 3000,
+      ...rest
+    }
+  ));
   return <></>
 }
 
