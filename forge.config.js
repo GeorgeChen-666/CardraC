@@ -227,6 +227,7 @@ module.exports = {
     {
       name: '@electron-forge/plugin-webpack',
       config: {
+        port: 3333,
         devContentSecurityPolicy: "default-src 'self' 'unsafe-inline' data:; img-src 'self' http://localhost:* file://* data: blob: cardrac:; script-src 'self' 'unsafe-eval' 'unsafe-inline' data:; connect-src 'self' http://localhost:* ws://localhost:*",
         mainConfig: './webpack.main.config.js',
         renderer: {

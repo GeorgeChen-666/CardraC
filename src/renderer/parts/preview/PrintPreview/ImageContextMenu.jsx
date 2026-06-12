@@ -16,12 +16,25 @@ export const ImageContextMenu = ({ anchorPosition, onClose, imageElement }) => {
   const open = Boolean(anchorPosition);
   const { t } = useTranslation();
   const {
-    getExportPageCount, cardEditByIndex, CardList, Global
+    getExportPageCount, cardEditByIndex
   } = useGlobalStore.getState();
+  const CardList = useGlobalStore(state => state.CardList);
+
+  // 提取 index, side
+  const [index, side] = React.useMemo(() => {
+    if (!imageElement?.dataset?.cardMark) return [null, null];
+    return imageElement.dataset.cardMark.split('.').map((v, i) => i ? v : +v);
+  }, [imageElement]);
+
+  // 判断当前位置图片是否为空
+  const disabled = React.useMemo(() => {
+    if (index === null || !side) return true;
+    const card = CardList[index];
+    return !card?.[side]?.path;
+  }, [CardList, index, side]);
+
   const handleCopy = async () => {
-    if (imageElement) {
-      const [index, side] = imageElement.dataset.cardMark.split('.')
-        .map((v, i) => i ? v : +v);
+    if (index !== null) {
       const oldImageData = CardList[index];
       await navigator.clipboard.writeText(JSON.stringify(oldImageData?.[side] || emptyImg));
     }
@@ -29,31 +42,24 @@ export const ImageContextMenu = ({ anchorPosition, onClose, imageElement }) => {
   };
 
   const handlePaste = async () => {
-    if (imageElement) {
+    if (index !== null) {
       const text = await navigator.clipboard.readText();
-      if(text) {
-        const [index, side] = imageElement.dataset.cardMark.split('.')
-          .map((v, i) => i ? v : +v);
+      if (text) {
         try {
           const imageData = JSON.parse(text);
-          if(imageData) {
+          if (imageData) {
             cardEditByIndex(index, side, imageData);
             await clearPreviewCache();
             await getExportPageCount();
           }
-        }
-        catch (e) {
-
-        }
+        } catch (e) {}
       }
     }
     onClose();
   };
 
   const handleClear = async () => {
-    if (imageElement) {
-      const [index, side] = imageElement.dataset.cardMark.split('.')
-        .map((v, i) => i ? v : +v);
+    if (index !== null) {
       cardEditByIndex(index, side, null);
       await clearPreviewCache();
     }
@@ -61,12 +67,10 @@ export const ImageContextMenu = ({ anchorPosition, onClose, imageElement }) => {
   };
 
   const handleReplace = async () => {
-    if (imageElement) {
-      const [index, side] = imageElement.dataset.cardMark.split('.')
-        .map((v, i) => i ? v : +v);
-      const [ cardData ] = await openImage(false, false);
+    if (index !== null) {
+      const [cardData] = await openImage(false, false);
       const imageData = cardData?.face;
-      if(imageData) {
+      if (imageData) {
         cardEditByIndex(index, side, imageData);
         await clearPreviewCache();
         await getExportPageCount();
@@ -81,40 +85,27 @@ export const ImageContextMenu = ({ anchorPosition, onClose, imageElement }) => {
       onClose={onClose}
       anchorReference="anchorPosition"
       anchorPosition={anchorPosition}
-      slotProps={{
-        paper: {
-          sx: { minWidth: 180 }
-        }
-      }}
+      slotProps={{ paper: { sx: { minWidth: 180 } } }}
     >
-      <MenuItem onClick={handleCopy}>
-        <ListItemIcon>
-          <ContentCopyIcon fontSize="small" />
-        </ListItemIcon>
+      <MenuItem onClick={handleCopy} disabled={disabled}>
+        <ListItemIcon><ContentCopyIcon fontSize="small" /></ListItemIcon>
         <ListItemText>{t('printPreview.contextMenu.copy')}</ListItemText>
       </MenuItem>
 
       <MenuItem onClick={handlePaste}>
-        <ListItemIcon>
-          <ContentPasteIcon fontSize="small" />
-        </ListItemIcon>
+        <ListItemIcon><ContentPasteIcon fontSize="small" /></ListItemIcon>
         <ListItemText>{t('printPreview.contextMenu.paste')}</ListItemText>
       </MenuItem>
 
-      <MenuItem onClick={handleClear}>
-        <ListItemIcon>
-          <ClearIcon fontSize="small" />
-        </ListItemIcon>
+      <MenuItem onClick={handleClear} disabled={disabled}>
+        <ListItemIcon><ClearIcon fontSize="small" /></ListItemIcon>
         <ListItemText>{t('printPreview.contextMenu.clear')}</ListItemText>
       </MenuItem>
 
       <MenuItem onClick={handleReplace}>
-        <ListItemIcon>
-          <ImageIcon fontSize="small" />
-        </ListItemIcon>
+        <ListItemIcon><ImageIcon fontSize="small" /></ListItemIcon>
         <ListItemText>{t('printPreview.contextMenu.replace')}</ListItemText>
       </MenuItem>
-
     </Menu>
   );
 };

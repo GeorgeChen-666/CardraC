@@ -24,11 +24,13 @@ export class SimpleStore {
 
   async _doWrite() {
     if (this._writing) return;
+    if (this._cache === null) {
+      console.error(`[SimpleStore] ${this.name}: _cache is null before write, stack:`, new Error().stack);
+      return;  // 阻止写入 null
+    }
     this._writing = true;
     try {
       await fs.promises.writeFile(this.configPath, JSON.stringify(this._cache, null, 2), 'utf-8');
-    } catch (e) {
-      console.error(`Failed to write config ${this.name}:`, e);
     } finally {
       this._writing = false;
     }

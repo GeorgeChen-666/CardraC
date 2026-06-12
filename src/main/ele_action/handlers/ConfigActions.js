@@ -5,12 +5,18 @@ import { eleActions } from '../../../shared/constants';
 import { defaultPathStore, getConfigStore, printStore, templateStore, updateConfigStore } from '../../services/store';
 import { getLangFilePath, homeDir } from '../../../shared/functions';
 import { SimpleStore } from '../../core/SimpleStore';
+import path from 'path';
 
 const initLanguageJson = (lang) => {
   const langFilePath = getLangFilePath();
-  const langStore = new SimpleStore(lang, langFilePath);
+  const filePath = path.join(langFilePath, `${lang}.json`);
   const defaultLangStore = require(`../../locales/${lang}.json`);
-  langStore.set(_.merge(defaultLangStore, langStore.get()));
+
+  const isNew = !fs.existsSync(filePath);
+  if (isNew) {
+    const langStore = new SimpleStore(lang, langFilePath);
+    langStore.set(defaultLangStore);
+  }
 };
 
 //获取所有可用语言
@@ -34,8 +40,9 @@ const getAvailableLanguages = () => {
 const getLocale = (lang) => {
   try {
     const langFilePath = getLangFilePath();
+    const defaultLangStore = require(`../../locales/${lang}.json`);
     const langStore = new SimpleStore(lang, langFilePath);
-    return langStore.get();
+    return _.merge({}, defaultLangStore, langStore.get());
   } catch (e) {
     console.error(`Failed to read locale ${lang}:`, e);
   }
