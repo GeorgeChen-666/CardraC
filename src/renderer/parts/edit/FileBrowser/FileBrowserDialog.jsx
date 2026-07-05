@@ -424,15 +424,15 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
 
             {/* ✅ 添加视图切换按钮 */}
             <div className="windows-view-buttons">
-              <IconButton
-                disabled={viewMode === 'list'}
-                  size="small"
-                  onClick={() => setViewMode('list')}
-                  color={viewMode === 'list' ? 'primary' : 'default'}
-                  title={t('fileBrowser.dialogListView')}
-              >
-                <ViewListIcon fontSize="small" />
-              </IconButton>
+              {/*<IconButton*/}
+              {/*  disabled={viewMode === 'list'}*/}
+              {/*    size="small"*/}
+              {/*    onClick={() => setViewMode('list')}*/}
+              {/*    color={viewMode === 'list' ? 'primary' : 'default'}*/}
+              {/*    title={t('fileBrowser.dialogListView')}*/}
+              {/*>*/}
+              {/*  <ViewListIcon fontSize="small" />*/}
+              {/*</IconButton>*/}
               {['S','M','L'].map(size => {
                 const modeName = size;
                 return (<IconButton

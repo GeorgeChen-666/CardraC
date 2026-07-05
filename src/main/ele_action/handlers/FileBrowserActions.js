@@ -27,22 +27,18 @@ const safeStat = (p) => {
   }
 };
 
+// safeReaddir 改为返回 Dirent
 const safeReaddir = (p) => {
   try {
-    return fs.readdirSync(p).filter(f => {
-      const fullPath = path.join(p, f);
-      if (isHidden(fullPath)) return false;
-      try {
-        fs.statSync(path.join(p, f));
-        return true;
-      } catch (e) {
-        return !['EPERM', 'EACCES'].includes(e.code);
-      }
+    return fs.readdirSync(p, { withFileTypes: true }).filter(dirent => {
+      if (isHidden(dirent.name)) return false;
+      return true;
     });
   } catch (e) {
     return ['EPERM', 'EACCES', 'ENOENT'].includes(e.code) ? [] : (() => { throw e; })();
   }
 };
+
 
 const formatSize = (b) =>
   b < 1024 ? b + ' B' :
@@ -117,23 +113,19 @@ const browse = (drivePath, query = {}) => {
   }
 
   // ✅ 如果是目录
-  let items = safeReaddir(real).map(f => {
-    const fp = path.join(real, f);
-    const fst = safeStat(fp);
-    if (!fst) return null;
-
-    const itemPath = up === '/' ? `${drv.toUpperCase()}:/${f}` : `${cur}/${f}`;
-    const isImage = /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(f);
-
+  let items = safeReaddir(real).map(dirent => {
+    const fp = path.join(real, dirent.name);
+    const itemPath = up === '/' ? `${drv.toUpperCase()}:/${dirent.name}` : `${cur}/${dirent.name}`;
+    const isImage = /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(dirent.name);
+    const st = dirent.isDirectory() ? null : safeStat(fp); // 只对文件 stat
     return {
-      name: f,
+      name: dirent.name,
       path: itemPath,
       realPath: fp,
       safePath: fixPath(fp),
-      isDirectory: fst.isDirectory(),
-      size: fst.size,
-      modified: fst.mtime.getTime(),
-      ext: path.extname(f).toLowerCase().replace('.', ''),
+      isDirectory: dirent.isDirectory(), // ← 直接用，无需 stat
+      modified: st ? st.mtime.getTime() : undefined,
+      ext: path.extname(dirent.name).toLowerCase().replace('.', ''),
       isImage,
       ...(isImage && { thumbnailUrl: imagePathToImageSrc(fixPath(fp), { quality: 'low' }) })
     };

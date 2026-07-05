@@ -33,7 +33,9 @@ CardraC is a professional card print layout software that helps you efficiently 
 
 CardraC's main interface is divided into the following areas:
 
-① Toolbar & Menu Bar　② File List　③ Status Bar
+1 Toolbar & Menu Bar　2 File List　3 Status Bar
+
+![img](doc/image/2026-01-20_091354.png)
 
 **1. Toolbar & Menu**
 
@@ -77,6 +79,10 @@ The default mode is double-sided printing, so you also need to set the card back
 
 Click **"Global Default Back"** in the toolbar to assign a default back image for all cards.
 
+![img](doc/image/2026-06-12_141201.png)
+
+![img](doc/image/2026-01-20_103617.png)
+
 Click the **three-dot icon** in the top-right corner of a card to open the file menu, then select the back image. If a card has its own back image set individually, the global default back will be ignored for that card.
 
 **Batch Set Back Side**
@@ -93,11 +99,23 @@ You can specify both face and back images at the same time in the add dialog.
 
 Steps: After selecting face images, **do not click OK yet**. Click the **"Lock Face"** button to lock the selected face images, then select the back images. Once all selections are made, click **OK**.
 
+![img](doc/image/2026-06-12_150740.png)
+
+**Export PDF**
+
+Click the **Export PDF** button in the menu bar to export the file list as a PDF.
+
+**Export PNG**
+
+Click the **Export PNG** button in the menu bar to export the file list as PNG images. If there are multiple pages, they will be exported as a **ZIP archive**.
+
 ## 4. Project Settings
 
 Click the **"Settings"** button in the toolbar to open the settings dialog.
 
 ### 4.1 Layout
+
+![img](doc/image/2026-01-20_115716.png)
 
 **Page Size**
 
@@ -113,11 +131,18 @@ Cards are centered on the page by default. Use these parameters to adjust the ov
 
 - **Fold In Half:** Both face and back are printed on the same side. After printing, fold the paper and apply glue on the blank side before cutting. This method works with most printers and thinner paper, and alignment error is relatively small.
 
-- **Double Sides:** Standard duplex printing — print one side, flip the paper, then print the other side. Pay attention to the flip axis (long edge or short edge binding), as it determines the back-side layout.
+- **Double Sides:** Standard duplex printing — print one side, flip the paper, then print the other side. The flip method matters: you can flip along the long edge or the short edge as the axis. Different flip directions determine how the back side is laid out, so make sure not to mix them up.
+The diagram below illustrates the difference between flip methods.
 
-- **Brochure:** Automatically reorders pages into saddle-stitch booklet order. Also supports duplex printing with flip axis selection. An additional option controls whether to repeat booklets per page when multiple fit on one sheet.
+![img](doc/image/double-sided-printing.png)
+
+Blue represents printers that feed paper horizontally, typically larger professional printers. Pink represents printers that feed paper vertically, which is common for small home inkjet printers.
+
+- **Brochure:** Brochure mode automatically reorders your pages into the correct sequence for printing a saddle-stitch booklet. If you simply print pages in order from first to last and then bind them, the page order will be wrong. This mode handles the reordering for you automatically. Since brochure mode is also duplex printing, the flip axis setting applies here as well. There is an additional option for repeating per page — if multiple booklets fit on a single sheet, you can choose whether to print them all at once or print one at a time and assemble them after cutting.
 
 ### 4.2 Card
+
+![img](doc/image/2026-01-20_130319.png)
 
 **Card Width / Height**
 
@@ -145,6 +170,8 @@ Applies margin only to the front side. The back side ignores the margin and maxi
 
 ### 4.3 Other
 
+![img](doc/image/2026-01-20_133817.png)
+
 **Front / Back Cut Line**
 
 - **Normal:** Straight guide lines in the blank area around the cards.
@@ -157,11 +184,15 @@ Set the color and thickness of the cut lines.
 
 ### 4.4 Config Templates
 
+![img](doc/image/2026-01-20_134305.png)
+
 After completing your settings, click the **Save** button in the settings dialog to save the current configuration as a named template. Switch between templates anytime via the dropdown menu.
 
 ## 5. File Settings
 
 ### 5.1 Image Compression Level
+
+![img](doc/image/2026-01-20_143306.png)
 
 If your imported images are high resolution, CardraC will compress them automatically. Embedding uncompressed high-resolution images directly into a PDF can cause the application or printer to freeze.
 
@@ -178,9 +209,17 @@ After setting the compression level, newly added images will be compressed autom
 
 CardraC records the file path of each imported image. If the source file is moved or renamed after import, reloading will fail. In this case, use the **Fix Path** feature.
 
+![img](doc/image/2026-01-20_144427.png)
+
 When the menu is opened, if any image paths are detected as invalid, the number of broken images will be shown in the menu. Click the menu item to open the **Path Fix Wizard** and reassign new paths one by one.
 
+![img](doc/image/2026-01-20_144702.png)
+
+Select the new path for each image one by one to update the recorded paths in the project file.
+
 ### 5.2 Per-Card Settings
+
+![img](doc/image/2026-01-20_140325.png)
 
 Each card has the following controls:
 
@@ -197,13 +236,19 @@ Each card has the following controls:
 
 Allows individually setting or clearing the face and back images.
 
+![img](doc/image/2026-01-20_103617.png)
+
 **Individual Config**
 
 Lets you set a custom bleed size for a specific card independently. Note: the individual bleed value must not exceed half the card margin.
 
+![img](doc/image/2026-06-12_135120.png)
+
 ### 5.3 Bulk Card Settings
 
 Select multiple cards and use the bulk menu in the toolbar:
+
+![img](doc/image/2026-01-20_145310.png)
 
 | Option | Description |
 |--------|-------------|
@@ -221,64 +266,43 @@ Select multiple cards and use the bulk menu in the toolbar:
 
 Click the **"Print"** button in the toolbar to open the print configuration panel on the right side.
 
-**Target Printer**
+![img](doc/image/2026-02-01_142018.png)
 
-Select the printer from the dropdown menu.
+**Target Printer** Select the printer from the dropdown menu.
 
-**Pages**
+**Pages** Set the start and end page numbers for printing.
 
-Set the start and end page numbers for printing.
+**Print Filter** Further filter the page range to print all pages, odd pages only, or even pages only.
 
-**Print Filter**
+**Custom Page Range** Specify exact pages to print using the format `1-5,8,11-13`. `-` indicates a continuous range, `,` separates individual pages or ranges.
 
-Further filter the page range to print all pages, odd pages only, or even pages only.
+**Paper Size** Select the physical paper loaded in the printer and its orientation (portrait/landscape).
 
-**Custom Page Range**
-
-Specify exact pages to print using the format `1-5,8,11-13`. `-` indicates a continuous range, `,` separates individual pages or ranges.
-
-**Paper Size**
-
-Select the physical paper loaded in the printer and its orientation (portrait/landscape).
-
-**Center Offset X / Y**
-
-Adjusts the print offset to correct front-back alignment in duplex printing.
+**Center Offset X / Y** Adjusts the print offset to correct front-back alignment in duplex printing.
 
 > Note: This differs from the **Offset X/Y** in project settings. Here, both front and back shift in the **same direction** (causing misalignment). In project settings, the back shifts in the **opposite direction** (keeping front and back in sync).
 
 If you are unsure how to set the offset, use the **Adjust Offset Guide**.
 
-**Scale X / Y**
+**Scale X / Y** Overall page scaling in horizontal and vertical directions.
 
-Overall page scaling in horizontal and vertical directions.
+**Adjust Offset Guide** Click the **"Adjust Offset Guide"** button to open the wizard.
 
-### 6.1 Adjust Offset Guide
+Prepare paper and print:
+![img](doc/image/2026-02-01_144414.png)
 
-Click the **"Adjust Offset Guide"** button to open the wizard.
+Take out the printed paper and measure the distances at four positions, then enter the values into the four input fields.
+![img](doc/image/2026-02-01_144624.png)
+![img](doc/image/2026-02-01_144545.png)
 
-**Step 1 — Prepare Paper and Print**
-
-Place a sheet of paper into the printer and click **"Start Printing"**. Prepare a ruler for measurement.
-
-**Step 2 — Measure Spacing**
-
-Take out the printed paper and measure the following four distances:
-
-- Top-left red line to the left edge of the paper
-- Top-right blue line to the top edge of the paper
-- Bottom-right purple line to the right edge of the paper
-- Bottom-left cyan line to the bottom edge of the paper
-
-Enter the four measured values into the corresponding fields.
-
-**Step 3 — Apply Offset**
-
-The system automatically calculates the recommended offset values. Click **"Apply"** to accept the settings.
+The system will automatically calculate the required offset based on the four measurements. Click the **Apply** button to accept the settings.
+![img](doc/image/2026-02-01_145332.png)
 
 ## 7. Preview View
 
 ### 7.1 Feature Overview
+
+![img](doc/image/2026-01-28_123018.png)
 
 **1. Toolbar**
 
@@ -299,6 +323,8 @@ The system automatically calculates the recommended offset values. Click **"Appl
 
 You can edit card images directly in the preview view. When hovering over a face or back image, the corresponding image will display a blinking border. Right-click to open the context menu.
 
+![img](doc/image/2026-06-12_143749.png)
+
 | Option | Description |
 |--------|-------------|
 | **Copy** | Copy the card image data to clipboard. Disabled if the image is empty. Note: a card may appear to have a back image due to the global background, but if no individual back is set, Copy will still be disabled. |
@@ -310,7 +336,15 @@ You can edit card images directly in the preview view. When hovering over a face
 
 ## 8. Multilingual Support
 
-CardraC supports custom language configurations. Language files are located at:
+The application supports custom language configurations. Configuration files are located at [App Path]\resources\locales.
+
+You can copy and rename en.json to add a new language configuration.
+
+Icon folders follow the naming convention below — note that language abbreviations are used here, not country codes: https://github.com/AnandChowdhary/language-icons
+
+Supported configuration filenames are listed here: https://app.unpkg.com/language-icons@0.3.0/files/icons
+
+If en.json or zh.json becomes corrupted, exit CardraC, delete the damaged file(s), and restart. CardraC will automatically regenerate them.
 
 ---
 

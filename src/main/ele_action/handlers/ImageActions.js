@@ -245,6 +245,7 @@ export default (mainWindow) => {
     if(pageIndex > 0 ) {
       const cacheKey = `exportFile-${pageIndex}`
       await PreviewStorage.delete(cacheKey)
+      colorCache.clear()
     } else {
       clearPrerenderCache();
     }

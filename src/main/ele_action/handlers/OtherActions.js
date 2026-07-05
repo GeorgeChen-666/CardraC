@@ -1,12 +1,11 @@
-import { app, dialog, ipcMain } from 'electron';
-import { eleActions, exportType, layoutSides } from '../../../shared/constants';
+import { app, ipcMain } from 'electron';
+import { eleActions, exportType } from '../../../shared/constants';
 import JSZip from 'jszip';
 import { getConfigStore } from '../../services/store';
-import { getPagedImageListByCardList } from '../../services/file_render/utils';
 import { JsPDFAdapter } from '../../services/file_render/adapter/JsPdfAdapter';
 import { SharpAdapter } from '../../services/file_render/adapter/SharpAdapter';
 import { SVGAdapter } from '../../services/file_render/adapter/SVGAdapter';
-import { exportFile } from '../../services/file_render';
+import { colorCache, exportFile } from '../../services/file_render';
 import { saveDataToFile } from '../../functions';
 
 
@@ -14,12 +13,8 @@ export default (mainWindow) => {
   ipcMain.on(eleActions.exportFile, async (event, args) => {
     const { CardList, globalBackground, targetFileType, returnChannel, progressChannel, filePath } = args;
     const { Config } = getConfigStore();
-    let extension = targetFileType;
     const state = { CardList, globalBackground };
-    const pagedImageList = getPagedImageListByCardList(state, Config);
-    if((pagedImageList.length > (Config.sides === layoutSides.foldInHalf ? 2 : 1)) && targetFileType !== exportType.pdf) {
-      extension = exportType.zip;
-    }
+
     progressChannel && mainWindow.webContents.send(progressChannel, 0.1);
     try {
       const doc = (() => {
@@ -33,6 +28,7 @@ export default (mainWindow) => {
         }
       })();
       progressChannel && mainWindow.webContents.send(progressChannel, 0.3);
+      colorCache.clear();
       const result = await exportFile(doc, state);
       progressChannel && mainWindow.webContents.send(progressChannel, 0.5);
       let returnContent = result;

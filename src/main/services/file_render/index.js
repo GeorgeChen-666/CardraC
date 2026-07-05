@@ -12,21 +12,14 @@ import { filePathToImageKey, fixFloat } from '../../../shared/functions';
 import { taskPool } from '../../core/TaskPool';
 
 export const colorCache = new Map();
-const imageAverageColorSet = new Map();
 // taskImmediate
 const loadImageAverageColor = async () => {
-  imageAverageColorSet.clear();
   const jobs = ImageStorage.keys().map(key => {
-    const taskId =  taskPool.taskImmediate(async () => {
-      if (imageAverageColorSet.has(key)) return;
+    const taskId = taskPool.taskImmediate(async () => {
+      if (colorCache.has(key)) return; // 已有直接跳过
       try {
-        if (colorCache.has(key)) {
-          imageAverageColorSet.set(key, colorCache.get(key));
-        } else {
-          const averageColor = await getBorderAverageColors(await ImageStorage[key]);
-          imageAverageColorSet.set(key, averageColor);
-          colorCache.set(key, averageColor);
-        }
+        const averageColor = await getBorderAverageColors(await ImageStorage[key]);
+        colorCache.set(key, averageColor);
       } catch (e) {
         console.log(e);
       }
@@ -258,7 +251,7 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
       if(Config.marginFilling) {
         try {
           doc.setLineStyle({width:0, color: 0});
-          const averageColor = imageAverageColorSet.get(filePathToImageKey(actualImage.path) || emptyImgPath);
+          const averageColor = colorCache.get(filePathToImageKey(actualImage.path) || emptyImgPath);
           const xOffset = fixFloat(scaledMarginX / 2);
           const yOffset = fixFloat(scaledMarginY / 2);
           const rectFill = {
