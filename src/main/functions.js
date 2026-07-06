@@ -10,7 +10,7 @@ export async function getBorderAverageColors(base64String, borderWidth = 5) {
     const buffer = Buffer.from(base64String.split(',')[1], 'base64');
     const baseImage = sharp(buffer);
     const metadata = await baseImage.metadata();
-    const { width, height, channels } = metadata;
+    const { width, height } = metadata;
 
     const { data } = await baseImage
       .ensureAlpha()
@@ -132,7 +132,7 @@ export const saveDataToFile = async (data, filePath) => {
     throw new Error(`Unsupported data type: ${typeof data}`);
   }
 
-  await fs.writeFileSync(filePath, buffer);
+  await fs.promises.writeFile(filePath, buffer);
 };
 
 /**
@@ -158,7 +158,6 @@ export async function printSVGs(printerName, svgDataList, options = {}) {
     scaleX = 1,
     scaleY = 1,
     landscape = false,
-    silent = true,
     paperSize = ''
   } = options;
 
@@ -217,7 +216,7 @@ function buildPrintHTML(svgDataList, { width, height, offsetXmm, offsetYmm, scal
     .join('');
 
   return `<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <style>

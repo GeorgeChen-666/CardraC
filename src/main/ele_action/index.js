@@ -10,12 +10,24 @@ import FileBrowserActions from './handlers/FileBrowserActions';
 import { initConfigStore } from '../services/store';
 
 
+let currentMainWindow = null;
+let handlersRegistered = false;
+
+export const getMainWindow = () => currentMainWindow;
+
 export const registerRendererActionHandlers = async (mainWindow) => {
+  currentMainWindow = mainWindow;
+
+  if (handlersRegistered) {
+    return;
+  }
+
   await initConfigStore();
-  ConfigActions(mainWindow);
-  OtherActions(mainWindow);
-  ProjectActions(mainWindow);
-  ImageActions(mainWindow);
-  PrinterActions(mainWindow);
-  FileBrowserActions(mainWindow);
+  ConfigActions(getMainWindow);
+  OtherActions(getMainWindow);
+  ProjectActions(getMainWindow);
+  ImageActions(getMainWindow);
+  PrinterActions(getMainWindow);
+  FileBrowserActions(getMainWindow);
+  handlersRegistered = true;
 }

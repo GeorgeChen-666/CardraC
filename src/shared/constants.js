@@ -27,6 +27,7 @@ export const eleActions = Object.freeze({
   setDefaultPath: 'set-default-path',
   listDrives: 'list-drives',
   browsePath: 'browse-path',
+  getFileDetails: 'get-file-details',
   backendJobProgress: 'backend-job-progress',
   backendUiFillState: 'backend-ui-fill-state',
   backendNotification: 'backend-notification'

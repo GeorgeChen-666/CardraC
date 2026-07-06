@@ -2,7 +2,7 @@ import { ipcMain } from 'electron';
 import { eleActions, initialState, layoutSides } from '../../../shared/constants';
 import { exportFile, prerenderPage } from '../../services/file_render';
 import { printSVGs } from '../../functions';
-import { clearPrerenderCache, getConfigStore, printStore } from '../../services/store';
+import { clearPrerenderCache, getConfigStore } from '../../services/store';
 
 const { exec } = require('child_process');
 
@@ -10,7 +10,7 @@ async function getPrinters() {
   return new Promise((resolve, reject) => {
     const cmd = 'powershell -NoProfile -Command "Add-Type -AssemblyName System.Drawing; $default = [System.Drawing.Printing.PrinterSettings]::DefaultPageSettings.PrinterName; $list = @(); foreach($p in [System.Drawing.Printing.PrinterSettings]::InstalledPrinters){ $s=New-Object System.Drawing.Printing.PrinterSettings; $s.PrinterName=$p; $ps=$s.DefaultPageSettings; $sizes=$s.PaperSizes|ForEach-Object{ [PSCustomObject]@{ name=$_.PaperName; widthMm=[Math]::Round($_.Width*0.254,1); heightMm=[Math]::Round($_.Height*0.254,1) } }|Sort-Object name|Get-Unique -AsString; $o=[PSCustomObject]@{ printerName=$p; isDefault=($p -eq $default); paperSizes=@($sizes); defaultPaperSize=$ps.PaperSize.PaperName; defaultWidthMm=[Math]::Round($ps.PaperSize.Width*0.254,1); defaultHeightMm=[Math]::Round($ps.PaperSize.Height*0.254,1); isLandscape=$ps.Landscape }; $list+=$o }; $list|ConvertTo-Json -Depth 5"';
 
-    exec(cmd, { encoding: 'utf8' }, (err, stdout, stderr) => {
+    exec(cmd, { encoding: 'utf8' }, (err, stdout) => {
       if (err) {
         console.error('执行错误:', err);
         return reject(err);
@@ -27,9 +27,10 @@ async function getPrinters() {
 }
 
 
-export default (mainWindow) => {
+export default (getMainWindow) => {
   ipcMain.on(eleActions.getPrinters, async (event, args) => {
     const { returnChannel } = args;
+    const mainWindow = getMainWindow();
 
     try {
       const printers = await getPrinters();
@@ -40,9 +41,10 @@ export default (mainWindow) => {
     }
   });
   ipcMain.on(eleActions.adjustGuidePrint, async (event, args) => {
-    const { returnChannel, progressChannel, printConfig } = args;
+    const { returnChannel, printConfig } = args;
+    const mainWindow = getMainWindow();
 
-    function renderGuidePrintFunction (doc, state, pagesToRender = null) {
+    function renderGuidePrintFunction (doc) {
       const LS = 15;
       doc.setLineStyle({width:0.5 * 0.3527, color: '#ff0000'});
       doc.drawLine({ x1: LS, y1: LS, x2: LS, y2: 0 });
@@ -79,7 +81,8 @@ export default (mainWindow) => {
   });
 
   ipcMain.on(eleActions.printPages, async (event, args) => {
-    const { returnChannel, progressChannel, CardList, globalBackground, pageList, printConfig } = args;
+    const { returnChannel, CardList, globalBackground, pageList, printConfig } = args;
+    const mainWindow = getMainWindow();
     const { Config } = getConfigStore();
     const state = { CardList, globalBackground };
 

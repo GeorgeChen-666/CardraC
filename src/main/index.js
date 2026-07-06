@@ -1,7 +1,6 @@
-import electron, { app, BrowserWindow, shell, protocol } from 'electron';
+import electron, { app, BrowserWindow, shell } from 'electron';
 import { registerRendererActionHandlers } from './ele_action';
-import { ImageStorage, OverviewStorage } from './services/store';
-import { isDev, waitCondition } from '../shared/functions';
+import { isDev } from '../shared/functions';
 
 if (typeof electron === 'string') {
   throw new TypeError('Not running in an Electron environment!');
@@ -15,7 +14,7 @@ if (require('electron-squirrel-startup')) {
   app.quit();
 }
 
-const createWindow = () => {
+const createWindow = async () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     icon: 'icon',
@@ -29,6 +28,8 @@ const createWindow = () => {
     },
   });
 
+  await registerRendererActionHandlers(mainWindow);
+
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
   if(isDev) {
@@ -37,28 +38,25 @@ const createWindow = () => {
   } else {
     //mainWindow.webContents.openDevTools();
     mainWindow.menuBarVisible = false;
-    mainWindow.webContents.on('context-menu', (e, params) => {
+    mainWindow.webContents.on('context-menu', (e) => {
       e.preventDefault(); // 阻止默认的右键菜单
     });
   }
-
-  registerRendererActionHandlers(mainWindow);
-
 };
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
 
 
-  createWindow();
+  await createWindow();
 
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
-  app.on('activate', () => {
+  app.on('activate', async () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+      await createWindow();
     }
   });
 });

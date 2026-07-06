@@ -9,14 +9,14 @@ import { colorCache, exportFile } from '../../services/file_render';
 import { saveDataToFile } from '../../functions';
 
 
-export default (mainWindow) => {
+export default (getMainWindow) => {
   ipcMain.on(eleActions.exportFile, async (event, args) => {
     const { CardList, globalBackground, targetFileType, returnChannel, progressChannel, filePath } = args;
+    const mainWindow = getMainWindow();
     const { Config } = getConfigStore();
     const state = { CardList, globalBackground };
-
-    progressChannel && mainWindow.webContents.send(progressChannel, 0.1);
     try {
+      progressChannel && mainWindow.webContents.send(progressChannel, 0.1);
       const doc = (() => {
         if(targetFileType === exportType.pdf) {
           return new JsPDFAdapter(Config)
@@ -52,6 +52,7 @@ export default (mainWindow) => {
       mainWindow.webContents.send(returnChannel, true);
     }
     catch (e) {
+      console.error('Export failed:', e);
       mainWindow.webContents.send(eleActions.backendNotification, {
         status: 'error',
         descriptionKey: "util.operationFailed"
@@ -61,6 +62,7 @@ export default (mainWindow) => {
   });
 
   ipcMain.on('version', async (event, args) => {
+    const mainWindow = getMainWindow();
     mainWindow.webContents.send(args.returnChannel, app.getVersion());
   });
 }

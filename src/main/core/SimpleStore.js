@@ -3,6 +3,50 @@ import fs from 'fs';
 import { getAppDataPath } from '../../shared/functions';
 
 const WRITE_DEBOUNCE_MS = 500;
+const storeCleanupRegistry = new Set();
+let cleanupHooksRegistered = false;
+
+const runRegisteredFlushes = async () => {
+  const stores = Array.from(storeCleanupRegistry);
+  await Promise.allSettled(stores.map(async (store) => {
+    try {
+      await store.flush();
+    } catch (e) {
+      console.error(`Failed to flush config ${store.name} on exit:`, e);
+    }
+  }));
+};
+
+const registerProcessCleanupHooks = () => {
+  if (cleanupHooksRegistered) return;
+
+  process.once('exit', () => {
+    for (const store of Array.from(storeCleanupRegistry)) {
+      try {
+        if (store._writeTimer) {
+          clearTimeout(store._writeTimer);
+          store._writeTimer = null;
+        }
+        if (store._cache !== null) {
+          fs.writeFileSync(store.configPath, JSON.stringify(store._cache, null, 2), 'utf-8');
+        }
+      } catch (e) {
+        console.error(`Failed to flush config ${store.name} on exit:`, e);
+      }
+    }
+  });
+
+  const attachSignalHandler = (signal) => {
+    process.once(signal, async () => {
+      await runRegisteredFlushes();
+      process.exit(0);
+    });
+  };
+
+  attachSignalHandler('SIGINT');
+  attachSignalHandler('SIGTERM');
+  cleanupHooksRegistered = true;
+};
 
 export class SimpleStore {
   constructor(name = 'config', cwd = null) {
@@ -91,25 +135,8 @@ export class SimpleStore {
   }
 
   registerCleanup() {
-    const cleanup = async () => {
-      try {
-        await this.flush();
-      } catch (e) {
-        console.error(`Failed to flush config ${this.name} on exit:`, e);
-      }
-    };
-
-    let called = false;
-    const safe = async () => {
-      if (!called) {
-        called = true;
-        await cleanup();
-      }
-    };
-
-    process.on('exit', safe);
-    process.on('SIGINT', async () => { await safe(); process.exit(0); });
-    process.on('SIGTERM', async () => { await safe(); process.exit(0); });
+    storeCleanupRegistry.add(this);
+    registerProcessCleanupHooks();
   }
 
 }

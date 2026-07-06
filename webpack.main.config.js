@@ -6,7 +6,7 @@ module.exports = {
    */
   entry: './src/main/index.js',
   // Put your normal webpack config below here
-  devtool: process.env.NODE_ENV === 'production' ? false : 'source-map',
+  devtool: process.env.NODE_ENV === 'production' ? false : 'eval-cheap-module-source-map',
   module: {
     rules: require('./webpack.rules'),
   },
@@ -19,7 +19,7 @@ module.exports = {
   },
   cache: {
     type: 'filesystem',
-    cacheDirectory: resolve(__dirname, '.webpack_cache'),
+    cacheDirectory: resolve(__dirname, 'node_modules', '.cache', 'cardrac-webpack', 'main'),
     buildDependencies: {
       config: [__filename],
     },

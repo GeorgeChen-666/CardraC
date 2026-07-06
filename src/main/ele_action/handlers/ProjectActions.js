@@ -262,15 +262,15 @@ const saveCpnpFile = async (projectData, storages, filePath, onProgress) => {
   });
 };
 
-export default (mainWindow) => {
+export default (getMainWindow) => {
   const filePath = process.argv.find(arg => arg.endsWith('.cpnp'));
   if (filePath) {
     setTimeout(() => {
       loadCpnpFile(filePath, {
         //onProgress: (v) => mainWindow.webContents.send(progressChannel, v),
-        onFinish: (projectJson) => mainWindow.webContents.send(eleActions.backendUiFillState, projectJson),
+        onFinish: (projectJson) => getMainWindow().webContents.send(eleActions.backendUiFillState, projectJson),
         onError: () => {
-          mainWindow.webContents.send(eleActions.backendNotification, {
+          getMainWindow().webContents.send(eleActions.backendNotification, {
             status: 'error',
             descriptionKey: "util.invalidFile"
           });
@@ -282,6 +282,7 @@ export default (mainWindow) => {
 
   ipcMain.on(eleActions.saveProject, async (event, args) => {
     const { CardList, globalBackground, returnChannel, progressChannel, filePath } = args;
+    const mainWindow = getMainWindow();
 
     try {
       const { Config } = getConfigStore();
@@ -315,6 +316,7 @@ export default (mainWindow) => {
 
   ipcMain.on(eleActions.openProject, async (event, args) => {
     const { returnChannel, progressChannel, filePath } = args;
+    const mainWindow = getMainWindow();
     await loadCpnpFile(filePath, {
       onProgress: (v) => progressChannel && mainWindow.webContents.send(progressChannel, v),
       onFinish: (projectJson) => mainWindow.webContents.send(returnChannel, projectJson),

@@ -12,7 +12,7 @@ import {
 } from '../../services/store';
 import { colorCache, exportFile, prerenderPage } from '../../services/file_render';
 import { getPagedImageListByCardList } from '../../services/file_render/utils';
-import { expandPath, filePathToImageKey, fixPath, waitCondition, waitTime } from '../../../shared/functions';
+import { expandPath, filePathToImageKey, fixPath } from '../../../shared/functions';
 import { refreshCardStorage } from '../functions';
 
 const taskFn = (storage) => {
@@ -72,14 +72,14 @@ const pathToImageData = (imagePath, option = { }) => {
 
   const fixedImagePath = expandPath(imagePath);
 
-  if(!skipOverviewStorage && (!OverviewStorage.keys().includes(imagePathKey) || force)) {
+  if(!skipOverviewStorage && (!OverviewStorage.has(imagePathKey) || force)) {
     compressThumbnail(
       fixedImagePath,
       { maxWidth: 100 }
     )
   }
 
-  if(!skipImageStorage && (!ImageStorage.keys().includes(imagePathKey) || force)) {
+  if(!skipImageStorage && (!ImageStorage.has(imagePathKey) || force)) {
     compressHighQuality(
       fixedImagePath,
       { format: ext, ...getCompressParams() }
@@ -92,9 +92,10 @@ const pathToImageData = (imagePath, option = { }) => {
   return returnObj;
 };
 
-export default (mainWindow) => {
+export default (getMainWindow) => {
 
   taskPool.onCompleteByTag(imageCacheType.highQuality, ({ stats }) => {
+    const mainWindow = getMainWindow();
     const { total, completed, failed, cancelled } = stats;
     const done = completed + failed + cancelled;
     const progress = total > 0 ? done / total : 1;
@@ -199,6 +200,7 @@ export default (mainWindow) => {
 
   ipcMain.on(eleActions.getExportPageCount, async (event, args) => {
     const { CardList, globalBackground, returnChannel } = args;
+    const mainWindow = getMainWindow();
     const { Config } = getConfigStore();
     const state = { CardList, globalBackground };
     const pagedImageList = getPagedImageListByCardList(state, Config);
@@ -208,6 +210,7 @@ export default (mainWindow) => {
 
   ipcMain.on(eleActions.getExportPreview, async (event, args) => {
     const { pageIndex, CardList, globalBackground, returnChannel } = args;
+    const mainWindow = getMainWindow();
     const { Config } = getConfigStore();
     const state = { CardList, globalBackground };
 
@@ -242,6 +245,7 @@ export default (mainWindow) => {
 
   ipcMain.on(eleActions.clearPreviewCache, async (event, args) => {
     const { returnChannel, pageIndex } = args;
+    const mainWindow = getMainWindow();
     if(pageIndex > 0 ) {
       const cacheKey = `exportFile-${pageIndex}`
       await PreviewStorage.delete(cacheKey)
@@ -256,6 +260,7 @@ export default (mainWindow) => {
 
   ipcMain.on(eleActions.loadImageList, async (event, args) => {
     const { returnChannel, progressChannel, imageList } = args;
+    const mainWindow = getMainWindow();
     imageList.forEach(imageData => {
       try {
         pathToImageData(imageData.path)
@@ -273,7 +278,8 @@ export default (mainWindow) => {
   });
 
   ipcMain.on(eleActions.checkImage, async (event, args) => {
-    const pathList = JSON.parse(JSON.stringify(args.pathList));
+    const mainWindow = getMainWindow();
+    const pathList = Array.isArray(args.pathList) ? [...args.pathList] : [];
     const invalidImages = [];
 
     const checkImagePath = path => {
@@ -293,6 +299,7 @@ export default (mainWindow) => {
 
   ipcMain.on(eleActions.reloadLocalImage, async (event, args) => {
     const { CardList, globalBackground, returnChannel, progressChannel, cancelChannel } = args;
+    const mainWindow = getMainWindow();
     const { Config } = getConfigStore();
     Config.globalBackground = globalBackground;
 

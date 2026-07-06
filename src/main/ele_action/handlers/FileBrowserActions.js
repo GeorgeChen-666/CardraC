@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { eleActions } from '../../../shared/constants';
-import { fixPath, imagePathToImageSrc } from '../../../shared/functions';
+import { expandPath, fixPath, imagePathToImageSrc } from '../../../shared/functions';
 
 // ✅ 工具函数
 const isHidden = (filePath) => {
@@ -27,6 +27,23 @@ const safeStat = (p) => {
   }
 };
 
+const buildFileDetails = (targetPath) => {
+  const realPath = expandPath(targetPath);
+  const st = safeStat(realPath);
+  if (!st) return null;
+
+  return {
+    name: path.basename(realPath),
+    path: targetPath,
+    realPath,
+    safePath: fixPath(realPath),
+    isDirectory: st.isDirectory(),
+    size: st.isDirectory() ? undefined : st.size,
+    modified: st.mtime.getTime(),
+    ext: path.extname(realPath).toLowerCase().replace('.', ''),
+  };
+};
+
 // safeReaddir 改为返回 Dirent
 const safeReaddir = (p) => {
   try {
@@ -39,12 +56,6 @@ const safeReaddir = (p) => {
   }
 };
 
-
-const formatSize = (b) =>
-  b < 1024 ? b + ' B' :
-    b < 1024 ** 2 ? (b / 1024).toFixed(1) + ' KB' :
-      b < 1024 ** 3 ? (b / 1024 ** 2).toFixed(1) + ' MB' :
-        (b / 1024 ** 3).toFixed(1) + ' GB';
 
 const getDrives = () => {
   if (os.platform() !== 'win32') return ['/'];
@@ -89,6 +100,7 @@ const browse = (drivePath, query = {}) => {
   const real = path.join(root, up === '/' ? '' : up.replace(/^\//, ''));
 
   const { sort = 'name', order = 'asc', ext } = query;
+  const needFileStat = sort === 'modified' || sort === 'size';
 
   const st = safeStat(real);
   if (!st) {
@@ -117,13 +129,14 @@ const browse = (drivePath, query = {}) => {
     const fp = path.join(real, dirent.name);
     const itemPath = up === '/' ? `${drv.toUpperCase()}:/${dirent.name}` : `${cur}/${dirent.name}`;
     const isImage = /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(dirent.name);
-    const st = dirent.isDirectory() ? null : safeStat(fp); // 只对文件 stat
+    const st = needFileStat && !dirent.isDirectory() ? safeStat(fp) : null;
     return {
       name: dirent.name,
       path: itemPath,
       realPath: fp,
       safePath: fixPath(fp),
       isDirectory: dirent.isDirectory(), // ← 直接用，无需 stat
+      size: st ? st.size : undefined,
       modified: st ? st.mtime.getTime() : undefined,
       ext: path.extname(dirent.name).toLowerCase().replace('.', ''),
       isImage,
@@ -148,9 +161,9 @@ const browse = (drivePath, query = {}) => {
     if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
     let r;
     if (sort === 'size') {
-      r = a.size - b.size;
+      r = (a.size ?? 0) - (b.size ?? 0);
     } else if (sort === 'modified') {
-      r = a.modified - b.modified;
+      r = (a.modified ?? 0) - (b.modified ?? 0);
     } else {
       r = naturalCompare(a.name, b.name);
     }
@@ -167,10 +180,11 @@ const browse = (drivePath, query = {}) => {
 };
 
 // ✅ 导出
-export default (mainWindow) => {
+export default (getMainWindow) => {
   // ✅ 列出驱动器
   ipcMain.on(eleActions.listDrives, (event, args) => {
     const { returnChannel } = args;
+    const mainWindow = getMainWindow();
     try {
       const result = listDrives();
       mainWindow.webContents.send(returnChannel, result);
@@ -186,6 +200,7 @@ export default (mainWindow) => {
   // ✅ 浏览路径
   ipcMain.on(eleActions.browsePath, (event, args) => {
     const { returnChannel, path, query = {} } = args;
+    const mainWindow = getMainWindow();
     try {
       const result = browse(path, query);
       mainWindow.webContents.send(returnChannel, result);
@@ -195,6 +210,18 @@ export default (mainWindow) => {
         type: 'error',
         message: error.message
       });
+    }
+  });
+
+  ipcMain.on(eleActions.getFileDetails, (event, args) => {
+    const { returnChannel, paths = [] } = args;
+    const mainWindow = getMainWindow();
+    try {
+      const details = paths.map(buildFileDetails).filter(Boolean);
+      mainWindow.webContents.send(returnChannel, details);
+    } catch (error) {
+      console.error('Failed to get file details:', error);
+      mainWindow.webContents.send(returnChannel, []);
     }
   });
 };

@@ -10,13 +10,12 @@ import CloseIcon from '@mui/icons-material/Close';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { useTranslation } from 'react-i18next';
-import ViewListIcon from '@mui/icons-material/ViewList';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import { Divider } from '@mui/material';
 import './FileBrowserDialog.css';
 import { FileOrganizer } from './FileOrganizer';
 import { withConfirmation } from '../../../componments/withConfirmation';
-import { setDefaultPath, getDefaultPath, listDrives, browsePath } from '../../../functions';
+import { setDefaultPath, getDefaultPath, listDrives, browsePath, getFileDetails as getFileDetailsByPath } from '../../../functions';
 import { BreadcrumbBar } from './BreadcrumbBar';
 import { FileGrid } from './FileGrid';
 import { FileList } from './FileList';
@@ -119,6 +118,61 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
     setCanGoForward(forwardStack.current.length > 0);
   }, []);
 
+  const mergeFileDetailsIntoState = useCallback((details = []) => {
+    if (!details.length) return;
+
+    const detailsMap = new Map(details.map(detail => [detail.path, detail]));
+    const mergeFile = (file) => {
+      if (!file) return file;
+      const lookupPath = file._raw?.path || file._raw?.safePath || file.id;
+      const detail = detailsMap.get(lookupPath);
+
+      if (!detail) return file;
+
+      return {
+        ...file,
+        size: detail.size ?? file.size,
+        modDate: detail.modified ? new Date(detail.modified) : file.modDate,
+        _raw: {
+          ...file._raw,
+          ...detail,
+        }
+      };
+    };
+
+    setFiles(prev => prev.map(mergeFile));
+    setSelectedFiles(prev => prev.map(mergeFile));
+    setLockedFiles(prev => prev.map(mergeFile));
+  }, []);
+
+  const ensureFileDetails = useCallback(async (paths = []) => {
+    const uniquePaths = [...new Set(paths.filter(Boolean))];
+    if (uniquePaths.length === 0) return [];
+
+    const details = await getFileDetailsByPath({ paths: uniquePaths });
+    mergeFileDetailsIntoState(details);
+    return details;
+  }, [mergeFileDetailsIntoState]);
+
+  const hydrateResultData = useCallback(async (resultData = []) => {
+    const paths = resultData
+      .flat()
+      .filter(Boolean)
+      .filter(item => !item.isDirectory && item.modified == null)
+      .map(item => item.path || item.safePath || item.realPath);
+
+    const details = await ensureFileDetails(paths);
+    if (!details.length) return resultData;
+
+    const detailsMap = new Map(details.map(detail => [detail.path, detail]));
+
+    return resultData.map(group => group.map(item => {
+      if (!item || item.isDirectory) return item;
+      const detail = detailsMap.get(item.path || item.safePath || item.realPath);
+      return detail ? { ...item, ...detail } : item;
+    }));
+  }, [ensureFileDetails]);
+
   const loadFiles = useCallback(async (path = '', extensions = null, addToHistory = true) => {
     setLoading(true);
     try {
@@ -206,7 +260,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
     }
   }, [currentPath, loadFiles, getCurrentExtension]);
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (currentPath) {
       setDefaultPath({ path: currentPath });
     }
@@ -222,6 +276,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
       resultData = [[{ realPath: fullPath, name: fileName, isDirectory: false }]];
     } else {
       resultData = customComponentRef.current?.getResultData?.() || selectedFiles.map(f => f._raw);
+      resultData = await hydrateResultData(resultData);
     }
 
     if (onSelectRef.current) {
@@ -231,6 +286,44 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
     setSelectedFiles([]);
     setOpen(false);
   };
+
+  const handleFileTypeChange = useCallback((newFileType) => {
+    if (options?.mode === 'save') {
+      loadFiles(currentPath, newFileType, false);
+    }
+  }, [options?.mode, loadFiles, currentPath]);
+
+  const handleFileNameChange = useCallback((fileName) => {
+    setInputFileName(fileName);
+  }, []);
+
+  const fileOrganizerSelection = useMemo(() => ({
+    selectedFiles,
+    lockedFiles,
+  }), [selectedFiles, lockedFiles]);
+
+  const fileOrganizerSelectionActions = useMemo(() => ({
+    setSelectedFiles,
+    setLockedFiles,
+  }), []);
+
+  const fileOrganizerOptions = useMemo(() => ({
+    multiSelect: options.multiSelect,
+    isDoubleSides: options.isDoubleSides,
+    showFileIcon: options.showFileIcon,
+    fileTypes: (options.filterExtensions ?? '').split(',').map(ext => ({
+      label: ext,
+      value: ext
+    })),
+    mode: options.mode,
+  }), [options.multiSelect, options.isDoubleSides, options.showFileIcon, options.filterExtensions, options.mode]);
+
+  const fileOrganizerCallbacks = useMemo(() => ({
+    onFileHover: setHoveredFile,
+    onSubmit: handleConfirm,
+    onFileTypeChange: handleFileTypeChange,
+    onFileNameChange: handleFileNameChange,
+  }), [handleConfirm, handleFileTypeChange, handleFileNameChange]);
 
   const skipConfirm = useMemo(() => {
     if (options.mode !== 'save') return true;
@@ -293,6 +386,10 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
     // Save 模式自动填充文件名
     if (options.mode === 'save') {
       customComponentRef.current?.setFileName(file.name.replace(/\.[^.]+$/, ''));
+    }
+
+    if (file._raw?.modified == null) {
+      void ensureFileDetails([file._raw?.path || file.id]);
     }
   }, [files, selectedFiles, options.multiSelect, options.mode, lockedFiles]);
 
@@ -376,14 +473,16 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
           className="FileBrowserDialog windows-style"
           fullWidth
           maxWidth="lg"
-          PaperProps={{
-            sx: {
-              width: '90vw',
-              height: '80vh',
-              maxWidth: '90vw',
-              maxHeight: '80vh',
-              display: 'flex',
-              flexDirection: 'column'
+          slotProps={{
+            paper: {
+              sx: {
+                width: '90vw',
+                height: '80vh',
+                maxWidth: '90vw',
+                maxHeight: '80vh',
+                display: 'flex',
+                flexDirection: 'column'
+              }
             }
           }}
       >
@@ -507,27 +606,10 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
         }}>
           <FileOrganizer
               ref={customComponentRef}
-              onFileHover={setHoveredFile}
-              selectedFiles={selectedFiles}
-              setSelectedFiles={setSelectedFiles}
-              multiSelect={options.multiSelect}
-              isDoubleSides={options.isDoubleSides}
-              showFileIcon={options.showFileIcon}
-              fileTypes={(options.filterExtensions ?? '').split(',').map(ext => ({
-                label: ext,
-                value: ext
-              }))}
-              mode={options.mode}
-              onFileTypeChange={(newFileType) => {
-                if (options?.mode === 'save') {
-                  loadFiles(currentPath, newFileType, false);
-                }
-              }}
-              onFileNameChange={(fileName) => {
-                setInputFileName(fileName);
-              }}
-              lockedFiles = {lockedFiles}
-              setLockedFiles = {setLockedFiles}
+              selection={fileOrganizerSelection}
+              selectionActions={fileOrganizerSelectionActions}
+              options={fileOrganizerOptions}
+              callbacks={fileOrganizerCallbacks}
           />
 
           <Divider orientation="vertical" flexItem />

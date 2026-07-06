@@ -1,4 +1,4 @@
-import { Box, Typography, TextField, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import { Box, Typography, TextField, FormControl, InputLabel, MenuItem } from '@mui/material';
 import DescriptionIcon from '@mui/icons-material/Description';
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
@@ -7,48 +7,76 @@ import Button from '@mui/material/Button';
 import { useTranslation } from 'react-i18next';
 
 export const FileOrganizer = forwardRef(({
-                                           selectedFiles,
-                                           setSelectedFiles,
-                                           multiSelect = true,
-                                           isDoubleSides = false,
-                                           showFileIcon = false,
-                                           //新增 Save 模式参数
-                                           mode = 'open', // 'open' | 'save'
-                                           defaultFileName = '',
-                                           fileTypes = [{ label: 'All Files', value: '*' }],
-                                           onFileNameChange,
-                                           onFileTypeChange,
-                                           lockedFiles,
-                                           setLockedFiles,
-                                           onFileHover,
+                                           selection,
+                                           selectionActions,
+                                           options,
+                                           callbacks,
                                          }, ref) => {
   const { t } = useTranslation();
   const scrollRef = useRef(null);
   const [isLocked, setIsLocked] = useState(false);
   const prevSelectedFiles = useRef([]);
 
+  const {
+    selectedFiles = [],
+    lockedFiles = [],
+  } = selection || {};
+
+  const {
+    setSelectedFiles,
+    setLockedFiles,
+  } = selectionActions || {};
+
+  const {
+    multiSelect = true,
+    isDoubleSides = false,
+    showFileIcon = false,
+    mode = 'open',
+    defaultFileName = '',
+    fileTypes = [{ label: 'All Files', value: '*' }],
+  } = options || {};
+
+  const initialFileType = fileTypes[0]?.value || '*';
+  const prevFileNameRef = useRef(defaultFileName);
+  const prevFileTypeRef = useRef(initialFileType);
+
+  const {
+    onFileNameChange,
+    onFileTypeChange,
+    onFileHover,
+    onSubmit,
+  } = callbacks || {};
+
   //Save 模式状态
   const [fileName, setFileName] = useState(defaultFileName);
-  const [fileType, setFileType] = useState(fileTypes[0]?.value || '*');
+  const [fileType, setFileType] = useState(initialFileType);
 
   //同步外部传入的默认文件名
   useEffect(() => {
+    prevFileNameRef.current = defaultFileName;
     setFileName(defaultFileName);
   }, [defaultFileName]);
 
+  useEffect(() => {
+    prevFileTypeRef.current = initialFileType;
+    setFileType(initialFileType);
+  }, [initialFileType]);
+
   //文件名变化时通知父组件
   useEffect(() => {
-    if (mode === 'save' && onFileNameChange) {
+    if (mode === 'save' && prevFileNameRef.current !== fileName && onFileNameChange) {
+      prevFileNameRef.current = fileName;
       onFileNameChange(fileName);
     }
-  }, [fileName, mode]);
+  }, [fileName, mode, onFileNameChange]);
 
   //文件类型变化时通知父组件
   useEffect(() => {
-    if (mode === 'save' && onFileTypeChange) {
+    if (mode === 'save' && prevFileTypeRef.current !== fileType && onFileTypeChange) {
+      prevFileTypeRef.current = fileType;
       onFileTypeChange(fileType);
     }
-  }, [fileType, mode]);
+  }, [fileType, mode, onFileTypeChange]);
 
   useImperativeHandle(ref, () => ({
     getResultData: () => {
@@ -103,7 +131,7 @@ export const FileOrganizer = forwardRef(({
     }
 
     prevSelectedFiles.current = selectedFiles;
-  }, [selectedFiles, isLocked, lockedFiles.length, isDoubleSides, multiSelect, fileBrowserRef, mode]);
+  }, [selectedFiles, isLocked, lockedFiles.length, isDoubleSides, multiSelect, mode, setSelectedFiles]);
 
   //鼠标滚轮横向滚动
   useEffect(() => {
@@ -112,7 +140,8 @@ export const FileOrganizer = forwardRef(({
 
     const handleWheel = (e) => {
       e.preventDefault();
-      scrollElement.scrollBy({ left: e.deltaY, behavior: 'auto' });
+      const horizontalDelta = e.deltaX || e.deltaY;
+      scrollElement.scrollBy({ left: horizontalDelta, behavior: 'auto' });
     };
 
     scrollElement.addEventListener('wheel', handleWheel, { passive: false });
@@ -165,6 +194,12 @@ export const FileOrganizer = forwardRef(({
           size='small'
           autoFocus
           placeholder={t('fileBrowser.bottomBar.nameInputPlaceholder')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+              e.preventDefault();
+              onSubmit?.();
+            }
+          }}
         />
         <FormControl size="small" sx={{ width: 250 }} disabled={fileTypes?.length <= 1}>
           <InputLabel>{fileType}</InputLabel>

@@ -162,6 +162,8 @@ export const listDrives = (params) =>
   callMain(eleActions.listDrives, params)
 export const browsePath = (params) =>
   callMain(eleActions.browsePath, params)
+export const getFileDetails = (params) =>
+  callMain(eleActions.getFileDetails, params)
 
 export const openMultiImage = (isDoubleSides = false) => openImage(isDoubleSides, true)
 export const openImage = async (isDoubleSides = false, isMultiImage = false) => {

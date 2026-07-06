@@ -1,4 +1,4 @@
-import { app, ipcMain } from 'electron';
+import { ipcMain } from 'electron';
 import _ from 'lodash';
 import fs from 'fs';
 import { eleActions } from '../../../shared/constants';
@@ -7,6 +7,19 @@ import { getLangFilePath, homeDir } from '../../../shared/functions';
 import { SimpleStore } from '../../core/SimpleStore';
 import path from 'path';
 
+const localeStoreCache = new Map();
+
+const getLocaleStore = (lang) => {
+  const langFilePath = getLangFilePath();
+  const cacheKey = `${langFilePath}::${lang}`;
+
+  if (!localeStoreCache.has(cacheKey)) {
+    localeStoreCache.set(cacheKey, new SimpleStore(lang, langFilePath));
+  }
+
+  return localeStoreCache.get(cacheKey);
+};
+
 const initLanguageJson = (lang) => {
   const langFilePath = getLangFilePath();
   const filePath = path.join(langFilePath, `${lang}.json`);
@@ -14,7 +27,7 @@ const initLanguageJson = (lang) => {
 
   const isNew = !fs.existsSync(filePath);
   if (isNew) {
-    const langStore = new SimpleStore(lang, langFilePath);
+    const langStore = getLocaleStore(lang);
     langStore.set(defaultLangStore);
   }
 };
@@ -39,9 +52,8 @@ const getAvailableLanguages = () => {
 
 const getLocale = (lang) => {
   try {
-    const langFilePath = getLangFilePath();
     const defaultLangStore = require(`../../locales/${lang}.json`);
-    const langStore = new SimpleStore(lang, langFilePath);
+    const langStore = getLocaleStore(lang);
     return _.merge({}, defaultLangStore, langStore.get());
   } catch (e) {
     console.error(`Failed to read locale ${lang}:`, e);
@@ -49,7 +61,7 @@ const getLocale = (lang) => {
   return {};
 };
 
-export default (mainWindow) => {
+export default (getMainWindow) => {
   ipcMain.on(eleActions.saveConfig, (event, args) => {
     const { Global, Config } = args.state;
     if(Global && Config) {
@@ -59,6 +71,7 @@ export default (mainWindow) => {
   });
   ipcMain.on(eleActions.loadConfig, (event, args) => {
     const { returnChannel } = args;
+    const mainWindow = getMainWindow();
     initLanguageJson('en');
     initLanguageJson('zh');
 
@@ -82,6 +95,7 @@ export default (mainWindow) => {
   });
   ipcMain.on(eleActions.loadPrintConfig, (event, args) => {
     const { returnChannel } = args;
+    const mainWindow = getMainWindow();
     const result = printStore.get({
         scaleX: 100,
         scaleY: 100,
@@ -93,6 +107,7 @@ export default (mainWindow) => {
   // 新增：获取默认路径
   ipcMain.on(eleActions.getDefaultPath, (event, args) => {
     const { returnChannel } = args;
+    const mainWindow = getMainWindow();
     try {
       const { defaultPath } = defaultPathStore.get();
       mainWindow.webContents.send(returnChannel, {
@@ -109,6 +124,7 @@ export default (mainWindow) => {
   // 新增：保存默认路径
   ipcMain.on(eleActions.setDefaultPath, (event, args) => {
     const { path, returnChannel } = args;
+    const mainWindow = getMainWindow();
     try {
       defaultPathStore.set({ defaultPath: path });
       if (returnChannel) {
@@ -124,6 +140,7 @@ export default (mainWindow) => {
 
   ipcMain.on(eleActions.setTemplate, async (event, args) => {
     const { templateName: TemplateName } = args;
+    const mainWindow = getMainWindow();
 
     const { Config } = getConfigStore()
     delete Config.globalBackground;
@@ -138,6 +155,7 @@ export default (mainWindow) => {
   });
   ipcMain.on(eleActions.editTemplate, async (event, args) => {
     const { id, templateName: TemplateName } = args;
+    const mainWindow = getMainWindow();
     const lastStore = templateStore.get();
     const editingItem = (lastStore.templates || []).find(t=> t.id === id);
     if(editingItem) {
@@ -148,12 +166,14 @@ export default (mainWindow) => {
   });
   ipcMain.on(eleActions.deleteTemplate, async (event, args) => {
     const { id } = args;
+    const mainWindow = getMainWindow();
     const lastStore = templateStore.get();
     const newStore =  { templates: (lastStore.templates || []).filter(t=> t.id !== id) }
     templateStore.set(newStore);
     mainWindow.webContents.send(args.returnChannel);
   });
   ipcMain.on(eleActions.getTemplate, async (event, args) => {
+    const mainWindow = getMainWindow();
     const lastStore = templateStore.get();
     mainWindow.webContents.send(args.returnChannel, (lastStore.templates || []));
   });

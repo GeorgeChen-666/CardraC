@@ -133,7 +133,7 @@ export const joinPath = (...parts) => {
 
 export const getLangFilePath = () => {
   if (isDev) {
-    return joinPath(process.cwd(), 'locales');
+    return joinPath(process.cwd(), 'src/main/locales');
   } else {
     return joinPath(process.resourcesPath, 'locales');
   }
