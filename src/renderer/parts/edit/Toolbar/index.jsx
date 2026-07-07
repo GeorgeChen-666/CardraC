@@ -22,7 +22,7 @@ const SubMenu = () => {
       {Config.sides() === layoutSides.doubleSides && (
         <FormControlLabel
           control={<Switch checked={isBackEditing ?? false} onChange={() => mergeGlobal({ isBackEditing: !isBackEditing })} />}
-          label={t('toolbar.lblSwitchView')} />
+          label={isBackEditing ? t('toolbar.lblViewBackLarge') : t('toolbar.lblViewFrontLarge')} />
       )}
     </div>
   </>

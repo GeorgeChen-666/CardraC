@@ -56,7 +56,6 @@ interface ConfigState {
   avoidDislocation?: boolean;
   brochureRepeatPerPage?: boolean;
   pageNumber?: boolean;
-  scale?: number;
 }
 
 interface Card {

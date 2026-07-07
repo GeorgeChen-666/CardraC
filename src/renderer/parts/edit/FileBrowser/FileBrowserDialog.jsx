@@ -6,9 +6,12 @@ import DialogActions from '@mui/material/DialogActions';
 import Badge from '@mui/material/Badge';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
 import CloseIcon from '@mui/icons-material/Close';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import SortIcon from '@mui/icons-material/Sort';
 import { useTranslation } from 'react-i18next';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import { Divider } from '@mui/material';
@@ -44,7 +47,9 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
     filterExtensions: null,
     title: t('fileBrowser.defaultDialogTitle'),
     isDoubleSides: false,
-    showFileIcon: false
+    showFileIcon: false,
+    sort: 'name',
+    order: 'asc',
   });
 
   const quickAccessPaths = useMemo(() => [
@@ -54,6 +59,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
     { id: 'pictures', name: t('fileBrowser.quickAccess.pictures'), icon: '🖼️', path: `${homeDir}/Pictures` },
   ], [t]);
   const [hoveredFile, setHoveredFile] = useState(null);
+  const [sortMenuAnchorEl, setSortMenuAnchorEl] = useState(null);
 
   const historyStack = useRef([]);
   const forwardStack = useRef([]);
@@ -65,13 +71,13 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
     openDialog: async (newOptions = {}) => {
       const { onSelect, multiSelect = false, filterExtensions = null,
         title = t('fileBrowser.defaultDialogTitle'), isDoubleSides = false,
-        showFileIcon = false, mode = 'open' } = newOptions;
+        showFileIcon = false, mode = 'open', sort = 'name', order = 'asc' } = newOptions;
 
       onSelectRef.current = onSelect;
 
 
       setOptions({ multiSelect, filterExtensions,
-        title, isDoubleSides, showFileIcon, mode });
+        title, isDoubleSides, showFileIcon, mode, sort, order });
 
       const { path: defaultPath } = await getDefaultPath();
 
@@ -82,7 +88,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
       setCanGoBack(false);
       setCanGoForward(false);
 
-      loadFiles(defaultPath, filterExtensions);
+      loadFiles(defaultPath, filterExtensions, true, { sort, order });
       setSelectedFiles([]);
       setLockedFiles([]);
       setInputFileName('');
@@ -173,7 +179,7 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
     }));
   }, [ensureFileDetails]);
 
-  const loadFiles = useCallback(async (path = '', extensions = null, addToHistory = true) => {
+  const loadFiles = useCallback(async (path = '', extensions = null, addToHistory = true, queryOverrides = {}) => {
     setLoading(true);
     try {
       let data;
@@ -187,11 +193,14 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
         if (extensions) {
           query.ext = extensions;
         }
-        if (options.sort) {
-          query.sort = options.sort;
+        const effectiveSort = queryOverrides.sort ?? options.sort;
+        const effectiveOrder = queryOverrides.order ?? options.order;
+
+        if (effectiveSort) {
+          query.sort = effectiveSort;
         }
-        if (options.order) {
-          query.order = options.order;
+        if (effectiveOrder) {
+          query.order = effectiveOrder;
         }
 
         data = await browsePath({ path, query });
@@ -233,6 +242,34 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
       setLoading(false);
     }
   }, [buildFolderChain, options.sort, options.order]);
+
+  const sortOptions = useMemo(() => ([
+    { key: 'name-asc', sort: 'name', order: 'asc', label: t('fileBrowser.sort_name_asc') },
+    { key: 'name-desc', sort: 'name', order: 'desc', label: t('fileBrowser.sort_name_desc') },
+    { key: 'modified-desc', sort: 'modified', order: 'desc', label: t('fileBrowser.sort_modified_desc') },
+    { key: 'modified-asc', sort: 'modified', order: 'asc', label: t('fileBrowser.sort_modified_asc') },
+    { key: 'size-desc', sort: 'size', order: 'desc', label: t('fileBrowser.sort_size_desc') },
+    { key: 'size-asc', sort: 'size', order: 'asc', label: t('fileBrowser.sort_size_asc') },
+  ]), [t]);
+
+  const currentSortKey = `${options.sort ?? 'name'}-${options.order ?? 'asc'}`;
+  const currentSortOption = sortOptions.find(option => option.key === currentSortKey) ?? sortOptions[0];
+
+  const handleSortMenuOpen = useCallback((event) => {
+    setSortMenuAnchorEl(event.currentTarget);
+  }, []);
+
+  const handleSortMenuClose = useCallback(() => {
+    setSortMenuAnchorEl(null);
+  }, []);
+
+  const handleSortChange = useCallback((sort, order) => {
+    setOptions(prev => ({ ...prev, sort, order }));
+    setSortMenuAnchorEl(null);
+    if (currentPath) {
+      loadFiles(currentPath, getCurrentExtension(), false, { sort, order });
+    }
+  }, [currentPath, loadFiles, getCurrentExtension]);
 
   const handleGoBack = useCallback(() => {
     if (historyStack.current.length > 0) {
@@ -560,6 +597,28 @@ export const FileBrowserDialog = forwardRef((props, ref) => {
                   </Badge>
                 </IconButton>)
               })}
+              <IconButton
+                size="small"
+                onClick={handleSortMenuOpen}
+                title={`${t('fileBrowser.sort')}: ${currentSortOption.label}`}
+              >
+                <SortIcon fontSize="small" />
+              </IconButton>
+              <Menu
+                anchorEl={sortMenuAnchorEl}
+                open={Boolean(sortMenuAnchorEl)}
+                onClose={handleSortMenuClose}
+              >
+                {sortOptions.map(option => (
+                  <MenuItem
+                    key={option.key}
+                    selected={option.key === currentSortKey}
+                    onClick={() => handleSortChange(option.sort, option.order)}
+                  >
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Menu>
 
             </div>
           </div>

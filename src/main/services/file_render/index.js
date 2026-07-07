@@ -37,10 +37,13 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
   const maxWidth = fixFloat(doc.getPageSize().width);
   const maxHeight = fixFloat(doc.getPageSize().height);
   const isFoldInHalf = sides === layoutSides.foldInHalf;
+  const isBrochure = sides === layoutSides.brochure;
+  const shouldApplyMarginFilling = Boolean(Config.marginFilling && !isBrochure);
+  const shouldApplyAvoidDislocation = Boolean(avoidDislocation && sides === layoutSides.doubleSides);
   const scaledMarginX = fixFloat(marginX);
   const scaledMarginY = fixFloat(marginY);
 
-  if(Config.marginFilling) {
+  if(shouldApplyMarginFilling) {
     await loadImageAverageColor();
   }
 
@@ -94,7 +97,12 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
       }
     }
 
-    const cutline = pageData.type === 'back'? (sides === layoutSides.brochure ? null : Config.bCutLine): Config.fCutLine;
+    const cutline = (() => {
+      if (pageData.type !== 'back') return Config.fCutLine;
+      if (sides === layoutSides.brochure) return null;
+      if (sides === layoutSides.foldInHalf) return Config.fCutLine;
+      return Config.bCutLine;
+    })();
 
     doc.saveState();
     if(pageData.type === 'back' && [layoutSides.doubleSides, layoutSides.brochure].includes(sides)) {
@@ -229,7 +237,7 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
       const rectCut = {...cutRectList[i]};
       const actualImage = image || emptyImg;
       let rotation = 0;
-      if(sides !== layoutSides.brochure && (cardConfig || type === 'back' && avoidDislocation)) {
+      if(!isBrochure && (cardConfig || type === 'back' && shouldApplyAvoidDislocation)) {
         let cardBleedX = Math.min(fixFloat(cardConfig?.bleed?.[`${type}BleedX`]), scaledMarginX / 2);
         let cardBleedY = Math.min(fixFloat(cardConfig?.bleed?.[`${type}BleedY`]), scaledMarginY / 2);
 
@@ -248,7 +256,7 @@ export const exportFile = async (doc, state, pagesToRender = null) => {
         rect.y = rect.y - rect.height;
       }
 
-      if(Config.marginFilling) {
+      if(shouldApplyMarginFilling) {
         try {
           doc.setLineStyle({width:0, color: 0});
           const averageColor = colorCache.get(filePathToImageKey(actualImage.path) || emptyImgPath);

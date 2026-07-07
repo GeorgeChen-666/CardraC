@@ -31,11 +31,13 @@ export default () => {
     if (autoColumnsRows) {
       const pWidth = landscape ? pageHeight : pageWidth;
       const pHeight = (landscape ? pageWidth : pageHeight) - foldInHalfMargin;
-      let autoColumns = parseInt((pWidth * 0.95) / (cardWidth * (isBrochure ? 2 : 1) + marginX));
+      const effectiveMarginX = isBrochure ? 0 : marginX;
+      const effectiveMarginY = isBrochure ? 0 : marginY;
+      let autoColumns = parseInt((pWidth * 0.95) / (cardWidth * (isBrochure ? 2 : 1) + effectiveMarginX));
       if(foldLineType === '1') {
         autoColumns = autoColumns - ((autoColumns % 2 === 1 && isFoldInHalf) ? 1 : 0);
       }
-      let autoRows = parseInt((pHeight * 0.95) / (cardHeight + marginY));
+      let autoRows = parseInt((pHeight * 0.95) / (cardHeight + effectiveMarginY));
       if(foldLineType === '0') {
         autoRows = autoRows - ((autoRows % 2 === 1 && isFoldInHalf) ? 1 : 0);
       }

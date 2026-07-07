@@ -30,10 +30,11 @@ export const getCutRectangleList = (Config, { maxWidth, maxHeight }, ignoreBleed
   const halfMarginX = scaledMarginX / 2;
   const halfMarginY = scaledMarginY / 2;
   const isFoldInHalf = Config.sides === layoutSides.foldInHalf;
+  const shouldApplyAvoidDislocation = Boolean(isBack && avoidDislocation && sides === layoutSides.doubleSides);
 
   let effectiveBleedX = scaledBleedX;
   let effectiveBleedY = scaledBleedY;
-  if (isBack && avoidDislocation && sides !== layoutSides.brochure) {
+  if (shouldApplyAvoidDislocation) {
     effectiveBleedX = halfMarginX;
     effectiveBleedY = halfMarginY;
   }
@@ -314,14 +315,14 @@ const getBrochurePagedImageListByCardList = (state, Config) => {
       pagedImageList.push({
         imageList: repeatResult.map(c => c[0]?.face?.mtime ? {...c[0].face, id: `${c[0].id}.face`} : null),
         pathList: repeatResult.map(c => `${c[0]._originalIndex}.face`),
-        config: repeatResult.map(c => c?.config),
+        config: repeatResult.map(c => c[0]?.config),
         type: 'face',
       });
 
       pagedImageList.push({
         imageList: repeatResult.map(c => c[1]?.face?.mtime ? {...c[1].face, id: `${c[1].id}.face`} : null),
         pathList: repeatResult.map(c => `${c[1]._originalIndex}.back`),
-        config: repeatResult.map(c => c?.config),
+        config: repeatResult.map(c => c[1]?.config),
         type: 'back',
       });
     }
@@ -332,14 +333,14 @@ const getBrochurePagedImageListByCardList = (state, Config) => {
       pagedImageList.push({
         imageList: result.map(c => c[0]?.face?.mtime ? {...c[0].face, id: `${c[0].id}.face`} : null),
         pathList: result.map(c => `${c[0]._originalIndex}.face`),
-        config: result.map(c => c?.config),
+        config: result.map(c => c[0]?.config),
         type: 'face',
       });
 
       pagedImageList.push({
         imageList: result.map(c => c[1]?.face?.mtime ? {...c[1].face, id: `${c[1].id}.face`} : null),
         pathList: result.map(c => `${c[1]._originalIndex}.back`),
-        config: result.map(c => c?.config),
+        config: result.map(c => c[1]?.config),
         type: 'back',
       });
     }

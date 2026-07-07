@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { openImage, openMultiImage } from '../../../functions';
 import { NumberInput } from '../../../componments/NumberInput';
 import '../../ToolBar/style.css'
-import { emptyImgPath } from '../../../../shared/constants';
+import { emptyImgPath, layoutSides } from '../../../../shared/constants';
 import { SubMenuItem } from '../../../componments/SubMenuItem';
 
 export const BulkOperationButton = () => {
@@ -33,6 +33,10 @@ export const BulkOperationButton = () => {
     selectedCardsEditEach,
     selectedCardsSwap,
   } = useGlobalStore.getState();
+  const { Config } = useGlobalStore.selectors;
+  const sides = Config.sides();
+  const isDoubleSidedMode = [layoutSides.doubleSides, layoutSides.foldInHalf].includes(sides);
+  const hasIndependentSettings = sides !== layoutSides.brochure;
   const selectionIds = useGlobalStore(state => state.CardList.filter(c => c.selected).map(c => c.id));
   const selectionLength = selectionIds.length;
   return (<>
@@ -89,7 +93,7 @@ export const BulkOperationButton = () => {
           {t('cardEditor.clearFace')}
         </MenuItem>
       </SubMenuItem>
-      <SubMenuItem label={ t('cardEditor.back') } onClose={handleClose}>
+      {isDoubleSidedMode && <SubMenuItem label={ t('cardEditor.back') } onClose={handleClose}>
         <MenuItem onClick={async () => {
           handleClose();
           const [ imageData ] = await openImage();
@@ -117,14 +121,14 @@ export const BulkOperationButton = () => {
         }}>
           {t('cardEditor.clearBack')}
         </MenuItem>
-      </SubMenuItem>
+      </SubMenuItem>}
 
-      <MenuItem onClick={() => {
+      {isDoubleSidedMode && <MenuItem onClick={() => {
         handleClose();
         selectedCardsSwap();
       }}>
         {t('toolbar.bulkMenu.menuSwap')}
-      </MenuItem>
+      </MenuItem>}
       <MenuItem onClick={() => {
       }}>
         {t('toolbar.bulkMenu.menuSetCount')}
@@ -141,12 +145,12 @@ export const BulkOperationButton = () => {
           // mergeConfig({ autoConfigFlip: false });
         }}>{t('button.ok')}</Link>
       </MenuItem>
-      <MenuItem onClick={() => {
+      {hasIndependentSettings && <MenuItem onClick={() => {
         handleClose();
         dialogCardSettingRef?.current?.openDialog(selectionIds);
       }}>
         {t('cardEditor.spicalConfig')}
-      </MenuItem>
+      </MenuItem>}
     </Menu>
   </>);
 };

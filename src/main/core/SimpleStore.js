@@ -49,13 +49,15 @@ const registerProcessCleanupHooks = () => {
 };
 
 export class SimpleStore {
-  constructor(name = 'config', cwd = null) {
+  constructor(name = 'config', cwd = null, options = {}) {
     this.configDir = cwd ? path.join(cwd) : path.join(getAppDataPath(), 'cardrac');
     this.configPath = path.join(this.configDir, `${name}.json`);
     this.name = name;
     this._cache = null;
     this._writeTimer = null;
     this._writing = false;  // 写锁
+    this._writeDebounceMs = options.writeDebounceMs || WRITE_DEBOUNCE_MS;
+    this._cleanupRegistered = false;
 
     if (!fs.existsSync(this.configDir)) {
       fs.mkdirSync(this.configDir, { recursive: true });
@@ -63,7 +65,9 @@ export class SimpleStore {
     if (!fs.existsSync(this.configPath)) {
       fs.writeFileSync(this.configPath, '{}', 'utf-8');
     }
-    this.registerCleanup();
+    if (options.registerCleanup !== false) {
+      this.registerCleanup();
+    }
   }
 
   async _doWrite() {
@@ -84,7 +88,7 @@ export class SimpleStore {
     this._writeTimer = setTimeout(() => {
       this._writeTimer = null;
       this._doWrite();
-    }, WRITE_DEBOUNCE_MS);
+    }, this._writeDebounceMs);
   }
 
   get(defaultValue = {}) {
@@ -135,8 +139,26 @@ export class SimpleStore {
   }
 
   registerCleanup() {
+    if (this._cleanupRegistered) return;
     storeCleanupRegistry.add(this);
     registerProcessCleanupHooks();
+    this._cleanupRegistered = true;
+  }
+
+  async close(options = {}) {
+    const { flush = true } = options;
+
+    if (flush) {
+      await this.flush();
+    } else if (this._writeTimer) {
+      clearTimeout(this._writeTimer);
+      this._writeTimer = null;
+    }
+
+    if (this._cleanupRegistered) {
+      storeCleanupRegistry.delete(this);
+      this._cleanupRegistered = false;
+    }
   }
 
 }

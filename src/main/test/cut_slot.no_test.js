@@ -1,58 +1,10 @@
-import { describe, test, expect, beforeEach, vi } from 'vitest';
-
-const mockConfigStore = {
-  Config: { ...initialState.Config }
-};
-vi.mock('./ele_action/functions', () => ({
-  getConfigStore: vi.fn(() => mockConfigStore),
-  saveDataToFile: vi.fn(),
-  getBorderAverageColors: vi.fn((base64) => {
-    return Promise.resolve('#FF0000');
-  })
-}));
-
-import { getCutRectangleList, getPagedImageListByCardList, adjustBackPageImageOrder, isNeedRotation  } from '../services/file_render/utils';
-import { layoutSides, initialState, flipWay } from '../../shared/constants';
-import { ShadowAdapter } from '../services/file_render/adapter/ShadowAdapter';
-import { exportFile } from '../services/file_render';
-
-const resetConfig = () => {
-  mockConfigStore.Config = { ...initialState.Config };
-};
-
-const setConfig = (newConfig) => {
-  Object.assign(mockConfigStore.Config, newConfig);
-};
-
-const globalBackground = { path: 'bg.png', ext: 'PNG' };
-
-const createCard = (id, config = {}) => ({
-  face: { path: `face${id}.png`, ext: 'PNG' },
-  back: { path: `back${id}.png`, ext: 'PNG', mtime: Date.now() },
-  config,
-  repeat: 1,
-});
+import { describe, test, expect } from 'vitest';
+import { getCutRectangleList } from '../services/file_render/utils';
+import { layoutSides } from '../../shared/constants';
+import { createBrochureConfig, createFoldConfig, createPageSize, createRenderConfig } from './helpers/fileRenderTestUtils';
 
 describe('切割线测试', () => {
-  const createPageSize = (width = 210, height = 297) => ({
-    maxWidth: width,
-    maxHeight: height
-  });
-
-  const baseConfig = {
-    sides: layoutSides.oneSide,
-    scale: 100,
-    cardWidth: 63,
-    cardHeight: 88,
-    marginX: 10,
-    marginY: 10,
-    bleedX: 0,
-    bleedY: 0,
-    columns: 2,
-    rows: 2,
-    offsetX: 0,
-    offsetY: 0,
-  };
+  const baseConfig = createRenderConfig();
   describe('一般测试', () => {
     test('测试小纸一张卡', () => {
       const pageSize = createPageSize(63, 88);
@@ -113,57 +65,6 @@ describe('切割线测试', () => {
       expect(Object.values(result[1]).join(',')).toBe('0,89,63,88');
     });
   })
-  describe('全局参数 - scale', () => {
-    test('scale = 50% 所有尺寸减半', () => {
-      const config = { ...baseConfig, scale: 50 };
-      const pageSize = createPageSize();
-      const result = getCutRectangleList(config, pageSize, true, false);
-
-      expect(result[0].width).toBe(31.5);
-      expect(result[0].height).toBe(44);
-    });
-
-    test('scale = 200% 所有尺寸翻倍', () => {
-      const config = { ...baseConfig, scale: 200 };
-      const pageSize = createPageSize();
-      const result = getCutRectangleList(config, pageSize, true, false);
-
-      expect(result[0].width).toBe(126);
-      expect(result[0].height).toBe(176);
-    });
-
-    test('scale 影响 bleed', () => {
-      const config = { ...baseConfig, scale: 50, bleedX: 2, bleedY: 2 };
-      const pageSize = createPageSize();
-      const result = getCutRectangleList(config, pageSize, false, false);
-
-      expect(result[0].width).toBe(31.5 + 1 * 2);
-    });
-
-    test('scale 影响间距', () => {
-      const config1 = { ...baseConfig, scale: 50, marginX: 10 };
-      const config2 = { ...baseConfig, scale: 100, marginX: 10 };
-      const config3 = { ...baseConfig, scale: 200, marginX: 10 };
-      const pageSize = createPageSize();
-
-      const result1 = getCutRectangleList(config1, pageSize, true, false);
-      const result2 = getCutRectangleList(config2, pageSize, true, false);
-      const result3 = getCutRectangleList(config3, pageSize, true, false);
-
-      // 计算第二列第一个元素和第一列第一个元素的 x 坐标差值（包含卡片宽度 + 间距）
-      const spacing1 = result1[1].x - result1[0].x;
-      const spacing2 = result2[1].x - result2[0].x;
-      const spacing3 = result3[1].x - result3[0].x;
-
-      // scale 越大，间距应该越大
-      expect(spacing2).toBeGreaterThan(spacing1);
-      expect(spacing3).toBeGreaterThan(spacing2);
-
-      // 验证具体数值：scale 翻倍，间距也应该翻倍
-      expect(spacing2).toBeCloseTo(spacing1 * 2, 1);
-      expect(spacing3).toBeCloseTo(spacing1 * 4, 1);
-    });
-  });
 
   describe('全局参数 - cardWidth/cardHeight', () => {
     test('增加 cardWidth', () => {
@@ -298,7 +199,7 @@ describe('切割线测试', () => {
         return getCutRectangleList(config, pageSize, false, false)[0];
       });
 
-      expect(results[0].width).toBe(63 + 1 * 2);
+      expect(results[0].width).toBe(63 + 2);
       expect(results[1].width).toBe(63 + 2 * 2);
       expect(results[2].width).toBe(63 + 3 * 2);
     });
@@ -313,7 +214,7 @@ describe('切割线测试', () => {
       const backResult = getCutRectangleList(backConfig, pageSize, false, true);
 
       expect(faceResult[0].width).toBe(63 + 3 * 2);
-      expect(backResult[0].width).toBe(63 + 1 * 2);
+      expect(backResult[0].width).toBe(63 + 2);
     });
 
     test('bleed 不超过 margin 一半 - 有效配置', () => {
@@ -363,41 +264,14 @@ describe('切割线测试', () => {
         return getCutRectangleList(config, pageSize, false, false)[0];
       });
 
-      expect(faceResults[0].width).toBe(63 + 1 * 2);
+      expect(faceResults[0].width).toBe(63 + 2);
       expect(faceResults[1].width).toBe(63 + 2 * 2);
-      expect(faceResults[2].width).toBe(63 + 0 * 2);
+      expect(faceResults[2].width).toBe(63);
       expect(faceResults[3].width).toBe(63 + 3 * 2);
     });
   });
 
   describe('全局参数 + 独立 bleed 组合', () => {
-    test('scale + 独立 bleed', () => {
-      const pageSize = createPageSize();
-      const config = { ...baseConfig, scale: 50, bleedX: 4, bleedY: 4, columns: 1, rows: 1 };
-      const result = getCutRectangleList(config, pageSize, false, false);
-
-      const scaledBleed = 4 * 0.5;
-      expect(result[0].width).toBe(31.5 + scaledBleed * 2);
-    });
-
-    test('不同 scale 下的独立 bleed', () => {
-      const pageSize = createPageSize();
-      const configs = [
-        { scale: 50, bleedX: 2, bleedY: 2 },
-        { scale: 100, bleedX: 2, bleedY: 2 },
-        { scale: 200, bleedX: 2, bleedY: 2 },
-      ];
-
-      const results = configs.map(c => {
-        const config = { ...baseConfig, ...c, columns: 1, rows: 1 };
-        return getCutRectangleList(config, pageSize, false, false)[0];
-      });
-
-      expect(results[0].width).toBe(31.5 + 1 * 2);
-      expect(results[1].width).toBe(63 + 2 * 2);
-      expect(results[2].width).toBe(126 + 4 * 2);
-    });
-
     test('margin + 独立 bleed 验证', () => {
       const pageSize = createPageSize();
       const config = {
@@ -444,16 +318,14 @@ describe('切割线测试', () => {
     test('小册子模式不同 bleed', () => {
       const pageSize = createPageSize();
       const config1 = {
-        ...baseConfig,
-        sides: layoutSides.brochure,
+        ...createBrochureConfig(),
         bleedX: 1,
         bleedY: 1,
         columns: 1,
         rows: 1,
       };
       const config2 = {
-        ...baseConfig,
-        sides: layoutSides.brochure,
+        ...createBrochureConfig(),
         bleedX: 3,
         bleedY: 3,
         columns: 1,
@@ -474,8 +346,8 @@ describe('切割线测试', () => {
       expect(result2[1].width).toBe(63 + 3);
 
       //检查高度（上下都出血）
-      expect(result1[0].height).toBe(88 + 1 * 2);
-      expect(result1[1].height).toBe(88 + 1 * 2);
+      expect(result1[0].height).toBe(88 + 2);
+      expect(result1[1].height).toBe(88 + 2);
       expect(result2[0].height).toBe(88 + 3 * 2);
       expect(result2[1].height).toBe(88 + 3 * 2);
     });
@@ -632,9 +504,7 @@ describe('切割线测试', () => {
     test('折叠模式正背面不同 bleed', () => {
       const pageSize = createPageSize();
       const faceConfig = {
-        ...baseConfig,
-        sides: layoutSides.foldInHalf,
-        foldLineType: '0',
+        ...createFoldConfig(),
         foldInHalfMargin: 4,
         bleedX: 2,
         bleedY: 2,
@@ -647,19 +517,11 @@ describe('切割线测试', () => {
       const backResult = getCutRectangleList(backConfig, pageSize, false, true);
 
       expect(faceResult[0].width).toBe(63 + 2 * 2);
-      expect(backResult[0].width).toBe(63 + 1 * 2);
+      expect(backResult[0].width).toBe(63 + 2);
     });
   });
 
   describe('极端参数组合', () => {
-    test('极小 scale + 独立 bleed', () => {
-      const pageSize = createPageSize();
-      const config = { ...baseConfig, scale: 10, bleedX: 1, bleedY: 1, columns: 1, rows: 1 };
-      const result = getCutRectangleList(config, pageSize, false, false);
-
-      expect(result[0].width).toBeCloseTo(6.3 + 0.1 * 2, 1);
-    });
-
     test('极大 margin + 小 bleed', () => {
       const pageSize = createPageSize();
       const config = {
@@ -682,7 +544,6 @@ describe('切割线测试', () => {
       const pageSize = createPageSize();
       const config = {
         ...baseConfig,
-        scale: 150,
         cardWidth: 80,
         cardHeight: 110,
         marginX: 12,
@@ -697,9 +558,7 @@ describe('切割线测试', () => {
       const result = getCutRectangleList(config, pageSize, false, false);
 
       expect(result.length).toBe(9);
-      const scaledWidth = 80 * 1.5;
-      const scaledBleed = 5 * 1.5;
-      expect(result[0].width).toBeCloseTo(scaledWidth + scaledBleed * 2, 1);
+      expect(result[0].width).toBeCloseTo(80 + 5 * 2, 1);
     });
   });
 });

@@ -22,19 +22,29 @@ export const CardSettingDialog = forwardRef(({}, ref) => {
   const sides = Config.sides();
   const marginX = Config.marginX();
   const marginY = Config.marginY();
+  const isDoubleSidedMode = [layoutSides.doubleSides, layoutSides.foldInHalf].includes(sides);
+  const hasIndependentSettings = sides !== layoutSides.brochure;
 
   useEffect(() => {
     if (editedCards.length === 1 && open) {
       setBleed(editedCards[0]?.config?.bleed || {});
     }
-  }, [open]);
+  }, [editedCards, open]);
+
+  useEffect(() => {
+    if (open && !hasIndependentSettings) {
+      setOpen(false);
+      setIdList([]);
+    }
+  }, [open, hasIndependentSettings]);
 
   useImperativeHandle(ref, () => ({
     openDialog: (ids) => {
+      if (!hasIndependentSettings) return;
       setIdList(ids);
       setOpen(true);
     },
-  }));
+  }), [hasIndependentSettings]);
 
   const handleBleedChange = useCallback((path) => (e, v) => {
     setBleed(prev => ({
@@ -44,7 +54,7 @@ export const CardSettingDialog = forwardRef(({}, ref) => {
   }, []);
 
   return (
-    <Dialog open={open}>
+    <Dialog open={open && hasIndependentSettings}>
       <DialogTitle>
         {t('cardEditor.spicalConfig')}
       </DialogTitle>
@@ -76,7 +86,7 @@ export const CardSettingDialog = forwardRef(({}, ref) => {
           />
           mm
         </div>
-        {sides !== layoutSides.oneSide && (
+        {isDoubleSidedMode && (
           <div className={'CardSettingInputRow'}>
             <FormLabel>{t('cardEditor.back')}</FormLabel>
             <NumberInput

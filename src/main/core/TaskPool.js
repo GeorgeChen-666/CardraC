@@ -620,12 +620,15 @@ export class TaskPool {
     const { timeout = 60000, interval = 100, progressCallback = null } = options;
     const startTime = Date.now();
 
+    const trackedTasks = Array.from(this.tagIndex.get(tag) || [])
+      .map(taskId => this.tasks.get(taskId))
+      .filter(Boolean);
+
     // 如果调用者期望清理已完成的统计，保持该行为
     if (progressCallback) {
       this.clearCompletedStatsByTag(tag);
     }
-    const initialStats = this.getStatsByTag(tag);
-    const expectedTotal = initialStats.total;
+    const expectedTotal = trackedTasks.length;
 
     // 如果没有任务，直接返回
     if (expectedTotal === 0) {
@@ -653,9 +656,8 @@ export class TaskPool {
             progressCallback?.(1);
           }
 
-          const taskIds = this.tagIndex.get(tag);
-          if (taskIds && taskIds.size > 0) {
-            Promise.allSettled(Array.from(taskIds).map(id => this.waitTask(id)))
+          if (trackedTasks.length > 0) {
+            Promise.allSettled(trackedTasks.map(task => task.promise))
               .then(resolve)
               .catch(reject);
           } else {

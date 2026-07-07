@@ -63,6 +63,11 @@ export default memo(({ data, dialogCardSettingRef, index, sharedPreviewRef, curr
   const imageVersion = Global.imageVersion();
   const bleedConfig = data?.config?.bleed;
   const [isDragOver, setIsDragOver] = useState(false);
+  const isDoubleSidedMode = useMemo(() =>
+      [layoutSides.doubleSides, layoutSides.foldInHalf].includes(sides),
+    [sides]
+  );
+  const hasIndependentSettings = sides !== layoutSides.brochure;
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -126,6 +131,7 @@ export default memo(({ data, dialogCardSettingRef, index, sharedPreviewRef, curr
 
   const handleSwap = useEvent((e) => {
     e.stopPropagation();
+    if (!isDoubleSidedMode) return;
     cardEditById({ id: data.id, face: data.back, back: data.face });
   });
 
@@ -182,7 +188,7 @@ export default memo(({ data, dialogCardSettingRef, index, sharedPreviewRef, curr
         cardEditById({ id: data.id, face: null });
       },
     },
-    ...(sides === layoutSides.brochure ? [] : [
+    ...(isDoubleSidedMode ? [
       {
         label: t('cardEditor.back'),
         onClick: async () => {
@@ -195,15 +201,15 @@ export default memo(({ data, dialogCardSettingRef, index, sharedPreviewRef, curr
         onClick: () => {
           cardEditById({ id: data.id, back: null });
         },
-      },
-      {
-        label: t('cardEditor.spicalConfig'),
-        onClick: () => {
-          dialogCardSettingRef.current.openDialog([data.id]);
-        },
       }
-    ]),
-  ], [sides, data.id, t]);
+    ] : []),
+    ...(hasIndependentSettings ? [{
+      label: t('cardEditor.spicalConfig'),
+      onClick: () => {
+        dialogCardSettingRef.current.openDialog([data.id]);
+      },
+    }] : [])
+  ], [isDoubleSidedMode, hasIndependentSettings, data.id, t]);
 
   const { onOpen, MenuElement } = useMenuState(menuItems);
 
@@ -212,10 +218,7 @@ export default memo(({ data, dialogCardSettingRef, index, sharedPreviewRef, curr
   const backUrl = useMemo(() => imagePathToImageSrc(data?.back?.path, { quality: 'low' , version: imageVersion }), [data?.back?.path, data?.back?.mtime, imageVersion]);
 
   //缓存计算结果
-  const isShowBack = useMemo(() =>
-      [layoutSides.doubleSides, layoutSides.foldInHalf].includes(sides),
-    [sides]
-  );
+  const isShowBack = isDoubleSidedMode;
 
   const [, dropRef] = useDrop({
     accept: 'Card',
@@ -266,6 +269,7 @@ export default memo(({ data, dialogCardSettingRef, index, sharedPreviewRef, curr
       >
         <CardToolbar
           index={index}
+          showSwap={isDoubleSidedMode}
           onSwap={handleSwap}
           onMenuOpen={handleMenuOpen}
           onDragStart={handleDragStart}

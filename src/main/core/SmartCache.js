@@ -1,47 +1,139 @@
 // SmartCache.js
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { getAppDataPath } from '../../shared/functions';
-import { FileKV } from './FileKV';
+
+class FileKV {
+  constructor({ dir, ttlSeconds = 24 * 3600, cleanupIntervalMs = 60000, startCleanupInterval = true }) {
+    this.dir = dir;
+    this.ttlSeconds = ttlSeconds;
+    this.ensureDir(dir);
+    this._cleanupInterval = startCleanupInterval
+      ? setInterval(() => this.cleanupExpired().catch(() => {}), cleanupIntervalMs)
+      : null;
+  }
+
+  ensureDir(dir) {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  }
+
+  keyToFile(key) {
+    const keyHash = crypto.createHash('md5').update(String(key)).digest('hex');
+    return path.join(this.dir, `${keyHash}.json`);
+  }
+
+  async set(key, value) {
+    const file = this.keyToFile(key);
+    const data = {
+      expire: Date.now() + this.ttlSeconds * 1000,
+      value,
+    };
+    await fs.promises.writeFile(file, JSON.stringify(data), 'utf8');
+  }
+
+  async get(key) {
+    const file = this.keyToFile(key);
+    try {
+      const data = JSON.parse(await fs.promises.readFile(file, 'utf8'));
+      if (Date.now() > data.expire) {
+        await fs.promises.unlink(file).catch(() => {});
+        return undefined;
+      }
+      return data.value;
+    } catch {
+      return undefined;
+    }
+  }
+
+  async delete(key) {
+    await fs.promises.unlink(this.keyToFile(key)).catch(() => {});
+  }
+
+  async clear() {
+    const files = await fs.promises.readdir(this.dir).catch(() => []);
+    await Promise.all(
+      files
+        .filter(file => file.endsWith('.json'))
+        .map(file => fs.promises.unlink(path.join(this.dir, file)).catch(() => {}))
+    );
+  }
+
+  async cleanupExpired() {
+    const files = await fs.promises.readdir(this.dir).catch(() => []);
+    const now = Date.now();
+
+    for (const file of files) {
+      if (!file.endsWith('.json')) continue;
+      try {
+        const filePath = path.join(this.dir, file);
+        const { expire } = JSON.parse(await fs.promises.readFile(filePath, 'utf8'));
+        if (now > expire) {
+          await fs.promises.unlink(filePath).catch(() => {});
+        }
+      } catch {}
+    }
+  }
+
+  close() {
+    if (this._cleanupInterval) {
+      clearInterval(this._cleanupInterval);
+      this._cleanupInterval = null;
+    }
+  }
+}
 
 export class SmartCache {
   constructor(name, options = {}) {
     this.name = name;
-    this.pid = process.pid;
+    this.pid = options.pid || process.pid;
     this.maxMemorySize = options.maxMemorySize || 500;
-    const appDataPath = getAppDataPath();
-    const cacheDir = path.join(appDataPath, 'cardrac', 'cache', name);
+    this.writeDebounceMs = options.writeDebounceMs || 500;
+    this.registerCleanupEnabled = options.registerCleanup !== false;
+    this.cleanupStaleCachesEnabled = options.cleanupStaleCaches !== false;
+    this.cleanupOnExit = options.cleanupOnExit !== false;
+
+    const baseCacheDir = options.baseDir || path.join(getAppDataPath(), 'cardrac', 'cache');
+    const cacheDir = path.join(baseCacheDir, name);
     if (!fs.existsSync(cacheDir)) {
       fs.mkdirSync(cacheDir, { recursive: true });
     }
-    const dbPath = path.join(cacheDir, `pid-${this.pid}.db`);
+    const diskCacheDir = path.join(cacheDir, `pid-${this.pid}`);
+
     this.memoryCache = new Map();
     this.frequencyMap = new Map();
     this.diskCache = new FileKV({
-      dir: path.join(cacheDir, `pid-${this.pid}`),
-      ttl: 1000 * 60 * 60 * 24 / 1000,
-      pid: this.pid
+      dir: diskCacheDir,
+      ttlSeconds: options.ttlSeconds || 24 * 3600,
+      cleanupIntervalMs: options.cleanupIntervalMs || 60000,
+      startCleanupInterval: options.startCleanupInterval !== false,
     });
     this.allKeys = new Set();
-    this.dbPath = dbPath;
+    this.diskCacheDir = diskCacheDir;
     this.cacheDir = cacheDir;
 
     this._writeQueue = new Map();   // key -> value 待写队列
     this._writeTimer = null;
     this._diskReadLock = new Map(); // key -> Promise 防并发读
+    this._cleanupHandlers = null;
 
-    this.cleanupOldCaches();
-    this.registerCleanup();
+    if (this.cleanupStaleCachesEnabled) {
+      this.cleanupOldCaches();
+    }
+    if (this.registerCleanupEnabled) {
+      this.registerCleanup();
+    }
 
     const internalProps = new Set([
       'name', 'pid', 'maxMemorySize', 'memoryCache', 'frequencyMap',
-      'diskCache', 'allKeys', 'dbPath', 'cacheDir',
+      'diskCache', 'allKeys', 'diskCacheDir', 'cacheDir', 'writeDebounceMs',
+      'registerCleanupEnabled', 'cleanupStaleCachesEnabled', 'cleanupOnExit',
       '_writeQueue', '_writeTimer', '_diskReadLock',
       'get', 'set', 'delete', 'clear', 'has', 'keys', 'size',
       'getAverageFrequency', 'evictLFU', 'cleanupOldCaches',
       'isProcessRunning', 'registerCleanup', 'toPlainObject',
       'toPlainObjectAsync', 'getFrequencyStats',
-      '_scheduleDiskWrite', 'flush'
+      '_scheduleDiskWrite', 'flush', 'close', '_cleanupHandlers'
     ]);
 
     return new Proxy(this, {
@@ -96,7 +188,7 @@ export class SmartCache {
           console.error(`Failed to write disk cache: ${key}`, e);
         }
       }
-    }, 500);
+    }, this.writeDebounceMs);
   }
 
   // 强制立即写盘，应用退出前调用
@@ -244,16 +336,12 @@ export class SmartCache {
     try {
       const files = fs.readdirSync(this.cacheDir);
       files.forEach(file => {
-        const match = file.match(/^pid-(\d+)\.db$/);
+        const match = file.match(/^pid-(\d+)$/);
         if (!match) return;
         const pid = parseInt(match[1], 10);
         if (pid === this.pid) return;
         if (!this.isProcessRunning(pid)) {
-          const dbPath = path.join(this.cacheDir, file);
-          fs.unlinkSync(dbPath);
-          [`${dbPath}-wal`, `${dbPath}-shm`].forEach(f => {
-            if (fs.existsSync(f)) fs.unlinkSync(f);
-          });
+          fs.rmSync(path.join(this.cacheDir, file), { recursive: true, force: true });
         }
       });
     } catch (err) {}
@@ -271,18 +359,43 @@ export class SmartCache {
   registerCleanup() {
     const cleanup = async () => {
       try {
-        await this.flush(); // 退出前强制写盘
-        if (fs.existsSync(this.dbPath)) fs.unlinkSync(this.dbPath);
-        [`${this.dbPath}-wal`, `${this.dbPath}-shm`].forEach(f => {
-          if (fs.existsSync(f)) fs.unlinkSync(f);
-        });
+        await this.close({ flush: true, removeDiskCache: this.cleanupOnExit });
       } catch (err) {}
     };
     let called = false;
     const safe = async () => { if (!called) { called = true; await cleanup(); } };
+    const sigintHandler = async () => { await safe(); process.exit(0); };
+    const sigtermHandler = async () => { await safe(); process.exit(0); };
+
+    this._cleanupHandlers = { safe, sigintHandler, sigtermHandler };
     process.on('exit', safe);
-    process.on('SIGINT', async () => { await safe(); process.exit(0); });
-    process.on('SIGTERM', async () => { await safe(); process.exit(0); });
+    process.on('SIGINT', sigintHandler);
+    process.on('SIGTERM', sigtermHandler);
+  }
+
+  async close(options = {}) {
+    const { flush = true, removeDiskCache = false } = options;
+
+    if (flush) {
+      await this.flush();
+    } else if (this._writeTimer) {
+      clearTimeout(this._writeTimer);
+      this._writeTimer = null;
+      this._writeQueue.clear();
+    }
+
+    this.diskCache.close();
+
+    if (this._cleanupHandlers) {
+      process.off('exit', this._cleanupHandlers.safe);
+      process.off('SIGINT', this._cleanupHandlers.sigintHandler);
+      process.off('SIGTERM', this._cleanupHandlers.sigtermHandler);
+      this._cleanupHandlers = null;
+    }
+
+    if (removeDiskCache) {
+      fs.rmSync(this.diskCacheDir, { recursive: true, force: true });
+    }
   }
 
   toPlainObject(fast = true) {
