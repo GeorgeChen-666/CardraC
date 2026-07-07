@@ -192,6 +192,7 @@ export const CardList = () => {
     <div
       ref={parentRef}
       className={'CardListContainer'}
+      data-testid="card-list"
       onDragEnd={() => {
         dragHoverCancel();
         stopAutoScroll();
@@ -243,4 +244,3 @@ export const CardList = () => {
     </div>
   );
 };
-

@@ -86,6 +86,16 @@ export const renderRendererCase = (ui) => renderWithRendererProviders(ui);
 
 resetRendererCaseRuntime();
 
+// Polyfill: CardList 依赖 IntersectionObserver（jsdom 无此 API）
+if (typeof IntersectionObserver === 'undefined') {
+  globalThis.IntersectionObserver = class IntersectionObserver {
+    constructor() {}
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
+
 vi.mock('electron', () => ({
   ipcRenderer: {
     send: vi.fn(),
@@ -140,19 +150,35 @@ vi.mock('../../parts/edit/FileBrowser/FileBrowserDialog', () => ({
 }));
 
 vi.mock('../../parts/ToolBar/About/AboutDialog', () => ({
-  AboutDialog: React.forwardRef((_props, _ref) => null),
+  AboutDialog: React.forwardRef((_props, ref) => {
+    const [open, setOpen] = React.useState(false);
+    React.useImperativeHandle(ref, () => ({ openDialog: () => setOpen(true) }));
+    return open ? <div data-testid="about-dialog">About Dialog</div> : null;
+  }),
 }));
 
 vi.mock('../../parts/ToolBar/Setup/SetupDialog', () => ({
-  SetupDialog: React.forwardRef((_props, _ref) => null),
+  SetupDialog: React.forwardRef((_props, ref) => {
+    const [open, setOpen] = React.useState(false);
+    React.useImperativeHandle(ref, () => ({ openDialog: () => setOpen(true) }));
+    return open ? <div data-testid="setup-dialog">Setup Dialog</div> : null;
+  }),
 }));
 
 vi.mock('../../parts/ToolBar/Chat/ChatDialog', () => ({
-  ChatDialog: React.forwardRef((_props, _ref) => null),
+  ChatDialog: React.forwardRef((_props, ref) => {
+    const [open, setOpen] = React.useState(false);
+    React.useImperativeHandle(ref, () => ({ openDialog: () => setOpen(true) }));
+    return open ? <div data-testid="chat-dialog">Chat Dialog</div> : null;
+  }),
 }));
 
 vi.mock('../../parts/ToolBar/Print/PrintDrawer', () => ({
-  PrintDrawer: React.forwardRef((_props, _ref) => null),
+  PrintDrawer: React.forwardRef((_props, ref) => {
+    const [open, setOpen] = React.useState(false);
+    React.useImperativeHandle(ref, () => ({ openDrawer: () => setOpen(true) }));
+    return open ? <div data-testid="print-drawer">Print Drawer</div> : null;
+  }),
 }));
 
 vi.mock('../../parts/edit/ImageViewer', () => ({
@@ -163,64 +189,8 @@ vi.mock('../../componments/BackendTasksIndicator', () => ({
   BackendTasksIndicator: () => null,
 }));
 
-vi.mock('../../parts/edit/CardList', () => ({
-  CardList: () => {
-    if (rendererCaseRuntime.components.CardList) {
-      return rendererCaseRuntime.components.CardList();
-    }
-
-    return <div data-testid="card-list">card-list</div>;
-  },
-}));
-
-vi.mock('../../parts/Footer', async () => {
-  const { useGlobalStore } = await vi.importActual('../../state/store');
-  const { default: runtimeZhLocale } = await vi.importActual('../../../main/locales/zh.json');
-  const footerLabels = runtimeZhLocale.footer;
-
-  return {
-    Footer: () => {
-      const currentView = useGlobalStore(state => state.Global.currentView || 'edit');
-      const fileLength = useGlobalStore(state => state.CardList.length);
-      const cardLength = useGlobalStore(state => state.CardList.reduce((sum, card) => sum + (parseInt(card.repeat, 10) || 1), 0));
-      const { mergeGlobal } = useGlobalStore.getState();
-
-      if (rendererCaseRuntime.components.Footer) {
-        return rendererCaseRuntime.components.Footer({
-          currentView,
-          fileLength,
-          cardLength,
-          footerLabels,
-          switchView: (view) => mergeGlobal({ currentView: view }),
-        });
-      }
-
-      return (
-        <div data-testid="footer-view-switcher">
-          <span>{`${footerLabels.files} ${fileLength} / ${footerLabels.images} ${cardLength}`}</span>
-          <span data-testid="footer-current-view">{currentView === 'preview' ? footerLabels.previewView : footerLabels.editView}</span>
-          <button type="button" onClick={() => mergeGlobal({ currentView: 'edit' })}>{footerLabels.editView}</button>
-          <button type="button" onClick={() => mergeGlobal({ currentView: 'preview' })}>{footerLabels.previewView}</button>
-        </div>
-      );
-    },
-  };
-});
-
 vi.mock('../../parts/preview/PrintPreview', () => ({
-  PrintPreview: React.forwardRef((_props, _ref) => {
-    if (rendererCaseRuntime.components.PrintPreview) {
-      return rendererCaseRuntime.components.PrintPreview();
-    }
-
-    return <div data-testid="print-preview">preview</div>;
-  }),
+  PrintPreview: React.forwardRef((_props, _ref) => (
+    <div data-testid="print-preview">preview</div>
+  )),
 }));
-
-
-
-
-
-
-
-

@@ -26,8 +26,8 @@ export class FooterBar extends BasePage {
     }
 
     if (expectation.currentView) {
-      expect(this.getByTestId('footer-current-view').textContent).toContain(expectation.currentView);
+      const chip = this.getButton(expectation.currentView);
+      expect(chip.className).toContain('MuiChip-filled');
     }
   }
 }
-

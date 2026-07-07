@@ -50,6 +50,7 @@ export const CompressSelectButton = ({ label, disabled }) => {
   return (<>
     <Tooltip title={label}>
       <Button
+        disabled={disabled}
         endIcon={<KeyboardArrowDownIcon />}
         onClick={handleClick}
       >
