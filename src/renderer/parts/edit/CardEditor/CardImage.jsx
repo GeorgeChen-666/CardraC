@@ -3,9 +3,10 @@
 import React, { memo, useState, useEffect, useRef } from 'react';
 import Card from '@mui/material/Card';
 import { CardMedia } from '@mui/material';
+import { useUiRuntimeStore } from '../../../state/uiRuntimeStore';
 
 export const CardImage = memo(({ imageSrc, path, isBackEditing, isFace }) => {
-  const imageViewerRef = window.imageViewerRef;
+  const imageViewerApi = useUiRuntimeStore(state => state.imageViewerApi);
   const [imageError, setImageError] = useState(false);
   const imgRef = useRef(null);
 
@@ -60,12 +61,13 @@ export const CardImage = memo(({ imageSrc, path, isBackEditing, isFace }) => {
         <CardMedia
           component="img"
           className={'CardImage'}
+          data-testid={isFace ? 'card-face-image' : 'card-back-image'}
           height={size}
           style={{ maxWidth: size, objectFit: 'contain' }}
           image={imageSrc}
           onError={() => setImageError(true)}
-          onMouseOver={() => imageViewerRef.current?.update?.(path)}
-          onMouseLeave={() => imageViewerRef.current?.close?.()}
+          onMouseOver={() => imageViewerApi?.update?.(path)}
+          onMouseLeave={() => imageViewerApi?.close?.()}
         />
       )}
     </Card>

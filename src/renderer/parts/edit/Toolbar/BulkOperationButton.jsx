@@ -12,12 +12,11 @@ import '../../ToolBar/style.css'
 import { emptyImgPath, layoutSides } from '../../../../shared/constants';
 import { SubMenuItem } from '../../../componments/SubMenuItem';
 
-export const BulkOperationButton = () => {
+export const BulkOperationButton = ({ cardSettingApi }) => {
   const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   const [repeat, setRepeat] = useState(1);
-  const dialogCardSettingRef = window.dialogCardSettingRef;
   const handleClick = (event) => {
     setRepeat(1);
     setAnchorEl(event.currentTarget);
@@ -147,7 +146,7 @@ export const BulkOperationButton = () => {
       </MenuItem>
       {hasIndependentSettings && <MenuItem onClick={() => {
         handleClose();
-        dialogCardSettingRef?.current?.openDialog(selectionIds);
+        cardSettingApi?.openDialog?.(selectionIds);
       }}>
         {t('cardEditor.spicalConfig')}
       </MenuItem>}

@@ -6,6 +6,7 @@ import CardDropTarget from './CardDropTarget';
 import AddCard from './AddCard';
 import { CardSettingDialog } from '../CardEditor/CardSettingDialog';
 import { useGlobalStore } from '../../../state/store';
+import { useUiRuntimeStore } from '../../../state/uiRuntimeStore';
 
 const createSharedObserver = (() => {
   let observer = null;
@@ -86,6 +87,7 @@ const CardWrapper = ({ card, index, dialogCardSettingRef, isAddCard, isDragTarge
     return (
       <div
         ref={cardRef}
+        data-card-display-index={index}
         className={'Card'}
         style={{
           backgroundColor: 'rgba(115,115,115,.6)',
@@ -95,7 +97,7 @@ const CardWrapper = ({ card, index, dialogCardSettingRef, isAddCard, isDragTarge
     );
   }
   return (
-    <div ref={cardRef} className={'Card'}>
+    <div ref={cardRef} data-card-display-index={index} className={'Card'}>
       {isAddCard ? (
         <AddCard />
       ) : isDragTarget ? (
@@ -115,11 +117,19 @@ const CardWrapper = ({ card, index, dialogCardSettingRef, isAddCard, isDragTarge
 
 export const CardList = () => {
   const dialogCardSettingRef = useRef(null);
-  window.dialogCardSettingRef = dialogCardSettingRef;
   const parentRef = useRef(null);
   const scrollIntervalRef = useRef(null);
   const sharedPreviewRef = useRef(null);
   const currentLang = useGlobalStore(state => state.Global.currentLang);
+  const setCardSettingApi = useUiRuntimeStore(state => state.setCardSettingApi);
+
+  useEffect(() => {
+    setCardSettingApi(dialogCardSettingRef.current);
+
+    return () => {
+      setCardSettingApi(null);
+    };
+  }, [setCardSettingApi]);
 
   const CardList = useGlobalStore(state => state.CardList);
   const dragHoverCancel = useGlobalStore(state => state.dragHoverCancel);

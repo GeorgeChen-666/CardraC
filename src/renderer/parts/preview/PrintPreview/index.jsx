@@ -27,7 +27,6 @@ export const PrintPreview = forwardRef((props, ref) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
-  const drawerPrintRef = window.drawerPrintRef;
   const isDrawerOpen = false;
 
   const [contextMenu, setContextMenu] = useState(null);
@@ -132,8 +131,7 @@ export const PrintPreview = forwardRef((props, ref) => {
 
   const handleMouseDown = (e) => {
     if (e.button !== 0) return;
-    const drawerElement = drawerPrintRef.current;
-    if (drawerElement && e.target.closest('.print-drawer')) {
+    if (e.target.closest('.print-drawer')) {
       return;
     }
     setIsDragging(true);

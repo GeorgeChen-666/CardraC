@@ -6,6 +6,7 @@ export default defineConfig({
     include: /src[\\/]renderer[\\/].*\.[jt]sx?$/,
   },
   test: {
+    reporters: ['verbose'],
     environmentMatchGlobs: [
       ['src/renderer/**/*.test.{js,jsx,ts,tsx}', 'jsdom'],
     ],

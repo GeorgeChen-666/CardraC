@@ -15,6 +15,7 @@ export default () => {
   const isDoubleSides = Config.sides === layoutSides.doubleSides || Config.sides === layoutSides.foldInHalf
   return <Card className={'Card'}>
     <IconButton className={'AddCardButton'}
+                data-testid='add-card-image-button'
                 onClick={async () => {
                   const imageData = await openMultiImage(isDoubleSides);
                   cardAdd(imageData);

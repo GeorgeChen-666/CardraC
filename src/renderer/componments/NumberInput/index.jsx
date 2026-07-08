@@ -12,7 +12,7 @@ const getNumber = (value, defaultValue, min, max) => {
   if(newValue > max) {
     return max;
   }
-  if(newValue === -0) {
+  if(Object.is(newValue, -0)) {
     return 0;
   }
   return newValue;

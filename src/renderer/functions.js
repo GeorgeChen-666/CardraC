@@ -3,6 +3,7 @@ import { backendJobKey, eleActions, emptyImg } from '../shared/constants';
 import { filePathToImageKey, fixPath } from '../shared/functions';
 import { getGlobalState } from './global';
 import { useGlobalStore } from './state/store';
+import { useUiRuntimeStore } from './state/uiRuntimeStore';
 import { triggerNotification } from './parts/Notification';
 
 
@@ -38,7 +39,8 @@ export const fillByObjectValue = (source, value) => {
 
 export const showFileOpenDialog = (params) => new Promise((resolve, reject) => {
   try {
-    fileBrowserRef.current?.openDialog({
+    const fileBrowserApi = useUiRuntimeStore.getState().fileBrowserApi;
+    fileBrowserApi?.openDialog({
       multiSelect: false,
       showFileIcon: false,
       filterExtensions: '*',

@@ -10,16 +10,22 @@ import { PreviewToolbar } from './preview/ToolBar';
 import { PrintPreview } from './preview/PrintPreview';
 import { useRef } from 'react';
 import { FileBrowserDialog } from './edit/FileBrowser/FileBrowserDialog';
+import { useUiRuntimeStore } from '../state/uiRuntimeStore';
 
 export const Main = () => {
   const { Global } = useGlobalStore.selectors;
   const currentView = Global.currentView() || 'edit';
   const printPreviewRef = useRef(null);
   const fileBrowserRef = useRef(null);
-  window.fileBrowserRef = fileBrowserRef;
+  const setFileBrowserApi = useUiRuntimeStore(state => state.setFileBrowserApi);
+
   React.useEffect(() => {
-    window.printPreviewRef = printPreviewRef;
-  }, []);
+    setFileBrowserApi(fileBrowserRef.current);
+
+    return () => {
+      setFileBrowserApi(null);
+    };
+  }, [setFileBrowserApi]);
 
   return (<>
     <Stack height={'100vh'}>

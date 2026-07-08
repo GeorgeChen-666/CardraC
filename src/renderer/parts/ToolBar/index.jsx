@@ -23,6 +23,7 @@ import { ImageViewer } from '../edit/ImageViewer';
 import { imagePathToImageSrc } from '../../../shared/functions';
 import PrintIcon from '@mui/icons-material/Print';
 import { PrintDrawer } from './Print/PrintDrawer';
+import { useUiRuntimeStore } from '../../state/uiRuntimeStore';
 
 const ExportIcon = ({ label = 'PDF' }) => (
   <svg width='24' height='24' viewBox='0 0 24 24' fill='currentColor'>
@@ -50,8 +51,14 @@ export function BaseToolbar({ SubMenu }) {
   const dialogAboutRef = useRef(null);
   const dialogChatRef = useRef(null);
   const imageViewerRef = useRef(null);
-  window.imageViewerRef = imageViewerRef;
-  window.drawerPrintRef = drawerPrintRef;
+  const setImageViewerApi = useUiRuntimeStore(state => state.setImageViewerApi);
+  React.useEffect(() => {
+    setImageViewerApi(imageViewerRef.current);
+
+    return () => {
+      setImageViewerApi(null);
+    };
+  }, [setImageViewerApi]);
   const { t } = useTranslation();
   const {
     saveProject, newProject, openProject, mergeConfig, mergeGlobal, getExportPageCount, exportFile,

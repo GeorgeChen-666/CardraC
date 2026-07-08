@@ -9,6 +9,22 @@ export class BasePage {
     return screen.queryByRole('button', { name: label });
   }
 
+  getMenuItem(label) {
+    return screen.getByRole('menuitem', { name: label });
+  }
+
+  queryMenuItem(label) {
+    return screen.queryByRole('menuitem', { name: label });
+  }
+
+  getCheckbox(label) {
+    return screen.getByRole('checkbox', { name: label });
+  }
+
+  queryCheckbox(label) {
+    return screen.queryByRole('checkbox', { name: label });
+  }
+
   getText(label) {
     return screen.getByText(label);
   }

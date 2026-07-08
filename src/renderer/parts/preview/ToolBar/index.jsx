@@ -9,13 +9,12 @@ import { useGlobalStore } from '../../../state/store';
 import { PageNavigator } from './PageNavigator';
 import { BaseToolbar } from '../../ToolBar';
 
-const SubMenu = () => {
+const SubMenu = ({ previewRef }) => {
   const { t } = useTranslation();
   const { getExportPageCount, CardList, mergeGlobal } = useGlobalStore.getState();
   const { Global } = useGlobalStore.selectors;
   const exportPageCount = Global.exportPageCount() || 0;
   const exportPreviewIndex = Global.exportPreviewIndex() || 1;
-  const previewRef = window.printPreviewRef;
   useEffect(() => {
     CardList.length > 0 && getExportPageCount()
   }, [CardList]);
@@ -64,6 +63,6 @@ const SubMenu = () => {
     </div>
   </>
 }
-export function PreviewToolbar() {
-  return <BaseToolbar SubMenu={SubMenu} />
+export function PreviewToolbar({ previewRef }) {
+  return <BaseToolbar SubMenu={() => <SubMenu previewRef={previewRef} />} />
 }

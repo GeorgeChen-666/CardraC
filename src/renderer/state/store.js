@@ -22,6 +22,27 @@ import { middlewares } from './middlewares';
 import { setGlobalStore } from '../global';
 
 
+const cardBleedConfigSchema = yup.object({
+  faceBleedX: yup.number().min(0).notRequired(),
+  faceBleedY: yup.number().min(0).notRequired(),
+  backBleedX: yup.number().min(0).notRequired(),
+  backBleedY: yup.number().min(0).notRequired(),
+}).noUnknown();
+
+const cardConfigSchema = yup.object({
+  bleed: cardBleedConfigSchema.notRequired(),
+}).noUnknown();
+
+const cardSchema = yup.object({
+  id: yup.string().required(),
+  face: yup.mixed().nullable().notRequired(),
+  back: yup.mixed().nullable().notRequired(),
+  repeat: yup.number().min(1).required(),
+  selected: yup.boolean().notRequired(),
+  config: cardConfigSchema.notRequired(),
+}).noUnknown(false);
+
+
 const stateSchema = yup.object({
   Global: yup.object({
     currentLang: yup.string().required(),
@@ -67,8 +88,8 @@ const stateSchema = yup.object({
     columns: yup.number().min(1).required(),
     rows: yup.number().min(1).required(),
     autoColumnsRows: yup.boolean().required(),
-    fCutLine: yup.string().oneOf(['1', '2', '3']).required(),
-    bCutLine: yup.string().oneOf(['1', '2', '3']).required(),
+    fCutLine: yup.string().oneOf(['0', '1', '2', '3']).required(),
+    bCutLine: yup.string().oneOf(['0', '1', '2', '3']).required(),
     lineWeight: yup.number().min(0).required(),
     cutlineColor: yup.string().required(),
     foldLineType: yup.string().oneOf(['0', '1']).required(),
@@ -78,7 +99,7 @@ const stateSchema = yup.object({
     brochureRepeatPerPage: yup.boolean().notRequired(),
     pageNumber: yup.boolean().notRequired(),
   }).required().noUnknown(),
-  CardList: yup.array().of(yup.object()).notRequired(),
+  CardList: yup.array().of(cardSchema).notRequired(),
 }).noUnknown();
 
 //提取验证逻辑为可复用函数
@@ -520,11 +541,11 @@ export const useGlobalStore = /** @type {import('./store').useGlobalStore} */ (
     editCardsConfig: (ids, config) => {
       get().setWithHistory(state => {
         const idsSet = new Set(ids);
-        const hasValidBleed = Object.values(config?.bleed || {}).some(e => !!e);
+        const hasDefinedBleed = Object.values(config?.bleed || {}).some(value => value !== undefined && value !== null);
 
         const newCardList = state.CardList.map(c => {
           if (!idsSet.has(c.id)) return c;
-          return hasValidBleed
+          return hasDefinedBleed
             ? { ...c, config }
             : { ...c, config: undefined };
         });

@@ -58,13 +58,24 @@ interface ConfigState {
   pageNumber?: boolean;
 }
 
+interface CardBleedConfig {
+  faceBleedX?: number;
+  faceBleedY?: number;
+  backBleedX?: number;
+  backBleedY?: number;
+}
+
+interface CardConfig {
+  bleed?: CardBleedConfig;
+}
+
 interface Card {
   id: string;
   face: any;
   back: any;
   repeat: number;
   selected?: boolean;
-  config?: any;
+  config?: CardConfig;
 }
 
 interface StoreState {
@@ -113,7 +124,7 @@ interface StoreState {
   selectedCardsEdit: (newState: Partial<Card>) => void;
   selectedCardsEditEach: (callback: (card: Card) => Card | null | undefined) => void;
   selectedCardsSwap: () => void;
-  editCardsConfig: (ids: string[], config: any) => void;
+  editCardsConfig: (ids: string[], config: CardConfig) => void;
 
   // Backend jobs methods
   updateBackendJob: (key: string, updates: Partial<BackendJob>) => void;
@@ -149,4 +160,4 @@ export declare const useGlobalStore: {
   selectors: Selectorize<Pick<StoreState, 'Global' | 'Config' | 'CardList'>>;
 };
 
-export type { StoreState, GlobalState, ConfigState, Card, BackendJob };
+export type { StoreState, GlobalState, ConfigState, Card, CardConfig, CardBleedConfig, BackendJob };

@@ -1,12 +1,12 @@
-import { BodyArea } from './BodyArea';
-import { FooterBar } from './FooterBar';
-import { MenuBar } from './MenuBar';
+import { BodySection } from './sections/BodySection';
+import { FooterSection } from './sections/FooterSection';
+import { ToolBarSection } from './sections/ToolBarSection';
 
 export class MainPage {
   constructor() {
-    this.body = new BodyArea();
-    this.menu = new MenuBar();
-    this.footer = new FooterBar();
+    this.body = new BodySection();
+    this.menu = new ToolBarSection();
+    this.footer = new FooterSection();
   }
 
   assertMatches(expectation) {

@@ -22,7 +22,7 @@ import { initialState } from '../../../../shared/constants';
 
 const ConfirmIconButton = withConfirmation(IconButton);
 
-export const TemplateMenu = props => {
+export const TemplateMenu = () => {
   const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
@@ -33,6 +33,11 @@ export const TemplateMenu = props => {
   const {
     mergeConfig
   } = useGlobalStore.getState();
+  const applyTemplate = (item) => {
+    const { globalBackground: _initialGlobalBackground, ...initConfig } = initialState.Config;
+    const { globalBackground: _templateGlobalBackground, ...templateConfig } = item.Config || {};
+    mergeConfig({ ...initConfig, ...templateConfig });
+  };
   const handleClick = async (event) => {
     setAnchorEl(event.currentTarget);
     const templateList = await getTemplate();
@@ -57,7 +62,7 @@ export const TemplateMenu = props => {
         size="small"
       />
       <IconButton size="small"
-                  onClick={async (e) => {
+                  onClick={async () => {
                     const newLabel = inputRef.current?.querySelector?.('input')?.value;
                     if(editingId === '_new_') {
                       await setTemplate({templateName: newLabel})
@@ -70,7 +75,7 @@ export const TemplateMenu = props => {
         <CheckIcon fontSize="small" />
       </IconButton>
       <IconButton size="small"
-                  onClick={(e) => {
+                  onClick={() => {
                     setEditingId(null)
                   }}>
         <ClearIcon fontSize="small" />
@@ -85,7 +90,7 @@ export const TemplateMenu = props => {
       </Button>
       <Tooltip title={t('configDialog.saveCurrentConfig')}>
         <IconButton size="small"
-                    onClick={(e) => {
+                    onClick={() => {
                       setEditingId('_new_');
                     }}>
           <SaveIcon fontSize="small" />
@@ -100,16 +105,9 @@ export const TemplateMenu = props => {
       className={'templateMenu'}
     >
       {menuItems.map(item =>
-        <MenuItem key={item.id} onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if(e.target.classList.contains('listItem')) {
-            handleClose();
-            const initConfig = initialState.Config;
-            delete initConfig.globalBackground;
-            delete item.Config.globalBackground;
-            mergeConfig({...initConfig, ...item.Config});
-          }
+        <MenuItem key={item.id} onClick={() => {
+          handleClose();
+          applyTemplate(item);
         }}>
           <ListItemText className={'listItem'} disableTypography={true}>{item.TemplateName}</ListItemText>
           <Typography>
