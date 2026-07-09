@@ -72,5 +72,31 @@ describe('工具栏可见性', () => {
 
     expect(page.menu.getButton(t.btnGlobalBack)).toBeTruthy();
   });
+
+  test('对折模式下应显示全局背景按钮，但不应显示正反面大图切换开关', async () => {
+    bootstrapMenuBarCase({
+      currentView: 'edit',
+      state: { Config: { sides: layoutSides.foldInHalf } },
+    });
+    const page = await renderMenuBar();
+
+    expect(page.menu.getButton(t.btnGlobalBack)).toBeTruthy();
+    expect(screen.getByRole('switch', { name: t.lblShowOverviewWindow })).toBeTruthy();
+    expect(screen.queryByRole('switch', { name: t.lblViewFrontLarge })).toBeNull();
+    expect(screen.queryByRole('switch', { name: t.lblViewBackLarge })).toBeNull();
+  });
+
+  test('折页模式下全局背景按钮与正反面大图切换开关都应隐藏', async () => {
+    bootstrapMenuBarCase({
+      currentView: 'edit',
+      state: { Config: { sides: layoutSides.brochure } },
+    });
+    const page = await renderMenuBar();
+
+    expect(page.menu.queryButton(t.btnGlobalBack)).toBeNull();
+    expect(screen.getByRole('switch', { name: t.lblShowOverviewWindow })).toBeTruthy();
+    expect(screen.queryByRole('switch', { name: t.lblViewFrontLarge })).toBeNull();
+    expect(screen.queryByRole('switch', { name: t.lblViewBackLarge })).toBeNull();
+  });
 });
 

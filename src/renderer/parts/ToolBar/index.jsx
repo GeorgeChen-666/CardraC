@@ -136,7 +136,7 @@ export function BaseToolbar({ SubMenu }) {
                      height={'21px'} alt='' />}
           onClick={async () => {
             const selectedFiles = await openImage();
-
+            //将选中图设置为全局背景，如果取消选择则清除全局背景
             mergeConfig({ globalBackground: selectedFiles?.[0]?.face });
           }}
           onMouseOver={() => imageViewerRef.current?.update?.(globalBackground?.path)}

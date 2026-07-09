@@ -80,7 +80,7 @@ export const BulkOperationButton = ({ cardSettingApi }) => {
           selectedCardsEditEach((card) => {
             const newFace = imageDataList[imageIndex]?.face;
             imageIndex++;
-            return { ...card, face: newFace };
+            return newFace ? { ...card, face: newFace } : card;
           });
         }}>
           {t('toolbar.bulkMenu.menuFillMultiFace')}
@@ -109,7 +109,7 @@ export const BulkOperationButton = ({ cardSettingApi }) => {
           selectedCardsEditEach((card) => {
             const newBack = imageDataList[imageIndex]?.face;
             imageIndex++;
-            return { ...card, back: newBack };
+            return newBack ? { ...card, back: newBack } : card;
           });
         }}>
           {t('toolbar.bulkMenu.menuFillMultiBack')}

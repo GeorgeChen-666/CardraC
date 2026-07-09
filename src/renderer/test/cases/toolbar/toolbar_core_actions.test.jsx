@@ -5,6 +5,7 @@ import zhLocale from '../../../../main/locales/zh.json';
 import { cleanupRendererCase } from '../../setup/rendererCaseBootstrap';
 import { mergeRendererState } from '../../helpers/rendererTestSetup';
 import { bootstrapMenuBarCase, renderMenuBar } from '../../helpers/toolbarTestHelpers';
+import { useGlobalStore } from '../../../state/store';
 
 const { toolbar: t } = zhLocale;
 
@@ -54,6 +55,25 @@ describe('工具栏核心动作', () => {
     expect(useGlobalStore.getState().Global.exportPageCount).toBe(3);
   });
 
+  test('打开项目时若用户取消选择则不应触发载入流程', async () => {
+    bootstrapMenuBarCase({
+      currentView: 'edit',
+      mocks: {
+        functions: {
+          showFileOpenDialog: async () => [],
+        },
+      },
+    });
+    const rendererFunctions = await import('../../../functions');
+    const page = await renderMenuBar();
+
+    await page.menu.clickButton(t.btnOpen);
+
+    expect(rendererFunctions.openProject).not.toHaveBeenCalled();
+    expect(useGlobalStore.getState().CardList.map((card) => card.id)).toEqual(['card-1']);
+    expect(useGlobalStore.getState().Global.exportPageCount).toBe(2);
+  });
+
   test('点击保存按钮后应使用目标路径保存项目', async () => {
     const saveProjectMock = vi.fn(async () => true);
 
@@ -73,6 +93,23 @@ describe('工具栏核心动作', () => {
     expect(saveProjectMock).toHaveBeenCalledWith(expect.objectContaining({
       filePath: 'C:/projects/saved.cpnp',
     }));
+  });
+
+  test('保存项目时若用户取消选择则不应继续保存', async () => {
+    bootstrapMenuBarCase({
+      currentView: 'edit',
+      mocks: {
+        functions: {
+          showFileOpenDialog: async () => null,
+        },
+      },
+    });
+    const rendererFunctions = await import('../../../functions');
+    const page = await renderMenuBar();
+
+    await page.menu.clickButton(t.btnSave);
+
+    expect(rendererFunctions.saveProject).not.toHaveBeenCalled();
   });
 
   test('点击导出 PDF/PNG 按钮后应使用对应格式导出文件', async () => {
@@ -105,6 +142,24 @@ describe('工具栏核心动作', () => {
     }));
   });
 
+  test('导出文件时若用户取消保存则不应触发导出', async () => {
+    bootstrapMenuBarCase({
+      currentView: 'edit',
+      mocks: {
+        functions: {
+          showFileOpenDialog: async () => null,
+        },
+      },
+    });
+    const rendererFunctions = await import('../../../functions');
+    const page = await renderMenuBar();
+
+    await page.menu.clickButton(t.btnExport.replace('{{format}}', 'PDF'));
+    await page.menu.clickButton(t.btnExport.replace('{{format}}', 'PNG'));
+
+    expect(rendererFunctions.exportFile).not.toHaveBeenCalled();
+  });
+
   test('点击全局背景按钮后应更新全局背景图', async () => {
     bootstrapMenuBarCase({
       currentView: 'edit',
@@ -120,6 +175,27 @@ describe('工具栏核心动作', () => {
 
     const { useGlobalStore } = await import('../../../state/store');
     expect(useGlobalStore.getState().Config.globalBackground?.path).toBe('background-updated.png');
+  });
+
+  test('选择全局背景时若未选中图片则应清除原背景', async () => {
+    bootstrapMenuBarCase({
+      currentView: 'edit',
+      state: {
+        Config: {
+          globalBackground: { path: 'existing-background.png', mtime: 3, ext: 'png' },
+        },
+      },
+      mocks: {
+        functions: {
+          openImage: async () => [],
+        },
+      },
+    });
+    const page = await renderMenuBar();
+
+    await page.menu.clickButton(t.btnGlobalBack);
+
+    expect(useGlobalStore.getState().Config.globalBackground).toBeUndefined();
   });
 
   test('点击撤销和重做按钮时应清理预览缓存并变更卡牌顺序', async () => {

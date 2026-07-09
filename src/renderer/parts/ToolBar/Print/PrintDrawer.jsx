@@ -34,6 +34,16 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
     setPageEnd(exportPageCount);
   }, [exportPageCount]);
 
+  const resolvePaperSizeOption = (paperSizeValue, printer) => {
+    if (!printer || !paperSizeValue || paperSizeValue === '_') {
+      return '_';
+    }
+    if (typeof paperSizeValue === 'string') {
+      return printer.paperSizes?.find(item => item.name === paperSizeValue) ?? '_';
+    }
+    return printer.paperSizes?.find(item => item.name === paperSizeValue?.name) ?? paperSizeValue;
+  };
+
   const updatePrintConfig = (args) => {
     setPrintConfig((prevState) => {
       const result = {...prevState, ...args}
@@ -46,9 +56,11 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
     openDrawer: async () => {
       console.log('openDrawer called');
       await getExportPageCount();
+      const latestExportPageCount = useGlobalStore.getState().Global.exportPageCount;
       setOpen(true);
       onOpenChange?.(true);
       setPageStart(1);
+      setPageEnd(latestExportPageCount);
       setPageFilter('all');
 
       const { printers } = await getPrinters();
@@ -57,27 +69,34 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
       const defaultP = printers.find(p => p.isDefault);
       if(defaultP) {
         setDefaultPrinter(defaultP);
+      }
 
+      const { printConfig } = await callMain(eleActions.loadPrintConfig);
+      console.log('loadPrintConfig', printConfig);
+
+      const resolvedPrinter = printConfig?.defaultPrinter
+        ? printers.find(p => p.printerName === printConfig.defaultPrinter) ?? defaultP
+        : defaultP;
+
+      if (resolvedPrinter) {
+        setDefaultPrinter(resolvedPrinter);
+      }
+
+      const normalizedPaperSize = resolvePaperSizeOption(printConfig?.paperSize, resolvedPrinter);
+      setPaperSize(normalizedPaperSize);
+
+      setPrintConfig({
+        ...printConfig,
+        ...(resolvedPrinter ? { defaultPrinter: resolvedPrinter.printerName } : {}),
+      });
+
+      if(defaultP && !resolvedPrinter) {
         updatePrintConfig({
           defaultPrinter: defaultP?.printerName,
           paperWidth: defaultP?.defaultWidthMm,
           paperHeight: defaultP?.defaultHeightMm,
           isLandscape: defaultP?.isLandscape,
         });
-      }
-
-      const { printConfig } = await callMain(eleActions.loadPrintConfig);
-      console.log('loadPrintConfig', printConfig);
-      setPrintConfig(printConfig);
-
-      // 恢复已保存的打印机选择
-      if (printConfig?.defaultPrinter) {
-        const saved = printers.find(p => p.printerName === printConfig.defaultPrinter);
-        if (saved) setDefaultPrinter(saved);
-      }
-
-      if (printConfig?.paperSize) {
-        setPaperSize(printConfig.paperSize);
       }
 
       console.log('printers', printers);
@@ -185,7 +204,7 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
               />
               <NumberInput
                 value={pageEnd}
-                min={pageStart} max={pageEnd}
+                min={pageStart} max={exportPageCount}
                 step={1}
                 width={145}
                 onChange={(e, v) => {
@@ -246,10 +265,13 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
                 }}
                 sx={{ width: 260 }} label={t('configPrintDialog.paperSize')} select size='small'
                 onChange={(e, v) => {
-                  const selectedSize = defaultPrinter?.paperSizes?.find(s => s.name === v?.props?.value);
-                  setPaperSize(v?.props?.value);
+                  const selectedValue = v?.props?.value;
+                  const selectedSize = typeof selectedValue === 'string'
+                    ? defaultPrinter?.paperSizes?.find(s => s.name === selectedValue)
+                    : selectedValue;
+                  setPaperSize(selectedValue);
                   updatePrintConfig({
-                    paperSize: v?.props?.value,
+                    paperSize: selectedValue,
                     ...(selectedSize ? { paperWidth: selectedSize.widthMm, paperHeight: selectedSize.heightMm } : {})
                   });
                 }}
@@ -364,7 +386,7 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
             // 解构 paperSize，_ 时用打印机默认尺寸
             const resolvedPaperSize = paperSize === '_'
               ? defaultPrinter?.defaultPaperSize
-              : paperSize.name;
+              : (typeof paperSize === 'string' ? paperSize : paperSize?.name);
 
             const resolvedSize = paperSize === '_'
               ? { paperWidthMm: defaultPrinter?.defaultWidthMm, paperHeightMm: defaultPrinter?.defaultHeightMm }
@@ -374,6 +396,7 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
               pageList,
               printConfig: {
                 ...printConfig,
+                defaultPrinter: defaultPrinter?.printerName,
                 paperSize: resolvedPaperSize,
                 ...resolvedSize,
               }

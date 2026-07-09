@@ -5,7 +5,7 @@ import { afterEach, describe, expect, test, vi, beforeEach } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import zhLocale from '../../../../main/locales/zh.json';
-import { emptyImgPath } from '../../../../shared/constants';
+import { emptyImgPath, layoutSides } from '../../../../shared/constants';
 import {
   bootstrapRendererCase,
   cleanupRendererCase,
@@ -201,6 +201,26 @@ describe('卡牌列表批量操作', () => {
     });
   });
 
+  test('批量单图填充卡面时若未选中图片则应保持原值', async () => {
+    const user = await renderBulkScene({
+      mocks: {
+        functions: {
+          openImage: async () => [],
+        },
+      },
+    });
+
+    await selectCards(user, 0, 1);
+    await openBulkMenu(user, '2');
+    await openBulkSubMenu(cardEditor.face);
+    await user.click(await screen.findByRole('menuitem', { name: toolbar.bulkMenu.menuFillFace }));
+
+    await waitFor(() => {
+      expect(useGlobalStore.getState().CardList[0].face?.path).toBe('face-1.png');
+      expect(useGlobalStore.getState().CardList[1].face?.path).toBe('face-2.png');
+    });
+  });
+
   test('应支持批量单图填充卡背', async () => {
     const user = await renderBulkScene({
       mocks: {
@@ -221,6 +241,26 @@ describe('卡牌列表批量操作', () => {
     });
   });
 
+  test('批量单图填充卡背时若未选中图片则应保持原值', async () => {
+    const user = await renderBulkScene({
+      mocks: {
+        functions: {
+          openImage: async () => [],
+        },
+      },
+    });
+
+    await selectCards(user, 0, 1);
+    await openBulkMenu(user, '2');
+    await openBulkSubMenu(cardEditor.back);
+    await user.click(await screen.findByRole('menuitem', { name: toolbar.bulkMenu.menuFillBack }));
+
+    await waitFor(() => {
+      expect(useGlobalStore.getState().CardList[0].back?.path).toBe('back-1.png');
+      expect(useGlobalStore.getState().CardList[1].back?.path).toBe('back-2.png');
+    });
+  });
+
   test('应支持批量设置选中卡牌的数量', async () => {
     const user = await renderBulkScene();
 
@@ -235,6 +275,30 @@ describe('卡牌列表批量操作', () => {
     await waitFor(() => {
       expect(useGlobalStore.getState().CardList[0].repeat).toBe(4);
       expect(useGlobalStore.getState().CardList[1].repeat).toBe(4);
+    });
+  });
+
+  test('批量设置数量时清空输入应回退为 1', async () => {
+    const user = await renderBulkScene({
+      state: {
+        CardList: [
+          { ...createCard('card-1', 'face-1.png', 'back-1.png'), repeat: 5 },
+          { ...createCard('card-2', 'face-2.png', 'back-2.png'), repeat: 6 },
+          createCard('card-3', 'face-3.png', 'back-3.png'),
+        ],
+      },
+    });
+
+    await selectCards(user, 0, 1);
+    await openBulkMenu(user, '2');
+
+    const repeatInput = await screen.findByRole('spinbutton');
+    await user.clear(repeatInput);
+    await user.click(await screen.findByRole('link', { name: button.ok }));
+
+    await waitFor(() => {
+      expect(useGlobalStore.getState().CardList[0].repeat).toBe(1);
+      expect(useGlobalStore.getState().CardList[1].repeat).toBe(1);
     });
   });
 
@@ -269,6 +333,48 @@ describe('卡牌列表批量操作', () => {
     });
   });
 
+  test('批量多图填充卡面时若未选中图片则应保持原值', async () => {
+    const user = await renderBulkScene({
+      mocks: {
+        functions: {
+          openMultiImage: async () => [],
+        },
+      },
+    });
+
+    await selectCards(user, 0, 1);
+    await openBulkMenu(user, '2');
+    await openBulkSubMenu(cardEditor.face);
+    await user.click(await screen.findByRole('menuitem', { name: toolbar.bulkMenu.menuFillMultiFace }));
+
+    await waitFor(() => {
+      expect(useGlobalStore.getState().CardList[0].face?.path).toBe('face-1.png');
+      expect(useGlobalStore.getState().CardList[1].face?.path).toBe('face-2.png');
+    });
+  });
+
+  test('批量多图填充卡面时图片数量不足应仅更新对应选择项', async () => {
+    const user = await renderBulkScene({
+      mocks: {
+        functions: {
+          openMultiImage: async () => [
+            { face: { path: 'partial-face.png', mtime: 1700000000300, ext: 'png' } },
+          ],
+        },
+      },
+    });
+
+    await selectCards(user, 0, 1);
+    await openBulkMenu(user, '2');
+    await openBulkSubMenu(cardEditor.face);
+    await user.click(await screen.findByRole('menuitem', { name: toolbar.bulkMenu.menuFillMultiFace }));
+
+    await waitFor(() => {
+      expect(useGlobalStore.getState().CardList[0].face?.path).toBe('partial-face.png');
+      expect(useGlobalStore.getState().CardList[1].face?.path).toBe('face-2.png');
+    });
+  });
+
   test('应支持批量多图填充卡背', async () => {
     const user = await renderBulkScene({
       mocks: {
@@ -287,6 +393,99 @@ describe('卡牌列表批量操作', () => {
       expect(useGlobalStore.getState().CardList[0].back?.path).toContain('23.png');
       expect(useGlobalStore.getState().CardList[1].back?.path).toContain('24.png');
     });
+  });
+
+  test('批量多图填充卡背时若未选中图片则应保持原值', async () => {
+    const user = await renderBulkScene({
+      mocks: {
+        functions: {
+          openMultiImage: async () => [],
+        },
+      },
+    });
+
+    await selectCards(user, 0, 1);
+    await openBulkMenu(user, '2');
+    await openBulkSubMenu(cardEditor.back);
+    await user.click(await screen.findByRole('menuitem', { name: toolbar.bulkMenu.menuFillMultiBack }));
+
+    await waitFor(() => {
+      expect(useGlobalStore.getState().CardList[0].back?.path).toBe('back-1.png');
+      expect(useGlobalStore.getState().CardList[1].back?.path).toBe('back-2.png');
+    });
+  });
+
+  test('批量多图填充卡背时图片数量不足应仅更新对应选择项', async () => {
+    const user = await renderBulkScene({
+      mocks: {
+        functions: {
+          openMultiImage: async () => [
+            { face: { path: 'partial-back.png', mtime: 1700000000400, ext: 'png' } },
+          ],
+        },
+      },
+    });
+
+    await selectCards(user, 0, 1);
+    await openBulkMenu(user, '2');
+    await openBulkSubMenu(cardEditor.back);
+    await user.click(await screen.findByRole('menuitem', { name: toolbar.bulkMenu.menuFillMultiBack }));
+
+    await waitFor(() => {
+      expect(useGlobalStore.getState().CardList[0].back?.path).toBe('partial-back.png');
+      expect(useGlobalStore.getState().CardList[1].back?.path).toBe('back-2.png');
+    });
+  });
+
+  test('小册子模式下批量菜单不应显示卡背、交换和独立设置入口', async () => {
+    const user = await renderBulkScene({
+      state: {
+        Config: {
+          sides: layoutSides.brochure,
+        },
+      },
+    });
+
+    await selectCards(user, 0, 1);
+    await openBulkMenu(user, '2');
+
+    expect(screen.queryByRole('menuitem', { name: cardEditor.back })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: toolbar.bulkMenu.menuSwap })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: cardEditor.spicalConfig })).toBeNull();
+  });
+
+  test('单面模式下批量菜单不应显示卡背和交换入口，但应保留独立设置', async () => {
+    const user = await renderBulkScene({
+      state: {
+        Config: {
+          sides: layoutSides.oneSide,
+        },
+      },
+    });
+
+    await selectCards(user, 0, 1);
+    await openBulkMenu(user, '2');
+
+    expect(screen.queryByRole('menuitem', { name: cardEditor.back })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: toolbar.bulkMenu.menuSwap })).toBeNull();
+    expect(await screen.findByRole('menuitem', { name: cardEditor.spicalConfig })).toBeTruthy();
+  });
+
+  test('对折模式下批量菜单应保留卡背、交换和独立设置入口', async () => {
+    const user = await renderBulkScene({
+      state: {
+        Config: {
+          sides: layoutSides.foldInHalf,
+        },
+      },
+    });
+
+    await selectCards(user, 0, 1);
+    await openBulkMenu(user, '2');
+
+    expect(await screen.findByRole('menuitem', { name: cardEditor.back })).toBeTruthy();
+    expect(await screen.findByRole('menuitem', { name: toolbar.bulkMenu.menuSwap })).toBeTruthy();
+    expect(await screen.findByRole('menuitem', { name: cardEditor.spicalConfig })).toBeTruthy();
   });
 });
 

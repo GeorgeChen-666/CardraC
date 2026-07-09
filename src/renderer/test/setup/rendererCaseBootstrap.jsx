@@ -220,9 +220,13 @@ vi.mock('../../parts/LoadingModal', () => ({
   LoadingModal: () => null,
 }));
 
-vi.mock('../../parts/edit/FileBrowser/FileBrowserDialog', () => ({
-  FileBrowserDialog: React.forwardRef((_props, _ref) => null),
-}));
+vi.mock('../../parts/edit/FileBrowser/FileBrowserDialog', async () => {
+  const actual = await vi.importActual('../../parts/edit/FileBrowser/FileBrowserDialog');
+  const fallback = React.forwardRef((_props, _ref) => null);
+  return {
+    FileBrowserDialog: resolveRuntimeComponent('FileBrowserDialog', actual.FileBrowserDialog, fallback),
+  };
+});
 
 vi.mock('../../parts/ToolBar/About/AboutDialog', async () => {
   const actual = await vi.importActual('../../parts/ToolBar/About/AboutDialog');

@@ -4,39 +4,9 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import zhLocale from '../../../../main/locales/zh.json';
 import { cleanupRendererCase } from '../../setup/rendererCaseBootstrap';
-import { bootstrapMenuBarCase, renderMenuBar } from '../../helpers/toolbarTestHelpers';
+import { openPrintDrawer } from '../../helpers/printTestHelpers';
 
-const { toolbar, configPrintDialog, button } = zhLocale;
-
-const renderToolbarWithRealPrintDrawer = async (options = {}) => {
-  bootstrapMenuBarCase({
-    currentView: 'edit',
-    ...options,
-    mocks: {
-      ...options.mocks,
-      components: {
-        ...(options.mocks?.components || {}),
-        PrintDrawer: 'actual',
-      },
-    },
-  });
-
-  return renderMenuBar();
-};
-
-const openPrintDrawer = async (options = {}) => {
-  const page = await renderToolbarWithRealPrintDrawer(options);
-  await page.menu.clickButton(toolbar.print);
-
-  const drawer = document.querySelector('.print-drawer');
-  expect(drawer).toBeTruthy();
-
-  await waitFor(() => {
-    expect(within(drawer).getByLabelText(configPrintDialog.targetPrinter)).toBeTruthy();
-  });
-
-  return { page, drawer };
-};
+const { configPrintDialog, button } = zhLocale;
 
 describe('打印入口', () => {
   afterEach(() => {
