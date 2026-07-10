@@ -7,7 +7,7 @@ import {
   bootstrapRendererCase,
   cleanupRendererCase,
   renderRendererCase,
-} from '../../setup/rendererCaseBootstrap';
+} from '../../../setup/rendererCaseBootstrap';
 
 const renderImageViewer = async ({ global } = {}) => {
   bootstrapRendererCase({
@@ -26,7 +26,7 @@ const renderImageViewer = async ({ global } = {}) => {
     },
   });
 
-  const { ImageViewer } = await import('../../../parts/edit/ImageViewer');
+  const { ImageViewer } = await import('../../../../parts/edit/ImageViewer');
   const ref = createRef();
   renderRendererCase(<ImageViewer ref={ref} />);
   return ref;

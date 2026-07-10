@@ -103,10 +103,11 @@ export const PrintPreview = forwardRef((props, ref) => {
     // e.preventDefault();
 
     if (e.shiftKey) {
+      const maxPage = Math.max(exportPageCount || 1, 1);
       if (e.deltaY < 0) {
-        handlePageChange(exportPreviewIndex - 1);
+        handlePageChange(Math.max(1, exportPreviewIndex - 1));
       } else if (e.deltaY > 0) {
-        handlePageChange(exportPreviewIndex + 1);
+        handlePageChange(Math.min(maxPage, exportPreviewIndex + 1));
       }
       return;
     }
@@ -291,22 +292,27 @@ export const PrintPreview = forwardRef((props, ref) => {
     return () => {
       cleanups.forEach(cleanup => cleanup());
     };
-  }, [svgContent, isSvg, exportPreviewIndex]);
+  }, [svgContent, isSvg, exportPreviewIndex, imageVersion]);
 
   const CardList = useGlobalStore(state => state.CardList, shallow);
   const Config = useGlobalStore(state => state.Config, shallow);
   useEffect(() => {
+    let cancelled = false;
+
     if (ready) {
       (async () => {
         const data = await getExportPreview(exportPreviewIndex);
+        if (cancelled) return;
         setImageData(data);
 
         if (data && data.includes('svg')) {
           const decoded = decodeSvg(data);
+          if (cancelled) return;
           if (decoded) {
             const widthMatch = decoded.match(/width="(\d+)"/);
             const heightMatch = decoded.match(/height="(\d+)"/);
             if (widthMatch && heightMatch) {
+              if (cancelled) return;
               setImageSize({
                 width: parseInt(widthMatch[1]),
                 height: parseInt(heightMatch[1])
@@ -319,6 +325,10 @@ export const PrintPreview = forwardRef((props, ref) => {
         }
       })();
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [exportPreviewIndex, exportPageCount, ready, frame, imageVersion, CardList, Config]);
 
   useEffect(() => {

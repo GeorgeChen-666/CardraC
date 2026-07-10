@@ -288,8 +288,12 @@ vi.mock('../../componments/BackendTasksIndicator', () => ({
   BackendTasksIndicator: () => null,
 }));
 
-vi.mock('../../parts/preview/PrintPreview', () => ({
-  PrintPreview: React.forwardRef((_props, _ref) => (
+vi.mock('../../parts/preview/PrintPreview', async () => {
+  const actual = await vi.importActual('../../parts/preview/PrintPreview');
+  const fallback = React.forwardRef((_props, _ref) => (
     <div data-testid="print-preview">preview</div>
-  )),
-}));
+  ));
+  return {
+    PrintPreview: resolveRuntimeComponent('PrintPreview', actual.PrintPreview, fallback),
+  };
+});
