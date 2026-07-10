@@ -11,7 +11,7 @@ import {
   cleanupRendererCase,
   renderRendererCase,
 } from '../../setup/rendererCaseBootstrap';
-import { createOpenImageResult, createOpenMultiImageResult, getNumericImagePath } from '../../fixtures/images/numericImageFixtures';
+import { createOpenImageResult, createOpenMultiImageResult, getNumericImagePath } from '../../../../../e2e/fixtures/images/numericImageFixtures';
 import { useGlobalStore } from '../../../state/store';
 
 describe('卡牌列表图片填充', () => {

@@ -2,6 +2,12 @@ import electron, { app, BrowserWindow, shell } from 'electron';
 import { registerRendererActionHandlers } from './ele_action';
 import { isDev } from '../shared/functions';
 
+const isE2E = process.env.PLAYWRIGHT_E2E === '1';
+
+if (isE2E) {
+  app.commandLine.appendSwitch('remote-debugging-port', '9222');
+}
+
 if (typeof electron === 'string') {
   throw new TypeError('Not running in an Electron environment!');
 }
@@ -32,7 +38,7 @@ const createWindow = async () => {
 
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
-  if(isDev) {
+  if(isDev && !isE2E) {
     // Open the DevTools.
     mainWindow.webContents.openDevTools();
   } else {

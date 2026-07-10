@@ -14,9 +14,11 @@
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "echo \"No linting configured\"",
-    "test": "vitest"
+    "test": "vitest",
+    "e2e:smoke": "playwright test e2e/import-image-and-preview.spec.js --workers=1 --reporter=line"
   },
   "devDependencies": {
+    "@playwright/test": "^1.54.2",
     "@babel/core": "^7.24.4",
     "@babel/preset-react": "^7.24.1",
     "@electron-forge/cli": "^7.4.0",

@@ -11,7 +11,7 @@ import {
   cleanupRendererCase,
   renderRendererCase,
 } from '../../setup/rendererCaseBootstrap';
-import { createOpenMultiImageResult } from '../../fixtures/images/numericImageFixtures';
+import { createOpenMultiImageResult } from '../../../../../e2e/fixtures/images/numericImageFixtures';
 import { useGlobalStore } from '../../../state/store';
 import { spyOnCardSettingDialogOpen } from '../../helpers/uiRuntimeTestHelpers';
 
