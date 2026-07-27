@@ -158,7 +158,7 @@ describe('getPagedImageListByCardList', () => {
     test('双面打印：使用全局背景', () => {
       const cardWithoutBack = {
         face: { path: 'face1.png', ext: 'PNG' },
-        back: { path: 'back1.png', ext: 'PNG' }, // 没有 mtime
+        back: null,
         config: { id: 1 },
         repeat: 1,
       };
@@ -178,6 +178,46 @@ describe('getPagedImageListByCardList', () => {
 
       // 背面应该使用全局背景
       expect(result[1].imageList[0].path).toBe('bg.png');
+    });
+
+    test('双面打印：正面缺少 mtime 仍应导出原图', () => {
+      const state = {
+        CardList: [{
+          ...createCard(1),
+          face: { path: 'face1.png', ext: 'PNG' },
+        }],
+        globalBackground,
+      };
+
+      const config = {
+        sides: layoutSides.doubleSides,
+        rows: 1,
+        columns: 1,
+      };
+
+      const result = getPagedImageListByCardList(state, config);
+
+      expect(result[0].imageList[0].path).toBe('face1.png');
+    });
+
+    test('双面打印：背面缺少 mtime 仍应导出原图', () => {
+      const state = {
+        CardList: [{
+          ...createCard(1),
+          back: { path: 'back1.png', ext: 'PNG' },
+        }],
+        globalBackground,
+      };
+
+      const config = {
+        sides: layoutSides.doubleSides,
+        rows: 1,
+        columns: 1,
+      };
+
+      const result = getPagedImageListByCardList(state, config);
+
+      expect(result[1].imageList[0].path).toBe('back1.png');
     });
 
     test('双面打印：多页情况', () => {

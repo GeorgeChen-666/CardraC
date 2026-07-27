@@ -1,5 +1,19 @@
-import { emptyImg, layoutSides } from '../../../shared/constants';
+import { emptyImg, emptyImgPath, layoutSides } from '../../../shared/constants';
 import { fixFloat } from '../../../shared/functions';
+
+const isRenderableImage = (image) => {
+  return Boolean(
+    image
+    && typeof image === 'object'
+    && typeof image.path === 'string'
+    && image.path.length > 0
+    && image.path !== emptyImgPath
+  );
+};
+
+const withImageId = (image, id) => {
+  return isRenderableImage(image) ? { ...image, id } : null;
+};
 
 export const getCutRectangleList = (Config, { maxWidth, maxHeight }, ignoreBleed = true, isBack = false) => {
   const {
@@ -254,7 +268,7 @@ const getNormalPagedImageListByCardList = ({ CardList, globalBackground }, Confi
     const result = repeatCardList.slice(i, i + size);
 
     pagedImageList.push({
-      imageList: result.map(c => c.face?.mtime ? {...c.face, id: `${c.id}.face`} : null),
+      imageList: result.map(c => withImageId(c.face, `${c.id}.face`)),
       pathList: result.map(c => `${c._originalIndex}.face`),
       config: result.map(c => c?.config),
       type: 'face',
@@ -262,7 +276,7 @@ const getNormalPagedImageListByCardList = ({ CardList, globalBackground }, Confi
 
     if ([layoutSides.doubleSides, layoutSides.foldInHalf].includes(sides)) {
       pagedImageList.push({
-        imageList: result.map(c => c.back?.mtime ? {...c.back, id: `${c.id}.back`} : globalBackground),
+        imageList: result.map(c => withImageId(c.back, `${c.id}.back`) || globalBackground),
         pathList: result.map(c => `${c._originalIndex}.back`),
         config: result.map(c => c?.config),
         type: 'back',
@@ -313,14 +327,14 @@ const getBrochurePagedImageListByCardList = (state, Config) => {
       const repeatResult = Array(size / 2).fill(result).flat(1);
 
       pagedImageList.push({
-        imageList: repeatResult.map(c => c[0]?.face?.mtime ? {...c[0].face, id: `${c[0].id}.face`} : null),
+        imageList: repeatResult.map(c => withImageId(c[0]?.face, `${c[0].id}.face`)),
         pathList: repeatResult.map(c => `${c[0]._originalIndex}.face`),
         config: repeatResult.map(c => c[0]?.config),
         type: 'face',
       });
 
       pagedImageList.push({
-        imageList: repeatResult.map(c => c[1]?.face?.mtime ? {...c[1].face, id: `${c[1].id}.face`} : null),
+        imageList: repeatResult.map(c => withImageId(c[1]?.face, `${c[1].id}.face`)),
         pathList: repeatResult.map(c => `${c[1]._originalIndex}.back`),
         config: repeatResult.map(c => c[1]?.config),
         type: 'back',
@@ -331,14 +345,14 @@ const getBrochurePagedImageListByCardList = (state, Config) => {
       const result = tempPairList2.slice(i, i + size);
 
       pagedImageList.push({
-        imageList: result.map(c => c[0]?.face?.mtime ? {...c[0].face, id: `${c[0].id}.face`} : null),
+        imageList: result.map(c => withImageId(c[0]?.face, `${c[0].id}.face`)),
         pathList: result.map(c => `${c[0]._originalIndex}.face`),
         config: result.map(c => c[0]?.config),
         type: 'face',
       });
 
       pagedImageList.push({
-        imageList: result.map(c => c[1]?.face?.mtime ? {...c[1].face, id: `${c[1].id}.face`} : null),
+        imageList: result.map(c => withImageId(c[1]?.face, `${c[1].id}.face`)),
         pathList: result.map(c => `${c[1]._originalIndex}.back`),
         config: result.map(c => c[1]?.config),
         type: 'back',

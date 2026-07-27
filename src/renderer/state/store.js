@@ -42,24 +42,34 @@ const cardSchema = yup.object({
   config: cardConfigSchema.notRequired(),
 }).noUnknown(false);
 
+const backendJobSchema = yup.object({
+  visible: yup.boolean().required(),
+  progress: yup.number().required(),
+}).noUnknown();
+
 
 const stateSchema = yup.object({
   Global: yup.object({
     currentLang: yup.string().required(),
     isShowOverView: yup.boolean().required(),
-    availableLangs: yup.array().of(yup.string()).notRequired(),
+    availableLangs: yup.array().of(yup.string().required()).required(),
     isLoading: yup.number().notRequired(),
     loadingText: yup.string().notRequired(),
     isInProgress: yup.boolean().notRequired(),
     progress: yup.number().notRequired(),
-    lastSelection: yup.object().notRequired(),
+    lastSelection: yup.string().nullable().defined(),
     isBackEditing: yup.boolean().notRequired(),
     selections: yup.array().of(yup.object()).notRequired(),
-    locales: yup.object().notRequired(),
+    locales: yup.object().required(),
     imageVersion: yup.number().notRequired(),
     exportPageCount: yup.number().notRequired(),
     exportPreviewIndex: yup.number().notRequired(),
-    backendJobs: yup.object().notRequired(),
+    currentView: yup.string().required(),
+    backendJobs: yup.object().required().test(
+      'backend-jobs-shape',
+      'Invalid backend job entry',
+      (value) => Object.values(value || {}).every((job) => backendJobSchema.isValidSync(job, { strict: true })),
+    ),
   }).notRequired(),
   Config: yup.object({
     pageSize: yup.string().required(),
@@ -93,11 +103,11 @@ const stateSchema = yup.object({
     lineWeight: yup.number().min(0).required(),
     cutlineColor: yup.string().required(),
     foldLineType: yup.string().oneOf(['0', '1']).required(),
-    globalBackground: yup.object().notRequired(),
-    marginFilling: yup.boolean().notRequired(),
-    avoidDislocation: yup.boolean().notRequired(),
-    brochureRepeatPerPage: yup.boolean().notRequired(),
-    pageNumber: yup.boolean().notRequired(),
+    globalBackground: yup.object().nullable().defined(),
+    marginFilling: yup.boolean().required(),
+    avoidDislocation: yup.boolean().required(),
+    brochureRepeatPerPage: yup.boolean().required(),
+    pageNumber: yup.boolean().required(),
   }).required().noUnknown(),
   CardList: yup.array().of(cardSchema).notRequired(),
 }).noUnknown();
@@ -629,6 +639,12 @@ const state = useGlobalStore.getState();
 
 let config = await loadConfig();
 await initI18n(config.Global);
+
+config = {
+  ...config,
+  Global: { ...initialState.Global, ...config.Global },
+  Config: { ...initialState.Config, ...config.Config },
+};
 
 //使用提取的验证函数
 const { isValid, config: validatedConfig } = await validateAndFixConfig(config);

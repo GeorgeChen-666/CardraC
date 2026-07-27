@@ -1,5 +1,4 @@
 // src/renderer/state/store.d.ts
-import type { StoreApi } from 'zustand';
 
 interface BackendJob {
   visible: boolean;
@@ -9,20 +8,20 @@ interface BackendJob {
 interface GlobalState {
   currentLang: string;
   isShowOverView: boolean;
-  availableLangs?: string[];
+  availableLangs: string[];
   isLoading?: number;
   loadingText?: string;
   isInProgress?: boolean;
   progress?: number;
-  lastSelection?: any;
+  lastSelection: string | null;
   isBackEditing?: boolean;
   selections?: any[];
-  locales?: any;
+  locales: Record<string, any>;
   imageVersion?: number;
   exportPageCount?: number;
   exportPreviewIndex?: number;
-  currentView?: string;
-  backendJobs?: Record<string, BackendJob>;
+  currentView: string;
+  backendJobs: Record<string, BackendJob>;
 }
 
 interface ConfigState {
@@ -51,11 +50,11 @@ interface ConfigState {
   lineWeight: number;
   cutlineColor: string;
   foldLineType: string;
-  globalBackground?: any;
-  marginFilling?: boolean;
-  avoidDislocation?: boolean;
-  brochureRepeatPerPage?: boolean;
-  pageNumber?: boolean;
+  globalBackground: any | null;
+  marginFilling: boolean;
+  avoidDislocation: boolean;
+  brochureRepeatPerPage: boolean;
+  pageNumber: boolean;
 }
 
 interface CardBleedConfig {

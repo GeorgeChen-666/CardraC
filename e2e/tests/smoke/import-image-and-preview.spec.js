@@ -1,12 +1,12 @@
 const { test, expect } = require('@playwright/test');
 const path = require('path');
-const { launchApp, closeApp, ROOT } = require('./helpers/electronApp');
+const { launchApp, closeApp, ROOT } = require('../../helpers/electronApp');
 
 const FIXTURE_IMAGE_DIR = path.join(ROOT, 'e2e', 'fixtures', 'images', 'numeric-images');
 
 test.setTimeout(120000);
 
-test('imports one fixture image and switches to preview view', async () => {
+test('imports one fixture image and switches to preview view @smoke', async () => {
   let session;
 
   try {
@@ -31,4 +31,5 @@ test('imports one fixture image and switches to preview view', async () => {
     await closeApp(session);
   }
 });
+
 

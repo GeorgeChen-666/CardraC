@@ -153,18 +153,22 @@ export async function printSVGs(printerName, svgDataList, options = {}) {
   const {
     pageWidthMm = 210,
     pageHeightMm = 297,
+    contentWidthMm = pageWidthMm,
+    contentHeightMm = pageHeightMm,
     offsetXmm = 0,
     offsetYmm = 0,
     scaleX = 1,
     scaleY = 1,
     landscape = false,
+    contentLandscape = landscape,
     paperSize = ''
   } = options;
 
   const [width, height] = landscape?[pageHeightMm, pageWidthMm]:[pageWidthMm, pageHeightMm];
+  const [contentWidth, contentHeight] = contentLandscape?[contentHeightMm, contentWidthMm]:[contentWidthMm, contentHeightMm];
 
   // ✅ 提取 HTML 生成，避免 IDE 报红
-  const html = buildPrintHTML(svgDataList, { width, height, offsetXmm, offsetYmm, scaleX, scaleY });
+  const html = buildPrintHTML(svgDataList, { width, height, contentWidth, contentHeight, offsetXmm, offsetYmm, scaleX, scaleY });
 
   const tempFile = path.join(app.getPath('temp'), `print_${Date.now()}.html`);
   fs.writeFileSync(tempFile, html);
@@ -180,7 +184,7 @@ export async function printSVGs(printerName, svgDataList, options = {}) {
     await win.loadFile(tempFile);
     await waitForLoad(win);
 
-    return await executePrint(win, printerName, { paperSize, landscape });
+    return await executePrint(win, printerName, { paperSize, landscape, width, height });
   } finally {
     win.destroy();
     fs.unlinkSync(tempFile);
@@ -207,12 +211,14 @@ function decodeSVG(data) {
   return data;
 }
 
-function buildPrintHTML(svgDataList, { width, height, offsetXmm, offsetYmm, scaleX, scaleY }) {
+function buildPrintHTML(svgDataList, { width, height, contentWidth, contentHeight, offsetXmm, offsetYmm, scaleX, scaleY }) {
   const pageStyle = `width:${width}mm;height:${height}mm;position:relative;page-break-after:always;overflow:hidden`;
-  const contentStyle = `position:absolute;left:${offsetXmm}mm;top:${offsetYmm}mm;transform:scale(${scaleX},${scaleY});transform-origin:0 0`;
+  const left = (width - contentWidth * scaleX) / 2 + offsetXmm;
+  const top = (height - contentHeight * scaleY) / 2 + offsetYmm;
+  const contentStyle = `position:absolute;left:${left}mm;top:${top}mm;width:${contentWidth}mm;height:${contentHeight}mm;transform:scale(${scaleX},${scaleY});transform-origin:0 0`;
 
   const pages = svgDataList
-    .map(svg => `<div class="page" style="${pageStyle}"><div style="${contentStyle}">${decodeSVG(svg)}</div></div>`)
+    .map(svg => `<div class="page" style="${pageStyle}"><div class="print-content" style="${contentStyle}">${decodeSVG(svg)}</div></div>`)
     .join('');
 
   return `<!DOCTYPE html>
@@ -227,12 +233,12 @@ function buildPrintHTML(svgDataList, { width, height, offsetXmm, offsetYmm, scal
       image-rendering: pixelated;
     }
     .page:last-child { page-break-after: auto; }
-    svg {
+    .print-content > svg {
       width: 100% !important;
       height: 100% !important;
       display: block;
     }
-    svg image {
+    .print-content > svg image {
       image-rendering: high-quality;
     }
   </style>
@@ -263,19 +269,36 @@ async function waitForLoad(win) {
   await new Promise(r => setTimeout(r, 1000));
 }
 
-async function executePrint(win, printerName, { paperSize, landscape }) {
+async function executePrint(win, printerName, { paperSize, landscape, width, height }) {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => reject(new Error('Print timeout')), 30000);
+
+    const pageSizeOption = Number.isFinite(width) && Number.isFinite(height)
+      ? {
+          width: Math.round(width * 1000),
+          height: Math.round(height * 1000),
+        }
+      : paperSize;
 
     win.webContents.print({
       landscape,
       silent: true,
       deviceName: printerName,
       scaleFactor:100,
-      pageSize: paperSize,
+      pageSize: pageSizeOption,
       // dpi: { horizontal: 300, vertical: 300 }
     }, (success, error) => {
       clearTimeout(timeout);
+      if (!success || error) {
+        console.error('Print callback reported failure:', {
+          success,
+          error,
+          printerName,
+          paperSize,
+          pageSizeOption,
+          landscape,
+        });
+      }
       resolve({
         success,
         cancelled: !error || error === 'cancelled',

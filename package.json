@@ -15,7 +15,11 @@
     "publish": "electron-forge publish",
     "lint": "echo \"No linting configured\"",
     "test": "vitest",
-    "e2e:smoke": "playwright test e2e/import-image-and-preview.spec.js --workers=1 --reporter=line"
+    "e2e": "playwright test --config=playwright.config.js",
+    "e2e:smoke": "playwright test --config=playwright.config.js --grep @smoke",
+    "e2e:business": "playwright test --config=playwright.config.js --grep @business",
+    "e2e:backlog": "playwright test --config=playwright.config.js --grep @backlog",
+    "e2e:list": "playwright test --config=playwright.config.js --list"
   },
   "devDependencies": {
     "@playwright/test": "^1.54.2",

@@ -65,6 +65,7 @@ export const initialState = Object.freeze({
     isBackEditing: false,
     isShowOverView: true,
     selections: [],
+    locales: {},
     currentView: 'edit',
     exportPageCount: 0,
     exportPreviewIndex: 1,
@@ -101,6 +102,7 @@ export const initialState = Object.freeze({
     marginFilling: false,
     avoidDislocation: false,
     brochureRepeatPerPage: false,
+    pageNumber: false,
   },
   CardList: [],
 })

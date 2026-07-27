@@ -90,7 +90,11 @@ export const createRenderConfig = (overrides = {}) => ({
   offsetY: 0,
   foldLineType: '0',
   foldInHalfMargin: 0,
+  globalBackground: null,
+  marginFilling: false,
+  avoidDislocation: false,
   brochureRepeatPerPage: false,
+  pageNumber: false,
   ...overrides,
 });
 

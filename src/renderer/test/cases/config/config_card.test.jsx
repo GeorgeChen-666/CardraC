@@ -76,6 +76,40 @@ describe('卡牌配置', () => {
     expect(useGlobalStore.getState().Config.rows).toBe(5);
   });
 
+  test('手动行列状态下重新开启自动行列后，应立即重算 rows/columns 并重新禁用输入', async () => {
+    const { user, panel } = await openCardPanel({
+      Config: {
+        sides: layoutSides.doubleSides,
+        autoColumnsRows: false,
+        landscape: false,
+        pageSize: 'custom',
+        pageWidth: 210,
+        pageHeight: 297,
+        cardWidth: 63,
+        cardHeight: 88,
+        marginX: 3,
+        marginY: 3,
+        foldInHalfMargin: 0,
+        columns: 9,
+        rows: 7,
+      },
+    });
+
+    expect(within(panel).getAllByRole('spinbutton').filter((input) => input.disabled)).toHaveLength(0);
+
+    const autoCheckbox = within(panel).getByRole('checkbox', { name: configDialog.auto });
+    await user.click(autoCheckbox);
+
+    const { useGlobalStore } = await import('../../../state/store');
+    await waitFor(() => {
+      const config = useGlobalStore.getState().Config;
+      expect(config.autoColumnsRows).toBe(true);
+      expect(config.columns).toBe(3);
+      expect(config.rows).toBe(3);
+      expect(within(panel).getAllByRole('spinbutton').filter((input) => input.disabled)).toHaveLength(2);
+    });
+  });
+
   test('应支持切换边距填充', async () => {
     const { user, panel } = await openCardPanel({
       Config: {

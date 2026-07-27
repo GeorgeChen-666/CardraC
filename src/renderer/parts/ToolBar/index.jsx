@@ -80,6 +80,7 @@ export function BaseToolbar({ SubMenu }) {
       <GeneralIconButton
         label={t('toolbar.btnAdd')}
         icon={<NoteAddIcon />}
+        data-testid='toolbar-new-project-button'
         onClick={async () => {
           await newProject();
           await getExportPageCount();
@@ -89,6 +90,7 @@ export function BaseToolbar({ SubMenu }) {
       <GeneralIconButton
         label={t('toolbar.btnOpen')}
         icon={<FindInPageIcon />}
+        data-testid='toolbar-open-project-button'
         onClick={async () => {
           const selectedFiles = await showFileOpenDialog({ filterExtensions: 'cpnp' });
           if (selectedFiles.length === 0) {
@@ -102,6 +104,7 @@ export function BaseToolbar({ SubMenu }) {
       <GeneralIconButton
         label={t('toolbar.btnSave')}
         icon={<SaveIcon />}
+        data-testid='toolbar-save-project-button'
         onClick={async () => {
           const selectedFile = await showFileOpenDialog({ filterExtensions: 'cpnp', mode: 'save' });
           if (!selectedFile) {

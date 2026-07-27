@@ -389,8 +389,8 @@ export const PrintDrawer = forwardRef(({ onOpenChange }, ref) => {
               : (typeof paperSize === 'string' ? paperSize : paperSize?.name);
 
             const resolvedSize = paperSize === '_'
-              ? { paperWidthMm: defaultPrinter?.defaultWidthMm, paperHeightMm: defaultPrinter?.defaultHeightMm }
-              : { paperWidthMm: printConfig.paperWidth, paperHeightMm: printConfig.paperHeight };
+              ? { paperWidth: defaultPrinter?.defaultWidthMm, paperHeight: defaultPrinter?.defaultHeightMm }
+              : { paperWidth: printConfig.paperWidth, paperHeight: printConfig.paperHeight };
 
             printPages({
               pageList,
