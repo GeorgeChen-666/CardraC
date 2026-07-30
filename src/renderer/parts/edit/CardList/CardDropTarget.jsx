@@ -9,6 +9,8 @@ export default ({index}) => {
   const {
     dragCardsMove
   } = useGlobalStore.getState();
+  const selectionIds = useGlobalStore(state => state.CardList.filter(c => c.selected).map(c => c.id));
+  const selectionLength = selectionIds.length;
   const [, dropRef] = useDrop({
     accept: 'Card',
     drop: () => {
@@ -16,6 +18,6 @@ export default ({index}) => {
     },
   });
   return (<Card ref={dropRef} className={'Card'} size={'sm'} padding={2}>
-    <span style={{color: '#fff'}}>{t('cardEditor.lblHere')}</span>
+    <span style={{color: '#fff', textAlign: 'center'}}>{t('cardEditor.lblHere', { count: selectionLength })}</span>
   </Card>)
 }

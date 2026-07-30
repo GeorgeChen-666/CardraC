@@ -1,19 +1,33 @@
-import './handlers/file_render/utils';
-import ProjectActions from './handlers/ProjectActions';
+import '../services/file_render/utils';
 import ConfigActions from './handlers/ConfigActions';
-import ImageActions from './handlers/ImageActions';
 import OtherActions from './handlers/OtherActions';
-import TemplateActions from './handlers/TemplateActions';
-import PrinterActions from './handlers/PrinterActions';
-import { initConfigStore } from './functions';
+import ProjectActions from './handlers/ProjectActions';
 
+import ImageActions from './handlers/ImageActions';
+
+import PrinterActions from './handlers/PrinterActions';
+import FileBrowserActions from './handlers/FileBrowserActions';
+import { initConfigStore } from '../services/store';
+
+
+let currentMainWindow = null;
+let handlersRegistered = false;
+
+export const getMainWindow = () => currentMainWindow;
 
 export const registerRendererActionHandlers = async (mainWindow) => {
+  currentMainWindow = mainWindow;
+
+  if (handlersRegistered) {
+    return;
+  }
+
   await initConfigStore();
-  OtherActions(mainWindow);
-  ProjectActions(mainWindow);
-  ConfigActions(mainWindow);
-  ImageActions(mainWindow);
-  TemplateActions(mainWindow);
-  PrinterActions(mainWindow);
+  ConfigActions(getMainWindow);
+  OtherActions(getMainWindow);
+  ProjectActions(getMainWindow);
+  ImageActions(getMainWindow);
+  PrinterActions(getMainWindow);
+  FileBrowserActions(getMainWindow);
+  handlersRegistered = true;
 }

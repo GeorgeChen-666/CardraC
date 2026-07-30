@@ -2,37 +2,74 @@ import * as yup from 'yup';
 import { eleActions, flipWay, initialState, layoutSides } from '../../shared/constants';
 import { create } from 'zustand';
 import {
-  loadConfig,
-  regUpdateProgress,
-  callMain,
-  immutableMerge,
+  callMain, clearPreviewCache,
+  exportFile,
   fillByObjectValue,
-  onOpenProjectFile, isDev,
+  getExportPageCount,
+  getExportPreview,
+  immutableMerge,
+  loadConfig,
+  openProject, regUpdateProgress,
+  reloadLocalImage,
+  saveConfig,
+  saveProject,
 } from '../functions';
 import _ from 'lodash';
 import { i18nInstance, initI18n } from '../i18n';
-import { actionLogger } from './logger';
-import { notificationFailed, notificationSuccess, triggerNotification } from '../parts/Notification';
+import { notificationSuccess, triggerNotification } from '../parts/Notification';
 import { shallow } from 'zustand/shallow';
-import { ipcRenderer } from 'electron';
-import LZString from 'lz-string';
-import { subscribeWithSelector } from 'zustand/middleware';
 import { middlewares } from './middlewares';
+import { setGlobalStore } from '../global';
+
+
+const cardBleedConfigSchema = yup.object({
+  faceBleedX: yup.number().min(0).notRequired(),
+  faceBleedY: yup.number().min(0).notRequired(),
+  backBleedX: yup.number().min(0).notRequired(),
+  backBleedY: yup.number().min(0).notRequired(),
+}).noUnknown();
+
+const cardConfigSchema = yup.object({
+  bleed: cardBleedConfigSchema.notRequired(),
+}).noUnknown();
+
+const cardSchema = yup.object({
+  id: yup.string().required(),
+  face: yup.mixed().nullable().notRequired(),
+  back: yup.mixed().nullable().notRequired(),
+  repeat: yup.number().min(1).required(),
+  selected: yup.boolean().notRequired(),
+  config: cardConfigSchema.notRequired(),
+}).noUnknown(false);
+
+const backendJobSchema = yup.object({
+  visible: yup.boolean().required(),
+  progress: yup.number().required(),
+}).noUnknown();
 
 
 const stateSchema = yup.object({
   Global: yup.object({
     currentLang: yup.string().required(),
     isShowOverView: yup.boolean().required(),
-    availableLangs: yup.array().of(yup.string()).notRequired(),
-    isLoading: yup.boolean().notRequired(),
+    availableLangs: yup.array().of(yup.string().required()).required(),
+    isLoading: yup.number().notRequired(),
     loadingText: yup.string().notRequired(),
     isInProgress: yup.boolean().notRequired(),
     progress: yup.number().notRequired(),
-    lastSelection: yup.object().notRequired(),
+    lastSelection: yup.string().nullable().defined(),
     isBackEditing: yup.boolean().notRequired(),
     selections: yup.array().of(yup.object()).notRequired(),
-    locales: yup.object().notRequired()
+    locales: yup.object().required(),
+    imageVersion: yup.number().notRequired(),
+    exportPageCount: yup.number().notRequired(),
+    exportPreviewIndex: yup.number().notRequired(),
+    currentView: yup.string().required(),
+    backendJobs: yup.object().required().test(
+      'backend-jobs-shape',
+      'Invalid backend job entry',
+      (value) => Object.values(value || {}).every((job) => backendJobSchema.isValidSync(job, { strict: true })),
+    ),
   }).notRequired(),
   Config: yup.object({
     pageSize: yup.string().required(),
@@ -61,18 +98,18 @@ const stateSchema = yup.object({
     columns: yup.number().min(1).required(),
     rows: yup.number().min(1).required(),
     autoColumnsRows: yup.boolean().required(),
-    fCutLine: yup.string().oneOf(['1', '2', '3']).required(),
-    bCutLine: yup.string().oneOf(['1', '2', '3']).required(),
+    fCutLine: yup.string().oneOf(['0', '1', '2', '3']).required(),
+    bCutLine: yup.string().oneOf(['0', '1', '2', '3']).required(),
     lineWeight: yup.number().min(0).required(),
     cutlineColor: yup.string().required(),
     foldLineType: yup.string().oneOf(['0', '1']).required(),
-    globalBackground: yup.object().notRequired(),
-    marginFilling: yup.boolean().notRequired(),
-    avoidDislocation: yup.boolean().notRequired(),
-    brochureRepeatPerPage: yup.boolean().notRequired(),
-    pageNumber: yup.boolean().notRequired(),
+    globalBackground: yup.object().nullable().defined(),
+    marginFilling: yup.boolean().required(),
+    avoidDislocation: yup.boolean().required(),
+    brochureRepeatPerPage: yup.boolean().required(),
+    pageNumber: yup.boolean().required(),
   }).required().noUnknown(),
-  CardList: yup.array().of(yup.object()).notRequired(),
+  CardList: yup.array().of(cardSchema).notRequired(),
 }).noUnknown();
 
 //提取验证逻辑为可复用函数
@@ -130,350 +167,433 @@ const mergeStateFn = (state, newState, path = '') => {
   return immutableMerge(state, newState);
 };
 
-export const useGlobalStore = create(middlewares((set, get) => ({
-  ...initialState,
-  fillState: set,
-  mergeState: (newState, path = '') =>
-    set((state) => mergeStateFn(state, newState, path)),
-  mergeGlobal: (newState) =>
-    set((state) => mergeStateFn(state, newState, 'Global')),
-  mergeConfig: (newState) =>
-    set((state) => mergeStateFn(state, newState, 'Config')),
-  loading: async (cb, text = i18nInstance.t('util.operating')) => {
-    try {
-      get().mergeGlobal({ isLoading: true, loadingText: text });
-      cb && await cb();
-    } finally {
-      setTimeout(() => get().mergeGlobal({ isLoading: false, isInProgress: false }), 0);
-      setTimeout(() => get().mergeGlobal({ loadingText: '' }), 200);
-    }
-  },
-  progress: (v) => {
-    if (v > 0) {
-      get().mergeGlobal({ isInProgress: true, progress: v });
-    } else {
-      get().mergeGlobal({ isInProgress: false });
-    }
-  },
-  newProject: () => {
-    get().mergeState({ Config: initialState.Config, CardList: [] });
-    get().historyReset();
-  },
-  openProject: () => {
-    get().loading(async () => {
-      const projectData = await callMain(eleActions.openProject);
-      if (projectData) {
-        const { isValid, config: validatedData } = await validateAndFixConfig({
-          ...projectData,
-          Config: {...initialState.Config, ...projectData.Config}
-        });
-        get().mergeState(validatedData);
-        get().historyReset();
-      }
-    });
-  },
-  saveProject: () => {
-    get().loading(async () => {
-      const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList };
-      const rs = await callMain(eleActions.saveProject, param);
-      rs && notificationSuccess();
-    });
-  },
-  exportFile: (targetFileType) => {
-    get().loading(async () => {
-      const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList, targetFileType };
-      const isSuccess = await callMain(eleActions.exportFile, param);
-      isSuccess && notificationSuccess();
-    });
-  },
-  printPages: ({ pageList, printConfig }) => {
-    get().loading(async () => {
-      const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList, pageList, printConfig };
-      const isSuccess = await callMain(eleActions.printPages, param);
-      isSuccess && notificationSuccess();
-    });
-  },
-  reloadLocalImage: () => {
-    get().loading(async () => {
-      const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList };
-      const stateData = await callMain(eleActions.reloadLocalImage, param);
-      if (stateData && !stateData.isAborted) {
-        const imageVersion = Date.now();
-        get().mergeState({
-          CardList: stateData.CardList,
-          Config: stateData.Config,
-          Global: {
-            ...get().Global,
-            imageVersion
-          }
-        });
-        if (!isValid) {
-          triggerNotification({
-            msgKey: 'util.invalidConfigOptions',
-            variant: 'warning',
-          });
+export const useGlobalStore = /** @type {import('./store').useGlobalStore} */ (
+  create(middlewares((set, get) => ({
+    ...initialState,
+    fillState: set,
+    mergeState: (newState, path = '') =>
+      set((state) => mergeStateFn(state, newState, path)),
+    mergeGlobal: (newState) =>
+      set((state) => mergeStateFn(state, newState, 'Global')),
+    mergeConfig: (newState) =>
+      set((state) => mergeStateFn(state, newState, 'Config')),
+    loading: async (cb, text = i18nInstance.t('util.operating')) => {
+      let isLoading = Number(get().Global.isLoading) || 0;
+      const loadingText = get().Global.loadingText;
+      try {
+        get().mergeGlobal({ isLoading: ++isLoading, loadingText: text });
+        if (cb) {
+          return await cb();
         }
+      } finally {
+        setTimeout(() => get().mergeGlobal({ isLoading: --isLoading, isInProgress: false }), 0);
+        setTimeout(() => get().mergeGlobal({ loadingText: isLoading === 0 ? '' : loadingText }), 200);
       }
-    });
-  },
-  getExportPageCount: (targetFileType) => {
-    get().loading(async () => {
-      const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList, targetFileType };
-      const exportPageCount = await callMain(eleActions.getExportPageCount, param);
-      get().mergeGlobal({exportPageCount})
-    });
-  },
-  getExportPreview: (pageIndex, isSilence = false) => {
-    const callMainGetExportPreview = async () => {
-      const param = {
-        globalBackground: get().Config.globalBackground,
-        CardList: get().CardList,
-        pageIndex
-      };
-      const content = await ipcRenderer.invoke(eleActions.getExportPreview, param);
-      return content;
-    }
-    if(isSilence) {
-      return new Promise((resolve, reject) => {
-        try {
-          callMainGetExportPreview().then(content => {
-            resolve(content);
-          })
-        } catch (error) {
-          reject(error);
-        }
-      })
-    }
-    return new Promise((resolve, reject) => {
+    },
+    progress: (v) => {
+      if (v > 0) {
+        get().mergeGlobal({ isInProgress: true, progress: v });
+      } else {
+        get().mergeGlobal({ isInProgress: false });
+      }
+    },
+    newProject: async () => {
+      await clearPreviewCache();
+      get().mergeState({ Config: initialState.Config, CardList: [] });
+      get().historyReset();
+    },
+    openProject: (params) => {
       get().loading(async () => {
-        try {
-          const content = await callMainGetExportPreview();
-          resolve(content);
-        } catch (error) {
-          reject(error);
+        const projectData = await openProject(params);
+        if (projectData) {
+          const { isValid, config: validatedData } = await validateAndFixConfig({
+            ...projectData,
+            Config: { ...initialState.Config, ...projectData.Config },
+          });
+          await clearPreviewCache();
+          get().mergeState(validatedData);
+          get().historyReset();
         }
       });
-    });
-  },
-  cardAdd: (images) => {
-    get().setWithHistory(state => ({
-      ...state,
-      CardList: state.CardList.concat(images.map(p => ({
-        id: crypto.randomUUID(),
-        face: p,
-        back: null,
-        repeat: 1,
-      })))
-    }));
-  },
-  cardEditById: (newState) =>
-    get().setWithHistory(state => {
-      const { id, ...restNewState } = newState;
-      const card = state.CardList.find(c => c.id === id);
-      if (card) {
-        const newCardList = state.CardList.map(c => {
-          if (c.id === id) {
-            return { ...c, ...restNewState };
-          }
-          return c;
+    },
+    saveProject: (params) => {
+      get().loading(async () => {
+        const rs = await saveProject({
+          ...params,
+          ...{ globalBackground: get().Config.globalBackground, CardList: get().CardList },
         });
-        return { ...state, CardList: newCardList };
-      }
-      return state;
-    }),
-  cardRemoveByIds: (ids) =>
-    get().setWithHistory(state => ({
-      ...state,
-      CardList: state.CardList.filter(c => !ids.includes(c.id))
-    })),
-  cardSelect: (selectedId) => {
-    set(state => {
-      const selection = state.CardList.filter(c => c.selected);
-
-      if (_.some(selection, { id: selectedId }) && selection.length === 1) {
-        // 取消选中：只修改之前选中的对象
-        return {
-          ...state,
-          CardList: state.CardList.map(c =>
-            c.selected ? { ...c, selected: false } : c  // 只有 selected=true 的才创建新对象
-          ),
-          Global: { ...state.Global, lastSelection: null }
+        rs && notificationSuccess();
+      });
+    },
+    exportFile: (params) => {
+      get().loading(async () => {
+        const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList, ...params };
+        const isSuccess = await exportFile(param);
+        isSuccess && notificationSuccess();
+      });
+    },
+    printPages: ({ pageList, printConfig }) => {
+      return get().loading(async () => {
+        const param = {
+          globalBackground: get().Config.globalBackground,
+          CardList: get().CardList,
+          pageList,
+          printConfig,
         };
-      } else {
-        // 选中：只修改选中状态变化的对象
-        return {
-          ...state,
-          CardList: state.CardList.map(c => {
-            if (c.id === selectedId && !c.selected) {
-              // 新选中的：创建新对象
-              return { ...c, selected: true };
-            } else if (c.selected && c.id !== selectedId) {
-              // 需要取消选中的：创建新对象
-              return { ...c, selected: false };
+        const isSuccess = await callMain(eleActions.printPages, param);
+        isSuccess && notificationSuccess();
+        return isSuccess;
+      });
+    },
+    adjustGuidePrint: ({ pageList, printConfig }) => {
+      return get().loading(async () => {
+        const isSuccess = await callMain(eleActions.adjustGuidePrint, {
+          printConfig,
+        });
+        isSuccess && notificationSuccess();
+        return isSuccess;
+      });
+    },
+    reloadLocalImage: () => {
+      get().loading(async () => {
+        const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList };
+        const stateData = await reloadLocalImage(param);
+        if (stateData && !stateData.isAborted) {
+          const imageVersion = Date.now();
+          get().mergeState({
+            CardList: stateData.CardList,
+            Config: stateData.Config,
+            Global: {
+              ...get().Global,
+              imageVersion,
+            },
+          });
+          if (!isValid) {
+            triggerNotification({
+              msgKey: 'util.invalidConfigOptions',
+              variant: 'warning',
+            });
+          }
+        }
+      });
+    },
+    getExportPageCount: async () => {
+      const param = { globalBackground: get().Config.globalBackground, CardList: get().CardList };
+      const count = await getExportPageCount(param);
+      get().mergeGlobal({ exportPageCount: count });
+    },
+    getExportPreview: (pageIndex, isSilence = false) => {
+      const getPreview = async () => {
+        const param = {
+          globalBackground: get().Config.globalBackground,
+          CardList: get().CardList,
+          pageIndex,
+        };
+        return await getExportPreview(param);
+      };
+      if (isSilence) {
+        return new Promise((resolve, reject) => {
+          try {
+            getPreview().then(content => {
+              resolve(content);
+            });
+          } catch (error) {
+            reject(error);
+          }
+        });
+      }
+      return getPreview();
+    },
+    cardAdd: (images) => {
+      get().setWithHistory(state => ({
+        ...state,
+        CardList: state.CardList.concat(images.map(p => ({
+          id: crypto.randomUUID(),
+          face: p.face,
+          back: p.back,
+          repeat: 1,
+        }))),
+      }));
+    },
+    cardEditById: (newState) =>
+      get().setWithHistory(state => {
+        const { id, ...restNewState } = newState;
+        const card = state.CardList.find(c => c.id === id);
+        if (card) {
+          const newCardList = state.CardList.map(c => {
+            if (c.id === id) {
+              return { ...c, ...restNewState };
             }
-            // 状态不变的：保持原引用
             return c;
-          }),
-          Global: { ...state.Global, lastSelection: selectedId }
-        };
-      }
-    });
-  },
+          });
+          return { ...state, CardList: newCardList };
+        }
+        return state;
+      }),
+    cardRemoveByIds: (ids) =>
+      get().setWithHistory(state => ({
+        ...state,
+        CardList: state.CardList.filter(c => !ids.includes(c.id)),
+      })),
+    cardEditByIndex: (index, side, imageData) =>
+      get().setWithHistory(state => {
+        let expandedCards = [];
+        const newCardList = [...state.CardList]; // ← 先复制
 
-  cardCtrlSelect: (selectedId) => {
-    set(state => ({
-      ...state,
-      CardList: state.CardList.map(c =>
-        c.id === selectedId
-          ? { ...c, selected: !c.selected }  // 只修改这一个
-          : c  // 其他保持原引用
-      )
-    }));
-  },
+        newCardList.forEach(card => {
+          for (let i = 0; i < (card.repeat || 1); i++) {
+            expandedCards.push(card);
+          }
+        });
 
-  cardShiftSelect: (selectedId) => {
-    set(state => {
-      const lastSelection = state.Global.lastSelection;
-      const lastSelectionIndex = state.CardList.findIndex(c => c.id === lastSelection);
-      const currentSelectionIndex = state.CardList.findIndex(c => c.id === selectedId);
+        while (expandedCards.length <= index) {
+          const newCard = {
+            id: crypto.randomUUID(),
+            face: null,
+            back: null,
+            repeat: 1,
+            selected: false,
+          };
+          expandedCards.push(newCard);
+          newCardList.push(newCard);
+        }
 
-      if (lastSelectionIndex + currentSelectionIndex > -1) {
-        const minIndex = Math.min(lastSelectionIndex, currentSelectionIndex);
-        const maxIndex = Math.max(lastSelectionIndex, currentSelectionIndex);
+        const targetCard = expandedCards[index];
 
         return {
           ...state,
-          CardList: state.CardList.map((c, i) => {
-            const shouldBeSelected = i >= minIndex && i <= maxIndex;
-            // 只有状态变化的才创建新对象
-            return c.selected !== shouldBeSelected
-              ? { ...c, selected: shouldBeSelected }
-              : c;
+          CardList: newCardList.map(c => {
+            if (c.id === targetCard.id) {
+              return { ...c, [side]: imageData };
+            }
+            return c;
           })
         };
-      } else {
-        return {
-          ...state,
-          CardList: state.CardList.map(c =>
-            c.selected ? { ...c, selected: false } : c
-          )
-        };
-      }
-    });
-  },
+      }),
+    cardSelect: (selectedId) => {
+      set(state => {
+        const selection = state.CardList.filter(c => c.selected);
 
-  dragHoverMove: (to) => {
-    set(state => {
-      const id = 'dragTarget';
-      const newCardList = [...state.CardList];
-      const from = newCardList.findIndex(c => c.id === id);
-
-      if (from !== -1) {
-        newCardList.splice(from, 1);
-      }
-      newCardList.splice(to, 0, { id });
-
-      return { ...state, CardList: newCardList };
-    });
-  },
-  dragHoverCancel: () => {
-    set(state => {
-      const dragTargetId = 'dragTarget';
-      const targetIndex = state.CardList.findIndex(c => c.id === dragTargetId);
-      if (targetIndex !== -1) {
-        const newCardList = [...state.CardList];
-        newCardList.splice(targetIndex, 1);
-        return { ...state, CardList: newCardList };
-      }
-      return state;
-    });
-  },
-  dragCardsMove: () => {
-    get().setWithHistory(state => {
-      const dragTargetId = 'dragTarget';
-      const selection = state.CardList.filter(c => c.selected);
-      const orderedSelection = selection.toSorted((a, b) => {
-        return state.CardList.findIndex(c => c.id === b.id) - state.CardList.findIndex(c => c.id === a.id);
-      });
-      orderedSelection.forEach(c => {
-        state.CardList.splice(state.CardList.findIndex(cc => cc.id === c.id), 1);
-      });
-      const to = state.CardList.findIndex(c => c.id === dragTargetId);
-      orderedSelection.forEach((s, index) => {
-        state.CardList.splice(to, 0, s);
-      });
-      const targetIndex = state.CardList.findIndex(c => c.id === dragTargetId);
-      if (targetIndex !== -1) {
-        state.CardList.splice(targetIndex, 1);
-      }
-      state.CardList = [...state.CardList];
-      return {...state};
-    });
-  },
-  selectedCardsRemove: () => {
-    get().setWithHistory(state => ({
-      ...state,
-      CardList: state.CardList.filter(c => !c.selected)
-    }));
-  },
-  selectedCardsDuplicate: () => {
-    get().setWithHistory(state => {
-      const selection = state.CardList.filter(c => c.selected);
-      const orderedSelection = selection.toSorted((a, b) => {
-        return state.CardList.findIndex(c => c.id === b.id) - state.CardList.findIndex(c => c.id === a.id);
-      });
-      const to = state.CardList.findIndex(c => c.id === orderedSelection[0].id) + 1;
-      const newSelection = orderedSelection.map(c => ({ ...c, id: crypto.randomUUID(), selected: false }));
-      newSelection.forEach((s, index) => {
-        state.CardList.splice(to, 0, s);
-      });
-      state.CardList = [...state.CardList];
-      return {...state};
-    });
-  },
-  selectedCardsEdit: (newState) => {
-    get().setWithHistory(state => {
-      const selection = state.CardList.filter(c => c.selected);
-      selection.forEach(c => {
-        fillByObjectValue(c, newState);
-      });
-      state.CardList = state.CardList.map(c => selection.includes(c) ? { ...c } : c);
-      return {...state};
-    });
-  },
-  selectedCardsFillBackWithEach: (backImageList) => {
-    get().setWithHistory(state => {
-      const selection = state.CardList.filter(c => c.selected);
-      selection.forEach((c, index) => {
-        c.back = backImageList?.[index];
-      });
-      state.CardList = state.CardList.map(c => selection.includes(c) ? { ...c } : c);
-      return {...state};
-    });
-  },
-  selectedCardsSwap: () => {
-    get().setWithHistory(state => {
-      const selection = state.CardList.filter(c => c.selected);
-      selection.forEach(c => ([c.face, c.back] = [c.back, c.face]));
-      state.CardList = state.CardList.map(c => selection.includes(c) ? { ...c } : c);
-      return {...state};
-    });
-  },
-  editCardsConfig: (ids, config) => {
-    get().setWithHistory(state => {
-      const editedCards = state.CardList.filter(c => ids.includes(c.id));
-      editedCards.forEach(c => {
-        if(Object.values(config?.bleed || {}).filter(e => !!e).length > 0) {
-          c.config = config;
+        if (_.some(selection, { id: selectedId }) && selection.length === 1) {
+          // 取消选中：只修改之前选中的对象
+          return {
+            ...state,
+            CardList: state.CardList.map(c =>
+              c.selected ? { ...c, selected: false } : c,  // 只有 selected=true 的才创建新对象
+            ),
+            Global: { ...state.Global, lastSelection: null },
+          };
         } else {
-          delete c.config;
+          // 选中：只修改选中状态变化的对象
+          return {
+            ...state,
+            CardList: state.CardList.map(c => {
+              if (c.id === selectedId && !c.selected) {
+                // 新选中的：创建新对象
+                return { ...c, selected: true };
+              } else if (c.selected && c.id !== selectedId) {
+                // 需要取消选中的：创建新对象
+                return { ...c, selected: false };
+              }
+              // 状态不变的：保持原引用
+              return c;
+            }),
+            Global: { ...state.Global, lastSelection: selectedId },
+          };
         }
       });
-      state.CardList = state.CardList.map(c => ids.includes(c.id) ? { ...c } : c);
-      return {...state};
-    });
-  }
-})));
+    },
+
+    cardCtrlSelect: (selectedId) => {
+      set(state => ({
+        ...state,
+        CardList: state.CardList.map(c =>
+          c.id === selectedId
+            ? { ...c, selected: !c.selected }  // 只修改这一个
+            : c,  // 其他保持原引用
+        ),
+      }));
+    },
+
+    cardShiftSelect: (selectedId) => {
+      set(state => {
+        const lastSelection = state.Global.lastSelection;
+        const lastSelectionIndex = state.CardList.findIndex(c => c.id === lastSelection);
+        const currentSelectionIndex = state.CardList.findIndex(c => c.id === selectedId);
+
+        if (lastSelectionIndex + currentSelectionIndex > -1) {
+          const minIndex = Math.min(lastSelectionIndex, currentSelectionIndex);
+          const maxIndex = Math.max(lastSelectionIndex, currentSelectionIndex);
+
+          return {
+            ...state,
+            CardList: state.CardList.map((c, i) => {
+              const shouldBeSelected = i >= minIndex && i <= maxIndex;
+              // 只有状态变化的才创建新对象
+              return c.selected !== shouldBeSelected
+                ? { ...c, selected: shouldBeSelected }
+                : c;
+            }),
+          };
+        } else {
+          return {
+            ...state,
+            CardList: state.CardList.map(c =>
+              c.selected ? { ...c, selected: false } : c,
+            ),
+          };
+        }
+      });
+    },
+    dragHoverMove: (to) => {
+      set(state => {
+        const id = 'dragTarget';
+        const newCardList = [...state.CardList];
+        const from = newCardList.findIndex(c => c.id === id);
+
+        if (from !== -1) {
+          newCardList.splice(from, 1);
+        }
+        newCardList.splice(to, 0, { id });
+
+        return { ...state, CardList: newCardList };
+      });
+    },
+    dragHoverCancel: () => {
+      set(state => {
+        const dragTargetId = 'dragTarget';
+        const targetIndex = state.CardList.findIndex(c => c.id === dragTargetId);
+        if (targetIndex !== -1) {
+          const newCardList = [...state.CardList];
+          newCardList.splice(targetIndex, 1);
+          return { ...state, CardList: newCardList };
+        }
+        return state;
+      });
+    },
+    dragCardsMove: () => {
+      get().setWithHistory(state => {
+        const dragTargetId = 'dragTarget';
+        const selection = state.CardList.filter(c => c.selected);
+        const orderedSelection = selection.toSorted((a, b) => {
+          return state.CardList.findIndex(c => c.id === b.id) - state.CardList.findIndex(c => c.id === a.id);
+        });
+        orderedSelection.forEach(c => {
+          state.CardList.splice(state.CardList.findIndex(cc => cc.id === c.id), 1);
+        });
+        const to = state.CardList.findIndex(c => c.id === dragTargetId);
+        orderedSelection.forEach((s, index) => {
+          state.CardList.splice(to, 0, s);
+        });
+        const targetIndex = state.CardList.findIndex(c => c.id === dragTargetId);
+        if (targetIndex !== -1) {
+          state.CardList.splice(targetIndex, 1);
+        }
+        state.CardList = [...state.CardList];
+        return { ...state };
+      });
+    },
+    selectedCardsRemove: () => {
+      get().setWithHistory(state => ({
+        ...state,
+        CardList: state.CardList.filter(c => !c.selected),
+      }));
+    },
+    selectedCardsDuplicate: () => {
+      get().setWithHistory(state => {
+        const selection = state.CardList.filter(c => c.selected);
+        const orderedSelection = selection.toSorted((a, b) => {
+          return state.CardList.findIndex(c => c.id === b.id) - state.CardList.findIndex(c => c.id === a.id);
+        });
+        const to = state.CardList.findIndex(c => c.id === orderedSelection[0].id) + 1;
+        const newSelection = orderedSelection.map(c => ({ ...c, id: crypto.randomUUID(), selected: false }));
+        newSelection.forEach((s, index) => {
+          state.CardList.splice(to, 0, s);
+        });
+        state.CardList = [...state.CardList];
+        return { ...state };
+      });
+    },
+    selectedCardsEdit: (newState) => {
+      get().setWithHistory(state => {
+        const newCardList = state.CardList.map(c => {
+          if (!c.selected) return c;
+          return fillByObjectValue(c, newState);
+        });
+        return { ...state, CardList: newCardList };
+      });
+    },
+    selectedCardsEditEach: (callback) => {
+      get().setWithHistory(state => {
+        const newCardList = state.CardList.map(c => {
+          if (!c.selected) return c;
+          const result = callback(c);
+          return result ?? c;
+        });
+        return { ...state, CardList: newCardList };
+      });
+    },
+    selectedCardsSwap: () => {
+      get().setWithHistory(state => {
+        //直接在 map 中创建新对象
+        const newCardList = state.CardList.map(c => {
+          if (!c.selected) return c;
+          //创建新对象，交换 face 和 back
+          return {
+            ...c,
+            face: c.back,
+            back: c.face,
+          };
+        });
+        return { ...state, CardList: newCardList };
+      });
+    },
+    editCardsConfig: (ids, config) => {
+      get().setWithHistory(state => {
+        const idsSet = new Set(ids);
+        const hasDefinedBleed = Object.values(config?.bleed || {}).some(value => value !== undefined && value !== null);
+
+        const newCardList = state.CardList.map(c => {
+          if (!idsSet.has(c.id)) return c;
+          return hasDefinedBleed
+            ? { ...c, config }
+            : { ...c, config: undefined };
+        });
+
+        return { ...state, CardList: newCardList };
+      });
+    },
+
+    updateBackendJob: (key, updates) => {
+      set(state => ({
+        ...state,
+        Global: {
+          ...state.Global,
+          backendJobs: {
+            ...state.Global.backendJobs,
+            [key]: {
+              ...(state.Global?.backendJobs?.[key] || { visible: false, progress: 0 }),
+              ...updates,
+            },
+          },
+        },
+      }));
+    },
+    clearBackendJob: (key) => {
+      set(state => {
+        if (!state.Global?.backendJobs?.[key]) return state; // ← 不存在直接跳过
+        const { [key]: removed, ...rest } = state.Global.backendJobs;
+        return {
+          ...state,
+          Global: {
+            ...state.Global,
+            backendJobs: rest,
+          },
+        };
+      });
+    },
+
+  }))));
 
 function createSelectors(storeHook) {
   const selectorCache = new Map();
@@ -508,18 +628,23 @@ useGlobalStore.subscribe(
   (state) => ({ Config: state.Config, Global: state.Global }),
   (newState, prevState) => {
     if (newState.Config !== prevState.Config || newState.Global !== prevState.Global) {
-      callMain(eleActions.saveConfig, { state: newState });
+      saveConfig({ state: newState });
     }
   },
-  { equalityFn: shallow }
+  { equalityFn: shallow },
 );
+
+setGlobalStore(useGlobalStore);
 const state = useGlobalStore.getState();
-onOpenProjectFile((data) => {
-  state.fillState(data);
-});
 
 let config = await loadConfig();
 await initI18n(config.Global);
+
+config = {
+  ...config,
+  Global: { ...initialState.Global, ...config.Global },
+  Config: { ...initialState.Config, ...config.Config },
+};
 
 //使用提取的验证函数
 const { isValid, config: validatedConfig } = await validateAndFixConfig(config);
@@ -533,5 +658,7 @@ if (!isValid) {
 
 const newStateData = _.pick(validatedConfig, ['Global', 'Config']);
 state.fillState(newStateData);
-callMain(eleActions.saveConfig, { state: newStateData });
-regUpdateProgress(state.progress);
+saveConfig({ state: newStateData });
+regUpdateProgress((v) => {
+  useGlobalStore.getState().progress(v);
+});

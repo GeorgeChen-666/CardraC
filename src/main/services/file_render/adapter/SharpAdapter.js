@@ -1,0 +1,440 @@
+import { IAdapter } from './IAdapter';
+import sharp from 'sharp';
+
+export class SharpAdapter extends IAdapter {
+  constructor(config, quality = 'high') {
+    super();
+    this.config = config;
+    this.pages = [];
+    this.currentPageIndex = -1;
+    this.currentPage = null;
+    this.renderingTasks = [];
+
+    const qualitySettings = {
+      high: {
+        scaleFactor: 9,
+        kernel: 'lanczos3',
+        compressionLevel: 6,
+        effort: 5
+      },
+      medium: {
+        scaleFactor: 6,
+        kernel: 'lanczos2',
+        compressionLevel: 4,
+        effort: 3
+      },
+      low: {
+        scaleFactor: 3,
+        kernel: 'cubic',
+        compressionLevel: 3,
+        effort: 2
+      }
+    };
+
+    const settings = qualitySettings[quality] || qualitySettings.high;
+    this.scaleFactor = settings.scaleFactor;
+    this.kernel = settings.kernel;
+    this.compressionLevel = settings.compressionLevel;
+    this.effort = settings.effort;
+
+    const [width, height] = [config.pageWidth, config.pageHeight];
+
+    this.pageWidth = Math.ceil(config.landscape ? height : width);
+    this.pageHeight = Math.ceil(config.landscape ? width : height);
+
+    this.renderWidth = Math.ceil(this.pageWidth * this.scaleFactor);
+    this.renderHeight = Math.ceil(this.pageHeight * this.scaleFactor);
+
+    this.createNewPage();
+  }
+
+  parsePageSize(pageSize) {
+    const parts = pageSize.split(':');
+    if (parts.length === 2) {
+      const [width, height] = parts[1].split(',').map(Number);
+      return [width, height];
+    }
+    return [595, 842];
+  }
+
+  scale(value) {
+    return value * this.scaleFactor;
+  }
+
+  createNewPage() {
+    this.currentPageIndex++;
+
+    this.currentPage = {
+      index: this.currentPageIndex,
+      width: this.renderWidth,
+      height: this.renderHeight,
+      background: null,
+      //改为按顺序存储绘制命令
+      drawCommands: [],
+      isRendering: false,
+      renderPromise: null
+    };
+
+    this.pages.push(this.currentPage);
+    this.initBackground(this.currentPage);
+  }
+
+  async initBackground(page) {
+    page.background = await sharp({
+      create: {
+        width: page.width,
+        height: page.height,
+        channels: 4,
+        background: { r: 255, g: 255, b: 255, alpha: 0 }
+      }
+    }).png().toBuffer();
+  }
+
+  addPage() {
+    this.startPageRendering(this.currentPage);
+    this.createNewPage();
+  }
+
+  //按绘制顺序渲染
+  startPageRendering(page) {
+    if (page.isRendering || page.renderPromise) {
+      return;
+    }
+
+    page.isRendering = true;
+
+    const renderTask = (async () => {
+      try {
+        if (!page.background) {
+          await this.initBackground(page);
+        }
+
+        let composite = sharp(page.background);
+
+        //按顺序处理每个绘制命令
+        const overlays = [];
+        for (const command of page.drawCommands) {
+          const overlay = await command();
+          if (overlay !== null) {
+            overlays.push(overlay);
+          }
+        }
+
+        if (overlays.length > 0) {
+          composite = composite.composite(overlays);
+        }
+
+        page.buffer = await composite.png().toBuffer();
+        page.isRendering = false;
+      } catch (error) {
+        console.error(`Failed to render page ${page.index}:`, error);
+        page.isRendering = false;
+        throw error;
+      }
+    })();
+
+    page.renderPromise = renderTask;
+    this.renderingTasks.push(renderTask);
+  }
+
+  async createImageLayer(data, x, y, width, height, rotation = 0) {
+    try {
+      let imageBuffer;
+      if (data?.base64) {
+        const base64Data = data.base64.replace(/^data:image\/\w+;base64,/, '');
+        imageBuffer = Buffer.from(base64Data, 'base64');
+      } else if (data?.path && !data.path.startsWith('data:')) {
+        imageBuffer = require('fs').readFileSync(data.path);
+      } else if (typeof data === 'string' || data?.path?.startsWith('data:')) {
+        const raw = typeof data === 'string' ? data : data.path;
+        const base64Data = raw.replace(/^data:image\/\w+;base64,/, '');
+        imageBuffer = Buffer.from(base64Data, 'base64');
+      } else {
+        return null;
+      }
+
+      let image = sharp(imageBuffer);
+
+      const scaledX = Math.ceil(this.scale(x));
+      const scaledY = Math.ceil(this.scale(y));
+      let scaledWidth = Math.ceil(this.scale(width));
+      let scaledHeight = Math.ceil(this.scale(height));
+
+      image = image.resize(scaledWidth, scaledHeight, {
+        fit: 'fill',
+        kernel: this.kernel,
+        withoutEnlargement: false
+      });
+
+      let adjustedX = scaledX;
+      let adjustedY = scaledY;
+
+      if (rotation === 180) {
+        adjustedX = scaledX - scaledWidth;
+        adjustedY = scaledY + scaledHeight;
+      }
+      if (rotation !== 0) {
+        image = image.rotate(rotation, {
+          background: { r: 0, g: 0, b: 0, alpha: 0 }
+        });
+        const rotatedBuffer = await image.png().toBuffer();
+        const meta = await sharp(rotatedBuffer).metadata();
+        scaledWidth = meta.width;
+        scaledHeight = meta.height;
+        image = sharp(rotatedBuffer);
+      }
+
+      const clampedLeft = Math.max(0, adjustedX);
+      const clampedTop = Math.max(0, adjustedY);
+      const clampedRight = Math.min(this.renderWidth, adjustedX + scaledWidth);
+      const clampedBottom = Math.min(this.renderHeight, adjustedY + scaledHeight);
+
+      if (clampedRight <= clampedLeft || clampedBottom <= clampedTop) {
+        return null;
+      }
+
+      const extractLeft = clampedLeft - adjustedX;
+      const extractTop = clampedTop - adjustedY;
+      const extractWidth = clampedRight - clampedLeft;
+      const extractHeight = clampedBottom - clampedTop;
+
+      image = image.extract({
+        left: extractLeft,
+        top: extractTop,
+        width: extractWidth,
+        height: extractHeight,
+      });
+
+      return {
+        input: await image.png({ compressionLevel: this.compressionLevel, effort: this.effort }).toBuffer(),
+        top: clampedTop,
+        left: clampedLeft,
+      };
+    } catch (error) {
+      console.error('Failed to create image layer:', error);
+      return null;
+    }
+  }
+
+
+  async createRectLayer(x, y, width, height, color) {
+    try {
+      const scaledX = Math.ceil(this.scale(x));
+      const scaledY = Math.ceil(this.scale(y));
+      const scaledWidth = Math.ceil(this.scale(width));
+      const scaledHeight = Math.ceil(this.scale(height));
+
+      const clampedLeft = Math.max(0, scaledX);
+      const clampedTop = Math.max(0, scaledY);
+      const clampedRight = Math.min(this.renderWidth, scaledX + scaledWidth);
+      const clampedBottom = Math.min(this.renderHeight, scaledY + scaledHeight);
+
+      if (clampedRight <= clampedLeft || clampedBottom <= clampedTop) return null;
+
+      const rectBuffer = await sharp({
+        create: {
+          width: clampedRight - clampedLeft,
+          height: clampedBottom - clampedTop,
+          channels: 4,
+          background: { r: color.r, g: color.g, b: color.b, alpha: color.a ?? 1 }
+        }
+      }).png().toBuffer();
+
+      return { input: rectBuffer, top: clampedTop, left: clampedLeft };
+    } catch (error) {
+      console.error('Failed to create rect layer:', error);
+      return null;
+    }
+  }
+
+
+  async createLineLayer(x1, y1, x2, y2, lineWidth, color, dash) {
+    try {
+      const PT_TO_PX = 1.333;
+      const sx1 = this.scale(x1);
+      const sy1 = this.scale(y1);
+      const sx2 = this.scale(x2);
+      const sy2 = this.scale(y2);
+      const sLineWidth = this.scale(lineWidth * PT_TO_PX);
+
+      const minX = Math.min(sx1, sx2);
+      const minY = Math.min(sy1, sy2);
+      const maxX = Math.max(sx1, sx2);
+      const maxY = Math.max(sy1, sy2);
+
+      // ✅ 扩展容器以容纳线粗
+      const padding = Math.ceil(sLineWidth / 2) + 1;
+      const boxWidth = Math.max(Math.ceil(maxX - minX) + padding * 2, 1);
+      const boxHeight = Math.max(Math.ceil(maxY - minY) + padding * 2, 1);
+
+      const dashArray = dash
+        ? dash.map(d => this.scale(d)).join(',')
+        : '';
+
+      const svg = `
+      <svg width="${boxWidth}" height="${boxHeight}">
+        <line 
+          x1="${sx1 - minX + padding}" 
+          y1="${sy1 - minY + padding}" 
+          x2="${sx2 - minX + padding}" 
+          y2="${sy2 - minY + padding}" 
+          stroke="${this.colorToHex(color)}" 
+          stroke-width="${sLineWidth}"
+          ${dashArray ? `stroke-dasharray="${dashArray}"` : ''}
+        />
+      </svg>
+    `;
+
+      const clampedLeft = Math.max(0, Math.ceil(minX - padding));
+      const clampedTop  = Math.max(0, Math.ceil(minY - padding));
+      const clampedRight  = Math.min(this.renderWidth,  Math.ceil(minX - padding) + boxWidth);
+      const clampedBottom = Math.min(this.renderHeight, Math.ceil(minY - padding) + boxHeight);
+
+      if (clampedRight <= clampedLeft || clampedBottom <= clampedTop) return null;
+
+      const extractLeft = clampedLeft - Math.ceil(minX - padding);
+      const extractTop  = clampedTop  - Math.ceil(minY - padding);
+
+      const lineBuffer = await sharp(Buffer.from(svg))
+        .extract({
+          left: extractLeft,
+          top: extractTop,
+          width: clampedRight - clampedLeft,
+          height: clampedBottom - clampedTop,
+        })
+        .png().toBuffer();
+
+      return { input: lineBuffer, top: clampedTop, left: clampedLeft };
+    } catch (error) {
+      console.error('Failed to create line layer:', error);
+      return null;
+    }
+  }
+
+  async createTextLayer(text, x, y, size) {
+    try {
+      const sx = this.scale(x);
+      const sy = this.scale(y);
+      const sSize = this.scale(size) * 0.3;
+
+      const svg = `
+        <svg width="${this.renderWidth}" height="${this.renderHeight}">
+          <text 
+            x="${sx}" 
+            y="${sy}" 
+            font-family="Arial" 
+            font-size="${sSize}" 
+            fill="#000000"
+          >${this.escapeXml(text)}</text>
+        </svg>
+      `;
+
+      const textBuffer = await sharp(Buffer.from(svg)).png().toBuffer();
+
+      return {
+        input: textBuffer,
+        top: 0,
+        left: 0
+      };
+    } catch (error) {
+      console.error('Failed to create text layer:', error);
+      return null;
+    }
+  }
+
+  colorToHex(color) {
+    if (typeof color === 'string') return color;
+    if (typeof color === 'number') {
+      const hex = color.toString(16).padStart(2, '0');
+      return `#${hex}${hex}${hex}`;
+    }
+    return '#000000';
+  }
+
+  escapeXml(text) {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '<')
+      .replace(/>/g, '>')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  }
+
+  saveState() {
+    // Sharp 不需要状态管理
+  }
+
+  restoreState() {
+    // Sharp 不需要状态管理
+  }
+
+  setTransform({ a, b, c, d, e, f }) {
+    this.currentTransform = { a, b, c, d, e, f };
+  }
+
+  //添加绘制命令到队列
+  drawText({ text, x, y, size = 12 }) {
+    this.currentPage.drawCommands.push(() =>
+      this.createTextLayer(text, x, y, size)
+    );
+  }
+
+  setLineStyle({ width, color }) {
+    this.currentLineWidth = width;
+    this.currentLineColor = color;
+  }
+
+  drawLine({ x1, y1, x2, y2, dash }) {
+    const lineWidth = this.currentLineWidth || 1;
+    const lineColor = this.currentLineColor || '#000000';
+    this.currentPage.drawCommands.push(() =>
+      this.createLineLayer(
+        x1, y1, x2, y2,
+        lineWidth,
+        lineColor,
+        dash
+      )
+    );
+  }
+
+  fillRect({ x, y, width, height, color }) {
+    this.currentPage.drawCommands.push(() =>
+      this.createRectLayer(x, y, width, height, color)
+    );
+  }
+
+  async drawImage({ data, x, y, width, height, rotation = 0 }) {
+    this.currentPage.drawCommands.push(() =>
+      this.createImageLayer(data, x, y, width, height, rotation)
+    );
+  }
+
+  getPageSize() {
+    return {
+      width: this.pageWidth,
+      height: this.pageHeight
+    };
+  }
+
+  async finalize() {
+    this.pages.forEach(page => {
+      if (!page.isRendering && !page.renderPromise) {
+        this.startPageRendering(page);
+      }
+    });
+
+    await Promise.all(this.renderingTasks);
+
+    const validPages = this.pages.filter(page => page.buffer);
+
+    if (validPages.length === 0) {
+      throw new Error('No pages to export');
+    }
+
+    if (validPages.length === 1) {
+      return validPages[0].buffer;
+    } else {
+      return validPages.map(page => page.buffer);
+    }
+  }
+}

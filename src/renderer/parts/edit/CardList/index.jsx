@@ -6,41 +6,79 @@ import CardDropTarget from './CardDropTarget';
 import AddCard from './AddCard';
 import { CardSettingDialog } from '../CardEditor/CardSettingDialog';
 import { useGlobalStore } from '../../../state/store';
+import { useUiRuntimeStore } from '../../../state/uiRuntimeStore';
 
-const CardWrapper = ({ card, index, dialogCardSettingRef, isAddCard, isDragTarget, realIndex }) => {
+const createSharedObserver = (() => {
+  let observer = null;
+  const callbacks = new Map();
+
+  return {
+    observe: (element, callback) => {
+      if (!observer) {
+        observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              const cb = callbacks.get(entry.target);
+              if (cb) cb(entry.isIntersecting);
+            });
+          },
+          {
+            root: null,
+            rootMargin: '200px',
+            threshold: 0,
+          }
+        );
+      }
+
+      callbacks.set(element, callback);
+      observer.observe(element);
+    },
+
+    unobserve: (element) => {
+      if (observer) {
+        observer.unobserve(element);
+        callbacks.delete(element);
+      }
+    },
+
+    disconnect: () => {
+      if (observer) {
+        observer.disconnect();
+        callbacks.clear();
+        observer = null;
+      }
+    }
+  };
+})();
+
+const CardWrapper = ({ card, index, dialogCardSettingRef, isAddCard, isDragTarget, realIndex, sharedPreviewRef, currentLang }) => {
   const [isVisible, setIsVisible] = useState(false);
   const cardRef = useRef(null);
   const timeoutRef = useRef(null);
 
   useEffect(() => {
-    if (!cardRef.current) return;
+    const element = cardRef.current;
+    if (!element) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-          }
-          timeoutRef.current = setTimeout(() => {
-            setIsVisible(entry.isIntersecting);
-          }, 50);
-        });
-      },
-      {
-        root: null,
-        rootMargin: '200px',
-        threshold: 0,
-      },
-    );
-
-    observer.observe(cardRef.current);
-
-    return () => {
-      if (cardRef.current) {
-        observer.unobserve(cardRef.current);
-      }
+    const handleVisibilityChange = (isIntersecting) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+      }
+
+      timeoutRef.current = setTimeout(() => {
+        setIsVisible(isIntersecting);
+        timeoutRef.current = null;
+      }, 50);
+    };
+
+    createSharedObserver.observe(element, handleVisibilityChange);
+
+    return () => {
+      createSharedObserver.unobserve(element);
+
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
       }
     };
   }, []);
@@ -49,6 +87,7 @@ const CardWrapper = ({ card, index, dialogCardSettingRef, isAddCard, isDragTarge
     return (
       <div
         ref={cardRef}
+        data-card-display-index={index}
         className={'Card'}
         style={{
           backgroundColor: 'rgba(115,115,115,.6)',
@@ -58,25 +97,39 @@ const CardWrapper = ({ card, index, dialogCardSettingRef, isAddCard, isDragTarge
     );
   }
   return (
-    <div ref={cardRef} className={'Card'}>
+    <div ref={cardRef} data-card-display-index={index} className={'Card'}>
       {isAddCard ? (
         <AddCard />
       ) : isDragTarget ? (
         <CardDropTarget index={realIndex} />
-        ) : (
+      ) : (
         <Card
-        dialogCardSettingRef={dialogCardSettingRef}
-         index={realIndex}
-         data={card}
-    />
-  )}
-</div>
-);};
+          dialogCardSettingRef={dialogCardSettingRef}
+          index={realIndex}
+          data={card}
+          sharedPreviewRef={sharedPreviewRef}
+          currentLang={currentLang}
+        />
+      )}
+    </div>)
+};
+
 
 export const CardList = () => {
   const dialogCardSettingRef = useRef(null);
   const parentRef = useRef(null);
   const scrollIntervalRef = useRef(null);
+  const sharedPreviewRef = useRef(null);
+  const currentLang = useGlobalStore(state => state.Global.currentLang);
+  const setCardSettingApi = useUiRuntimeStore(state => state.setCardSettingApi);
+
+  useEffect(() => {
+    setCardSettingApi(dialogCardSettingRef.current);
+
+    return () => {
+      setCardSettingApi(null);
+    };
+  }, [setCardSettingApi]);
 
   const CardList = useGlobalStore(state => state.CardList);
   const dragHoverCancel = useGlobalStore(state => state.dragHoverCancel);
@@ -149,6 +202,7 @@ export const CardList = () => {
     <div
       ref={parentRef}
       className={'CardListContainer'}
+      data-testid="card-list"
       onDragEnd={() => {
         dragHoverCancel();
         stopAutoScroll();
@@ -157,6 +211,16 @@ export const CardList = () => {
       onDragLeave={stopAutoScroll}
     >
       <DndProvider backend={HTML5Backend}>
+        <div
+          ref={sharedPreviewRef}
+          style={{
+            position: 'absolute',
+            width: '1px',
+            height: '1px',
+            opacity: 0,
+            pointerEvents: 'none',
+          }}
+        />
         <div
           className={'CardList'}
           style={{
@@ -179,6 +243,8 @@ export const CardList = () => {
                 dialogCardSettingRef={dialogCardSettingRef}
                 isAddCard={card.type === 'addCard'}
                 isDragTarget={card.id === 'dragTarget'}
+                sharedPreviewRef={sharedPreviewRef}
+                currentLang={currentLang}
               />
             );
           })}
@@ -188,4 +254,3 @@ export const CardList = () => {
     </div>
   );
 };
-

@@ -8,14 +8,17 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { useTranslation } from 'react-i18next';
 import { openImage, openMultiImage } from '../../../functions';
 import { NumberInput } from '../../../componments/NumberInput';
-import './style.css'
+import '../../ToolBar/style.css'
+import { emptyImgPath, layoutSides } from '../../../../shared/constants';
+import { SubMenuItem } from '../../../componments/SubMenuItem';
 
-export const BulkOperationButton = () => {
+export const BulkOperationButton = ({ cardSettingApi }) => {
   const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   const [repeat, setRepeat] = useState(1);
   const handleClick = (event) => {
+    setRepeat(1);
     setAnchorEl(event.currentTarget);
   };
   const handleClose = () => {
@@ -26,11 +29,15 @@ export const BulkOperationButton = () => {
     selectedCardsRemove,
     selectedCardsDuplicate,
     selectedCardsEdit,
-    selectedCardsFillBackWithEach,
+    selectedCardsEditEach,
     selectedCardsSwap,
   } = useGlobalStore.getState();
-  const { Global } = useGlobalStore.selectors;
-  const selectionLength = useGlobalStore(state => state.CardList.filter(c => c.selected).length);
+  const { Config } = useGlobalStore.selectors;
+  const sides = Config.sides();
+  const isDoubleSidedMode = [layoutSides.doubleSides, layoutSides.foldInHalf].includes(sides);
+  const hasIndependentSettings = sides !== layoutSides.brochure;
+  const selectionIds = useGlobalStore(state => state.CardList.filter(c => c.selected).map(c => c.id));
+  const selectionLength = selectionIds.length;
   return (<>
     <Button
       sx={{ visibility: selectionLength === 0 ? 'hidden' : 'visible', marginLeft: '20px' }}
@@ -56,20 +63,71 @@ export const BulkOperationButton = () => {
       }}>
         {t('toolbar.bulkMenu.duplidate')}
       </MenuItem>
-      <MenuItem onClick={async () => {
+      <SubMenuItem label={ t('cardEditor.face') } onClose={handleClose}>
+        <MenuItem onClick={async () => {
+          handleClose();
+          const [ imageData ] = await openImage();
+          imageData && selectedCardsEdit({ face: imageData?.face });
+        }}>
+          {t('toolbar.bulkMenu.menuFillFace')}
+        </MenuItem>
+        <MenuItem onClick={async () => {
+          handleClose();
+          const imageDataList = await openMultiImage();
+          if (!imageDataList?.length) return;
+
+          let imageIndex = 0;
+          selectedCardsEditEach((card) => {
+            const newFace = imageDataList[imageIndex]?.face;
+            imageIndex++;
+            return newFace ? { ...card, face: newFace } : card;
+          });
+        }}>
+          {t('toolbar.bulkMenu.menuFillMultiFace')}
+        </MenuItem>
+        <MenuItem onClick={async () => {
+          handleClose();
+          selectedCardsEdit({ face: emptyImgPath });
+        }}>
+          {t('cardEditor.clearFace')}
+        </MenuItem>
+      </SubMenuItem>
+      {isDoubleSidedMode && <SubMenuItem label={ t('cardEditor.back') } onClose={handleClose}>
+        <MenuItem onClick={async () => {
+          handleClose();
+          const [ imageData ] = await openImage();
+          imageData && selectedCardsEdit({ back: imageData?.face });
+        }}>
+          {t('toolbar.bulkMenu.menuFillBack')}
+        </MenuItem>
+        <MenuItem onClick={async () => {
+          handleClose();
+          const imageDataList = await openMultiImage();
+          if (!imageDataList?.length) return;
+
+          let imageIndex = 0;
+          selectedCardsEditEach((card) => {
+            const newBack = imageDataList[imageIndex]?.face;
+            imageIndex++;
+            return newBack ? { ...card, back: newBack } : card;
+          });
+        }}>
+          {t('toolbar.bulkMenu.menuFillMultiBack')}
+        </MenuItem>
+        <MenuItem onClick={async () => {
+          handleClose();
+          selectedCardsEdit({ back: emptyImgPath });
+        }}>
+          {t('cardEditor.clearBack')}
+        </MenuItem>
+      </SubMenuItem>}
+
+      {isDoubleSidedMode && <MenuItem onClick={() => {
         handleClose();
-        const filePath = await openImage('fillBackground');
-        selectedCardsEdit({ back: filePath });
+        selectedCardsSwap();
       }}>
-        {t('toolbar.bulkMenu.menuFillBackground')}
-      </MenuItem>
-      <MenuItem onClick={async () => {
-        handleClose();
-        const filePaths = await openMultiImage('SelectedCardFillBackWithEachBack');
-        filePaths?.length > 0 && selectedCardsFillBackWithEach(filePaths);
-      }}>
-        {t('toolbar.bulkMenu.menuFillMultiBackground')}
-      </MenuItem>
+        {t('toolbar.bulkMenu.menuSwap')}
+      </MenuItem>}
       <MenuItem onClick={() => {
       }}>
         {t('toolbar.bulkMenu.menuSetCount')}
@@ -86,12 +144,12 @@ export const BulkOperationButton = () => {
           // mergeConfig({ autoConfigFlip: false });
         }}>{t('button.ok')}</Link>
       </MenuItem>
-      <MenuItem onClick={() => {
+      {hasIndependentSettings && <MenuItem onClick={() => {
         handleClose();
-        selectedCardsSwap();
+        cardSettingApi?.openDialog?.(selectionIds);
       }}>
-        {t('toolbar.bulkMenu.menuSwap')}
-      </MenuItem>
+        {t('cardEditor.spicalConfig')}
+      </MenuItem>}
     </Menu>
   </>);
 };

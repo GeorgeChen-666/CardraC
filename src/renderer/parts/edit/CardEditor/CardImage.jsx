@@ -3,9 +3,10 @@
 import React, { memo, useState, useEffect, useRef } from 'react';
 import Card from '@mui/material/Card';
 import { CardMedia } from '@mui/material';
+import { useUiRuntimeStore } from '../../../state/uiRuntimeStore';
 
 export const CardImage = memo(({ imageSrc, path, isBackEditing, isFace }) => {
-  const imageViewerRef = window.imageViewerRef;
+  const imageViewerApi = useUiRuntimeStore(state => state.imageViewerApi);
   const [imageError, setImageError] = useState(false);
   const imgRef = useRef(null);
 
@@ -49,26 +50,24 @@ export const CardImage = memo(({ imageSrc, path, isBackEditing, isFace }) => {
         <div style={{
           width: size,
           height: size,
-          background: '#ffebee',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#c62828',
           fontSize: '12px'
         }}>
-          ❌
         </div>
       ) : (
         //直接渲染图片，浏览器自动处理加载
         <CardMedia
           component="img"
           className={'CardImage'}
+          data-testid={isFace ? 'card-face-image' : 'card-back-image'}
           height={size}
           style={{ maxWidth: size, objectFit: 'contain' }}
           image={imageSrc}
           onError={() => setImageError(true)}
-          onMouseOver={() => imageViewerRef.current?.update?.(path)}
-          onMouseLeave={() => imageViewerRef.current?.close?.()}
+          onMouseOver={() => imageViewerApi?.update?.(path)}
+          onMouseLeave={() => imageViewerApi?.close?.()}
         />
       )}
     </Card>

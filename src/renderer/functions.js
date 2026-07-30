@@ -1,9 +1,10 @@
 import { ipcRenderer } from 'electron';
-import { eleActions, emptyImg } from '../shared/constants';
-// import { Actions, store } from './store';
-import { i18nInstance } from './i18n';
-import { triggerNotification } from './parts/Notification';
+import { backendJobKey, eleActions, emptyImg } from '../shared/constants';
+import { filePathToImageKey, fixPath, generateUUID } from '../shared/functions';
+import { getGlobalState } from './global';
 import { useGlobalStore } from './state/store';
+import { useUiRuntimeStore } from './state/uiRuntimeStore';
+import { triggerNotification } from './parts/Notification';
 
 
 
@@ -17,83 +18,55 @@ export const getResourcesPath = (path) => (isDev ? '' : '..') + path;
 
 export const isObject = data => typeof data === 'object' && data?.constructor === Object;
 
-export const getImageSrc = (imageData, {quality = 'low', version = 1}) =>
-  imageData?.path
-    ? `cardrac://image/${imageData.path.replaceAll('\\', '')}?quality=${quality}&version=${version}`
-    : emptyImg.path;
-
 export const fillByObjectValue = (source, value) => {
-  if (isObject(source) && isObject(value)) {
-    Object.keys(value).forEach(key => {
-      const newValue = value[key];
-      if (isObject(newValue)) {
-        if (!isObject(source[key])) {
-          source[key] = {};
+  if (!isObject(source) || !isObject(value)) {
+    return value;
+  }
+  const result = { ...source };
+  Object.keys(value).forEach(key => {
+    const newValue = value[key];
+    if (newValue === null || newValue === undefined) {
+      result[key] = newValue;
+    } else if (isObject(newValue)) {
+      // 递归创建新对象
+      result[key] = fillByObjectValue(source[key] || {}, newValue);
+    } else {
+      result[key] = newValue;
+    }
+  });
+  return result;
+};
+
+export const showFileOpenDialog = (params) => new Promise((resolve, reject) => {
+  try {
+    const fileBrowserApi = useUiRuntimeStore.getState().fileBrowserApi;
+    fileBrowserApi?.openDialog({
+      multiSelect: false,
+      showFileIcon: false,
+      filterExtensions: '*',
+      ...params,
+      onSelect: async (selectedFiles) => {
+        if(params.mode ==='save') {
+          resolve(selectedFiles?.[0]?.[0])
+        } else {
+          resolve(selectedFiles)
         }
-        fillByObjectValue(source[key], newValue);
-      } else {
-        source[key] = newValue;
       }
     });
   }
-};
-
-ipcRenderer.on('notification', (ev, args) => {
-  return triggerNotification({...args, description: i18nInstance.t(args.description)})
-});
-
-ipcRenderer.on('console', (ev, ...args) => console.log(...args));
-
-export const onOpenProjectFile = (cb) => {
-  ipcRenderer.once('open-project-file', async (event, data) => {
-    // dispatch(Actions.GlobalEdit({isLoading: true, loadingText: ''}));
-    console.log('open-project-file ',data);
-    cb && await cb(data);
-    // dispatch(Actions.StateFill(data));
-    // dispatch(Actions.GlobalEdit({isLoading: false, isInProgress:false, loadingText: ''}));
-  });
-};
-
-export const getMainImage = (args) => ipcRenderer.invoke(eleActions.getImageContent, args);
-
-export const clearPreviewCache = (args) => ipcRenderer.invoke(eleActions.clearPreviewCache, args);
-
-export const openImage = (key) => callMain(eleActions.openImage, {
-  returnChannel: `${eleActions.openImage}-return-${key}`,
-}, async imageDatas => {
-  if (imageDatas.length === 0) return;
-  const imageData = imageDatas[0];
-  imageData.ext = imageData.path.split('.').pop();
-  return imageData;
-});
-
-export const openMultiImage = (key) => callMain(eleActions.openImage, {
-  properties: ['multiSelections'],
-  returnChannel: `${eleActions.openImage}-return-Multi-${key}`,
-}, async imageDatas => {
-  const newImageDatas = [...imageDatas];
-  for (const imageData of newImageDatas) {
-    imageData.ext = imageData.path.split('.').pop();
+  catch (e) {
+    reject(e);
   }
-  return newImageDatas;
 });
-
-
-export const loadConfig = () => callMain(eleActions.loadConfig);
-
-export const setTemplate = (args) => callMain('set-template', { ...args });
-export const editTemplate = (args) => callMain('edit-template', { ...args });
-export const getTemplate = (args) => callMain('get-template', { ...args });
-export const deleteTemplate = (args) => callMain('delete-template', { ...args });
-export const version = () => callMain('version');
 
 let updateProgress = () => {};
 export const regUpdateProgress = cb => updateProgress = cb;
 export const callMain = (key, params = {}, transform = d => d) => new Promise((resolve) => {
+  const requestId = generateUUID();
   const { returnChannel, onProgress, progressChannel, cancelCallback, ...restParams } = params;
-  const returnKey = returnChannel || `${key}-done`;
-  const progressKey = progressChannel || `${key}-progress`;
-  const cancelKey = `${key}-cancel`;
+  const returnKey = returnChannel || `${key}-done-${requestId}`;
+  const progressKey = progressChannel || `${key}-progress-${requestId}`;
+  const cancelKey = `${key}-cancel-${requestId}`;
 
   cancelCallback && cancelCallback(() => {
     ipcRenderer.off(progressKey, onMainProgress);
@@ -107,6 +80,7 @@ export const callMain = (key, params = {}, transform = d => d) => new Promise((r
   ipcRenderer.send(key, {
     returnChannel: returnKey,
     progressChannel: progressKey,
+    cancelChannel: cancelCallback ? cancelKey : undefined,
     ...restParams,
   });
 
@@ -127,7 +101,7 @@ export const callMain = (key, params = {}, transform = d => d) => new Promise((r
       ipcRenderer.off(progressKey, onMainProgress);
     }
   };
-  ipcRenderer.once(progressKey, onMainProgress);
+  ipcRenderer.on(progressKey, onMainProgress);
 
   const onDone = (event, data) => {
     ipcRenderer.off(progressKey, onMainProgress);
@@ -149,6 +123,95 @@ export const callMain = (key, params = {}, transform = d => d) => new Promise((r
   };
   ipcRenderer.once(returnKey, onDone);
 });
+
+export const reloadLocalImage = (params) =>
+  callMain(eleActions.reloadLocalImage, params)
+export const checkImage = (params) =>
+  callMain(eleActions.checkImage, params)
+export const clearPreviewCache = (params) =>
+  callMain(eleActions.clearPreviewCache, params)
+export const getPrinters = (params) =>
+  callMain(eleActions.getPrinters, params)
+export const getExportPreview = (params) =>
+  callMain(eleActions.getExportPreview, params)
+export const getExportPageCount = (params) =>
+  callMain( eleActions.getExportPageCount, params)
+export const getTemplate = (params) =>
+  callMain(eleActions.getTemplate, { ...params });
+export const setTemplate = (params) =>
+  callMain(eleActions.setTemplate, { ...params });
+export const editTemplate = (params) =>
+  callMain(eleActions.editTemplate, { ...params });
+export const deleteTemplate = (params) =>
+  callMain(eleActions.deleteTemplate, { ...params });
+export const loadConfig = (params) =>
+  callMain(eleActions.loadConfig, { ...params });
+export const saveConfig = (params) =>
+  callMain(eleActions.saveConfig, { ...params });
+export const openProject = (params) =>
+  callMain(eleActions.openProject, params)
+export const saveProject = (params) =>
+  callMain(eleActions.saveProject, params)
+export const loadImageList = (params) =>
+  callMain(eleActions.loadImageList, params)
+export const exportFile = (params) =>
+  callMain(eleActions.exportFile, params)
+export const version = (params) =>
+  callMain(eleActions.version, params)
+export const getDefaultPath = (params) =>
+  callMain(eleActions.getDefaultPath, params)
+export const setDefaultPath = (params) =>
+  callMain(eleActions.setDefaultPath, params)
+export const listDrives = (params) =>
+  callMain(eleActions.listDrives, params)
+export const browsePath = (params) =>
+  callMain(eleActions.browsePath, params)
+export const getFileDetails = (params) =>
+  callMain(eleActions.getFileDetails, params)
+
+export const openMultiImage = (isDoubleSides = false) => openImage(isDoubleSides, true)
+export const openImage = async (isDoubleSides = false, isMultiImage = false) => {
+  const selectedFiles = await showFileOpenDialog({multiSelect: isMultiImage, filterExtensions: 'jpg,png,gif',isDoubleSides, showFileIcon: true});
+  const convertFn = (data) => data ? {
+    ext: data.ext,
+    mtime: data.modified,
+    path: data.safePath
+  } : data;
+  const paramFiles = selectedFiles.map(f => ({
+    face: convertFn(f[0]),
+    back: convertFn(f[1]),
+  }))
+
+  const allFiles = [];
+  paramFiles.forEach(f => {
+    if (f.face) allFiles.push(f.face);
+    if (f.back) allFiles.push(f.back);
+  });
+
+  if (allFiles.length > 0) {
+    try {
+      updateBackendJob(backendJobKey.loadHighQuality, { visible: true });
+      const result = await getGlobalState().loading(() => loadImageList({
+        imageList: allFiles,
+        // onProgress: (v) => {
+        //   console.log('onProgress', v)
+        //   getGlobalState().progress(v)
+        // }
+      }))
+
+      console.log('Background loading started:', result);
+
+      if (!result.success) {
+        console.warn('Some images failed to start loading:', result);
+      }
+    } catch (error) {
+      console.error('Failed to trigger background image loading:', error);
+      // 不阻止返回结果，只是记录错误
+    }
+  }
+
+  return paramFiles;
+}
 
 function isPlainObject(obj) {
   return typeof obj === 'object' && obj !== null && !Array.isArray(obj);
@@ -172,3 +235,39 @@ export function immutableMerge(oldVal, newVal) {
   // 其它类型直接替换
   return newVal;
 }
+
+ipcRenderer.on(eleActions.backendNotification, (event, args) => {
+  const { status, description, descriptionKey } = args || {};
+  triggerNotification({
+    msg: description,
+    msgKey: descriptionKey,
+    variant: status,
+    autoHideDuration: 3000,
+  })
+})
+ipcRenderer.on(eleActions.backendUiFillState, (event, args) => {
+  const state = args || {};
+  const store = useGlobalStore.getState();
+  store.fillState(state);
+})
+ipcRenderer.on(eleActions.backendJobProgress, (event, args) => {
+  const { key, progress } = args || {};
+
+  if (!key) return;
+
+  const store = useGlobalStore.getState();
+  if(store.Global.backendJobs?.[key]?.visible) {
+    store.updateBackendJob(key, { progress: Math.min(Math.max(progress, 0), 1) });
+  }
+  console.log(`📊 Backend job [${key}]: ${(progress * 100).toFixed(1)}%`);
+
+  if (progress >= 1) {
+    setTimeout(() => {
+      store.clearBackendJob(key);
+      console.log(`✅ Backend job [${key}] completed and removed`);
+    }, 1000);
+  }
+});
+export const updateBackendJob = (key, updates) => {
+  useGlobalStore.getState().updateBackendJob(key, updates);
+};

@@ -1,3 +1,4 @@
+const { resolve } = require('path');
 module.exports = {
   /**
    * This is the main entry point for your application, it's the first file
@@ -5,7 +6,7 @@ module.exports = {
    */
   entry: './src/main/index.js',
   // Put your normal webpack config below here
-  devtool: process.env.NODE_ENV === 'production' ? false : 'source-map',
+  devtool: process.env.NODE_ENV === 'production' ? false : 'eval-cheap-module-source-map',
   module: {
     rules: require('./webpack.rules'),
   },
@@ -14,6 +15,14 @@ module.exports = {
   },
   externals: {
     'sharp': 'commonjs sharp',
+    'sqlite3': 'commonjs sqlite3'
+  },
+  cache: {
+    type: 'filesystem',
+    cacheDirectory: resolve(__dirname, 'node_modules', '.cache', 'cardrac-webpack', 'main'),
+    buildDependencies: {
+      config: [__filename],
+    },
   },
   optimization: {
     minimize: process.env.NODE_ENV === 'production',

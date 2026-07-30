@@ -6,6 +6,7 @@ import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 
 export const CardToolbar = memo(({
                                    index,
+                                   showSwap = true,
                                    onSwap,
                                    onMenuOpen,
                                    onDragStart,
@@ -13,13 +14,15 @@ export const CardToolbar = memo(({
                                  }) => {
   return (
     <div className={'CardBar'}>
-      <GeneralIconButton
+      {showSwap && <GeneralIconButton
+        data-testid={`card-swap-button-${index}`}
         icon={<SwapHorizIcon fontSize={'small'} />}
         size={'small'}
         onClick={onSwap}
-      />
+      />}
       <span
         ref={dragRef}
+        data-testid={`card-drag-handle-${index}`}
         className={'CardDragHandler'}
         onMouseDown={onDragStart}
         onClick={e => e.stopPropagation()}
@@ -29,6 +32,7 @@ export const CardToolbar = memo(({
         <DragIndicatorIcon fontSize={'small'} />
       </span>
       <GeneralIconButton
+        data-testid={`card-menu-button-${index}`}
         icon={<MoreHorizIcon fontSize={'small'} />}
         size={'small'}
         onClick={onMenuOpen}

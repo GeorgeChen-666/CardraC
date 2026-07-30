@@ -14,7 +14,9 @@ export const LoadingModal = () => {
   const loadingText = Global.loadingText() ?? 'Loading ...';
   return (<Dialog open={isLoading}>
     <DialogContent>
-      <DialogContentText sx={{
+      <DialogContentText
+        component="div"
+        sx={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-around',

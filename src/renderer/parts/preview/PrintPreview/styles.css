@@ -1,0 +1,23 @@
+
+.PrintPreviewContainer {
+    flex-grow: 1;
+}
+
+.PrintPreviewContainer svg image.mouseHover {
+    outline: 10px solid #1976d266;
+    outline-offset: -10px;
+    cursor: pointer;
+    animation: smoothColorSwitch 1s ease-in-out infinite;
+}
+
+@keyframes smoothColorSwitch {
+    0%, 100% {
+        outline-color: #1976d266;  /* 蓝色 */
+    }
+    33% {
+        outline-color: #4caf5066;  /* 绿色 */
+    }
+    66% {
+        outline-color: #ff980066;  /* 橙色 */
+    }
+}

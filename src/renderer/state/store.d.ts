@@ -1,20 +1,27 @@
-import type { StoreApi } from 'zustand';
+// src/renderer/state/store.d.ts
+
+interface BackendJob {
+  visible: boolean;
+  progress: number;
+}
 
 interface GlobalState {
   currentLang: string;
   isShowOverView: boolean;
-  availableLangs?: string[];
-  isLoading?: boolean;
+  availableLangs: string[];
+  isLoading?: number;
   loadingText?: string;
   isInProgress?: boolean;
   progress?: number;
-  lastSelection?: any;
+  lastSelection: string | null;
   isBackEditing?: boolean;
   selections?: any[];
+  locales: Record<string, any>;
   imageVersion?: number;
   exportPageCount?: number;
   exportPreviewIndex?: number;
-  currentView?: string;
+  currentView: string;
+  backendJobs: Record<string, BackendJob>;
 }
 
 interface ConfigState {
@@ -43,11 +50,22 @@ interface ConfigState {
   lineWeight: number;
   cutlineColor: string;
   foldLineType: string;
-  globalBackground?: any;
-  marginFilling?: boolean;
-  avoidDislocation?: boolean;
-  brochureRepeatPerPage?: boolean;
-  scale?: number;
+  globalBackground: any | null;
+  marginFilling: boolean;
+  avoidDislocation: boolean;
+  brochureRepeatPerPage: boolean;
+  pageNumber: boolean;
+}
+
+interface CardBleedConfig {
+  faceBleedX?: number;
+  faceBleedY?: number;
+  backBleedX?: number;
+  backBleedY?: number;
+}
+
+interface CardConfig {
+  bleed?: CardBleedConfig;
 }
 
 interface Card {
@@ -56,7 +74,7 @@ interface Card {
   back: any;
   repeat: number;
   selected?: boolean;
-  config?: any;
+  config?: CardConfig;
 }
 
 interface StoreState {
@@ -71,21 +89,24 @@ interface StoreState {
   mergeConfig: (newState: Partial<ConfigState>) => void;
 
   // Utility methods
-  loading: (cb?: () => Promise<void>, text?: string) => Promise<void>;
+  loading: <T = void>(cb?: () => Promise<T>, text?: string) => Promise<T | undefined>;
   progress: (v: number) => void;
 
   // Project methods
-  openProject: () => void;
-  saveProject: () => void;
-  exportFile: (targetFileType: string) => void;
-  printPages: (params: { pageList: any[]; printConfig: any }) => void;
+  newProject: () => Promise<void>;
+  openProject: (params?: any) => void;
+  saveProject: (params?: any) => void;
+  exportFile: (params: { targetFileType: string; [key: string]: any }) => void;
+  printPages: (params: { pageList: any[]; printConfig: any }) => Promise<boolean | undefined>;
+  adjustGuidePrint: (params: { printConfig: any }) => Promise<boolean | undefined>;
   reloadLocalImage: () => void;
-  getExportPageCount: (targetFileType: string) => void;
-  getExportPreview: (pageIndex: number) => Promise<any>;
+  getExportPageCount: () => Promise<void>;
+  getExportPreview: (pageIndex: number, isSilence?: boolean) => Promise<any>;
 
   // Card methods
-  cardAdd: (images: any[]) => void;
+  cardAdd: (images: Array<{ face: any; back: any }>) => void;
   cardEditById: (newState: Partial<Card> & { id: string }) => void;
+  cardEditByIndex: (index: number, side: 'face' | 'back', imageData: any) => void;
   cardRemoveByIds: (ids: string[]) => void;
   cardSelect: (selectedId: string) => void;
   cardCtrlSelect: (selectedId: string) => void;
@@ -100,9 +121,13 @@ interface StoreState {
   selectedCardsRemove: () => void;
   selectedCardsDuplicate: () => void;
   selectedCardsEdit: (newState: Partial<Card>) => void;
-  selectedCardsFillBackWithEach: (backImageList: any[]) => void;
+  selectedCardsEditEach: (callback: (card: Card) => Card | null | undefined) => void;
   selectedCardsSwap: () => void;
-  editCardsConfig: (ids: string[], config: any) => void;
+  editCardsConfig: (ids: string[], config: CardConfig) => void;
+
+  // Backend jobs methods
+  updateBackendJob: (key: string, updates: Partial<BackendJob>) => void;
+  clearBackendJob: (key: string) => void;
 
   // History methods
   historyUndo: () => void;
@@ -110,6 +135,7 @@ interface StoreState {
   historyCanUndo: () => boolean;
   historyCanRedo: () => boolean;
   historyReset: () => void;
+  setWithHistory: (updater: (state: StoreState) => StoreState) => void;
 }
 
 type Selectorize<S> = {
@@ -118,7 +144,7 @@ type Selectorize<S> = {
 
 export declare const useGlobalStore: {
   (): StoreState;
-  <U>(selector: (state: StoreState) => U): U;
+  <U>(selector: (state: StoreState) => U, equalityFn?: (a: U, b: U) => boolean): U;
   getState: () => StoreState;
   setState: (state: Partial<StoreState> | ((state: StoreState) => Partial<StoreState>), replace?: boolean) => void;
   subscribe: {
@@ -133,4 +159,4 @@ export declare const useGlobalStore: {
   selectors: Selectorize<Pick<StoreState, 'Global' | 'Config' | 'CardList'>>;
 };
 
-export type { StoreState, GlobalState, ConfigState, Card };
+export type { StoreState, GlobalState, ConfigState, Card, CardConfig, CardBleedConfig, BackendJob };

@@ -1,11 +1,12 @@
 const rules = require('./webpack.rules');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+const { resolve } = require('path');
 
 module.exports = {
   // Put your normal webpack config below here
   target: 'electron-renderer',
   entry: `./src/renderer/index.js`,
-  devtool: process.env.NODE_ENV === 'production' ? false : 'source-map',
+  devtool: process.env.NODE_ENV === 'production' ? false : 'eval-cheap-module-source-map',
   resolve:{
     extensions:['.js','.jsx','.json']
   },
@@ -19,10 +20,12 @@ module.exports = {
     rules: [ ...rules,
       {
         test: /\.jsx?$/,
+        exclude: /node_modules/,
         use: {
           loader: 'babel-loader',
           options: {
-            exclude: /node_modules/,
+            cacheDirectory: true,
+            cacheCompression: false,
             presets: ['@babel/preset-react']
           }
         }
@@ -45,6 +48,13 @@ module.exports = {
       ],
     }),
   ],
+  cache: {
+    type: 'filesystem',
+    cacheDirectory: resolve(__dirname, 'node_modules', '.cache', 'cardrac-webpack', 'renderer'),
+    buildDependencies: {
+      config: [__filename],
+    },
+  },
   optimization: {
     minimize: process.env.NODE_ENV === 'production',
     usedExports: true,

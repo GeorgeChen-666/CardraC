@@ -1,8 +1,8 @@
 // src/renderer/state/middlewares.js
-import { isDev } from '../functions';
 import { actionLogger } from './logger';
 import { subscribeWithSelector } from 'zustand/middleware';
 import LZString from 'lz-string';
+import { isDev } from '../../shared/functions';
 
 const historyMiddleware = (config) => (set, get, api) => {
   const wrappedSet = (partial, replace) => {
@@ -219,7 +219,14 @@ const loggerMiddleware = (config) => (set, get, api) => {
   if (!isDev) return config(set, get, api);
 
   return actionLogger(config, ({ action, params, prev, next }) => {
-    console.groupCollapsed(`[Zustand Action] ${action}`, ...params);
+    const fixedParams = params.map(param => {
+      if (typeof param === 'function') {
+        return param.name || 'anonymous';
+      } else {
+        return param;
+      }
+    })
+    console.groupCollapsed(`[Zustand Action] ${action}`, ...fixedParams);
     console.log('Prev state:', prev);
     console.log('Next state:', next);
     console.groupEnd();

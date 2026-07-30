@@ -7,6 +7,7 @@ export const eleActions = Object.freeze({
   loadPrintConfig: 'load-print-config',
   savePrintConfig: 'save-print-config',
   checkImage: 'check-image',
+  loadImageList: 'load-image-list',
   getImagePath: 'get-image-path',
   getImageContent: 'get-image-content',
   getExportPageCount: 'get-export-page-count',
@@ -17,6 +18,19 @@ export const eleActions = Object.freeze({
   getPrinters: 'get-printers',
   adjustGuidePrint: 'adjust-guide-print',
   printPages: 'print-pages',
+  getTemplate: 'get-template',
+  setTemplate: 'set-template',
+  editTemplate: 'edit-template',
+  deleteTemplate: 'delete-template',
+  version: 'version',
+  getDefaultPath: 'get-default-path',
+  setDefaultPath: 'set-default-path',
+  listDrives: 'list-drives',
+  browsePath: 'browse-path',
+  getFileDetails: 'get-file-details',
+  backendJobProgress: 'backend-job-progress',
+  backendUiFillState: 'backend-ui-fill-state',
+  backendNotification: 'backend-notification'
 });
 
 export const layoutSides = Object.freeze({
@@ -43,7 +57,7 @@ export const initialState = Object.freeze({
   Global: {
     availableLangs: [],
     currentLang: 'zh',
-    isLoading: false,
+    isLoading: 0,
     loadingText: '',
     isInProgress: false,
     progress: 0,
@@ -51,10 +65,12 @@ export const initialState = Object.freeze({
     isBackEditing: false,
     isShowOverView: true,
     selections: [],
+    locales: {},
     currentView: 'edit',
     exportPageCount: 0,
     exportPreviewIndex: 1,
-    imageVersion: 1
+    imageVersion: 1,
+    backendJobs: {},
   },
   Config: {
     pageSize: 'A4:210,297',
@@ -86,12 +102,26 @@ export const initialState = Object.freeze({
     marginFilling: false,
     avoidDislocation: false,
     brochureRepeatPerPage: false,
+    pageNumber: false,
   },
   CardList: [],
 })
 
+export const emptyImgPath = '_emptyImg'
+
 export const emptyImg = {
-  path: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
-    '12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg==',
+  path: '_emptyImg',
   ext: 'png',
 };
+
+export const emptyImgContent = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEV/f3+QyhsjAAAACklEQVQI\n' +
+  '12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg=='
+
+export const imageCacheType = Object.freeze({
+  thumbnails: 'thumbnails',
+  highQuality: 'high-quality'
+})
+
+export const backendJobKey = Object.freeze({
+  loadHighQuality: 'load-high-quality'
+})

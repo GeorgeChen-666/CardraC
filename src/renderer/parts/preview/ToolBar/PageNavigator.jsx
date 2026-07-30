@@ -4,34 +4,53 @@ import { GeneralIconButton } from '../../../componments/GeneralIconButton';
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import { useTranslation } from 'react-i18next';
+import { useGlobalStore } from '../../../state/store';
+import { layoutSides } from '../../../../shared/constants';
 
 export const PageNavigator = ({ currentPage, totalPages, onPageChange }) => {
   const { t } = useTranslation();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [inputValue, setInputValue] = useState(currentPage.toString());
   const dropdownRef = useRef(null);
-  const inputRef = useRef(null);  //添加 input ref
-  const scrollPositionRef = useRef(0);  //记录滚动位置
+  const inputRef = useRef(null);
+  const scrollPositionRef = useRef(0);
   const isSelectingRef = useRef(false);
 
-  // 同步当前页到输入框
+  // ✅ 获取 sides 配置
+  const { Config } = useGlobalStore.selectors;
+  const sides = Config.sides();
+
+  // ✅ 根据 sides 计算额外页面数量
+  const getExtraPageCount = () => {
+    if ([layoutSides.oneSide, layoutSides.foldInHalf].includes(sides)) {
+      return 1;
+    } else if ([layoutSides.doubleSides].includes(sides)) {
+      return 2;
+    }
+    else if ([layoutSides.brochure].includes(sides)) {
+      return 0;
+    }
+    return 1;
+  };
+
+  const extraPageCount = getExtraPageCount();
+  const totalPagesWithExtra = totalPages + extraPageCount;  // ✅ 总页数（包括虚拟页）
+
   useEffect(() => {
     setInputValue(currentPage.toString());
   }, [currentPage]);
 
-  // 点击外部关闭下拉
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
-        inputRef.current?.blur();  //关闭时失焦
+        inputRef.current?.blur();
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  //保持滚动位置
   useEffect(() => {
     if (isDropdownOpen && dropdownRef.current) {
       const dropdown = dropdownRef.current.querySelector('[data-dropdown-list]');
@@ -48,14 +67,14 @@ export const PageNavigator = ({ currentPage, totalPages, onPageChange }) => {
   };
 
   const handleNextPage = () => {
-    if (currentPage < totalPages) {
+    if (currentPage < totalPagesWithExtra) {
       onPageChange(currentPage + 1);
     }
   };
 
   const handlePageSelect = (page) => {
     const pageNum = parseInt(page);
-    if (pageNum >= 1 && pageNum <= totalPages) {
+    if (pageNum >= 1 && pageNum <= totalPagesWithExtra) {
       const dropdown = dropdownRef.current?.querySelector('[data-dropdown-list]');
       if (dropdown) {
         scrollPositionRef.current = dropdown.scrollTop;
@@ -63,8 +82,6 @@ export const PageNavigator = ({ currentPage, totalPages, onPageChange }) => {
 
       onPageChange(pageNum);
       setInputValue(page);
-      // setIsDropdownOpen(false);
-      // inputRef.current?.blur();
     }
   };
 
@@ -83,11 +100,8 @@ export const PageNavigator = ({ currentPage, totalPages, onPageChange }) => {
   };
 
   const handleInputBlur = () => {
-    // if (isSelectingRef.current) {
-    //   return;
-    // }
     const pageNum = parseInt(inputValue);
-    if (isNaN(pageNum) || pageNum < 1 || pageNum > totalPages) {
+    if (isNaN(pageNum) || pageNum < 1 || pageNum > totalPagesWithExtra) {
       setInputValue(currentPage.toString());
     } else if (pageNum !== currentPage) {
       onPageChange(pageNum);
@@ -96,18 +110,16 @@ export const PageNavigator = ({ currentPage, totalPages, onPageChange }) => {
   };
 
   const handleWheel = (e) => {
-    e.preventDefault(); // 阻止默认滚动
+    e.preventDefault();
     if (isDropdownOpen) {
       return;
     }
     if (e.deltaY < 0) {
-      // 向上滚 - 上一页
       if (currentPage > 1) {
         onPageChange(currentPage - 1);
       }
     } else if (e.deltaY > 0) {
-      // 向下滚 - 下一页
-      if (currentPage < totalPages) {
+      if (currentPage < totalPagesWithExtra) {
         onPageChange(currentPage + 1);
       }
     }
@@ -130,7 +142,7 @@ export const PageNavigator = ({ currentPage, totalPages, onPageChange }) => {
           onChange={handleInputChange}
           onKeyDown={handleInputKeyDown}
           onBlur={handleInputBlur}
-          onFocus={() => setIsDropdownOpen(true)}
+          onFocus={() => setIsDropdownOpen(true)}  // ✅ 总是可以打开下拉
           onWheel={handleWheel}
           style={{
             width: '22px',
@@ -144,10 +156,10 @@ export const PageNavigator = ({ currentPage, totalPages, onPageChange }) => {
           }}
         />
         <span style={{ margin: '0 8px', fontSize: '14px', color: '#666' }}>
-          / {totalPages}
+          / {totalPagesWithExtra}
         </span>
 
-        {isDropdownOpen && totalPages > 0 && (
+        {isDropdownOpen && (  // ✅ 移除 totalPages > 0 的检查
           <div
             data-dropdown-list
             onMouseDown={() => {
@@ -172,36 +184,42 @@ export const PageNavigator = ({ currentPage, totalPages, onPageChange }) => {
               minWidth: '120px'
             }}
           >
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-              <div
-                key={page}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  handlePageSelect(page);
-                }}
-                style={{
-                  padding: '8px 16px',
-                  cursor: 'pointer',
-                  backgroundColor: page === currentPage ? '#1976d2' : 'white',
-                  color: page === currentPage ? 'white' : '#333',
-                  fontSize: '14px',
-                  transition: 'background-color 0.2s',
-                  borderBottom: page < totalPages ? '1px solid #f0f0f0' : 'none'
-                }}
-                onMouseEnter={(e) => {
-                  if (page !== currentPage) {
-                    e.target.style.backgroundColor = '#f5f5f5';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (page !== currentPage) {
-                    e.target.style.backgroundColor = 'white';
-                  }
-                }}
-              >
-                {t('toolbar.page', {num:page})}
-              </div>
-            ))}
+            {/* ✅ 渲染所有页面（包括虚拟页） */}
+            {Array.from({ length: totalPagesWithExtra }, (_, i) => i + 1).map(page => {
+              const isEmptyPage = page > totalPages;  // ✅ 判断是否是虚拟页
+
+              return (
+                <div
+                  key={page}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handlePageSelect(page);
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    cursor: 'pointer',
+                    backgroundColor: page === currentPage ? '#1976d2' : 'white',
+                    color: page === currentPage ? 'white' : (isEmptyPage ? '#999' : '#333'),  // ✅ 虚拟页灰色
+                    fontSize: '14px',
+                    fontStyle: isEmptyPage ? 'italic' : 'normal',  // ✅ 虚拟页斜体
+                    transition: 'background-color 0.2s',
+                    borderBottom: page < totalPagesWithExtra ? '1px solid #f0f0f0' : 'none'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (page !== currentPage) {
+                      e.target.style.backgroundColor = '#f5f5f5';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (page !== currentPage) {
+                      e.target.style.backgroundColor = 'white';
+                    }
+                  }}
+                >
+                  {t('toolbar.page', {num: page})}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -210,7 +228,7 @@ export const PageNavigator = ({ currentPage, totalPages, onPageChange }) => {
         label={t('toolbar.btnNext')}
         icon={<ArrowForwardIosIcon />}
         onClick={handleNextPage}
-        disabled={currentPage >= totalPages}
+        disabled={currentPage >= totalPagesWithExtra}
       />
     </div>
   );
