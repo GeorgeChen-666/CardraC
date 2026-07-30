@@ -178,6 +178,9 @@ const loadCpnpFile = async (filePath, { onProgress, onFinish, onError }) => {
     if (!await ImageStorage[emptyImgPath]) {
       ImageStorage[emptyImgPath] = defaultImageStorage[emptyImgPath];
     }
+    if (!await OverviewStorage[emptyImgPath]) {
+      OverviewStorage[emptyImgPath] = defaultImageStorage[emptyImgPath];
+    }
 
     onProgress?.(1);
     console.log('✅ All data loaded');

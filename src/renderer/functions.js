@@ -1,6 +1,6 @@
 import { ipcRenderer } from 'electron';
 import { backendJobKey, eleActions, emptyImg } from '../shared/constants';
-import { filePathToImageKey, fixPath } from '../shared/functions';
+import { filePathToImageKey, fixPath, generateUUID } from '../shared/functions';
 import { getGlobalState } from './global';
 import { useGlobalStore } from './state/store';
 import { useUiRuntimeStore } from './state/uiRuntimeStore';
@@ -62,10 +62,11 @@ export const showFileOpenDialog = (params) => new Promise((resolve, reject) => {
 let updateProgress = () => {};
 export const regUpdateProgress = cb => updateProgress = cb;
 export const callMain = (key, params = {}, transform = d => d) => new Promise((resolve) => {
+  const requestId = generateUUID();
   const { returnChannel, onProgress, progressChannel, cancelCallback, ...restParams } = params;
-  const returnKey = returnChannel || `${key}-done`;
-  const progressKey = progressChannel || `${key}-progress`;
-  const cancelKey = `${key}-cancel`;
+  const returnKey = returnChannel || `${key}-done-${requestId}`;
+  const progressKey = progressChannel || `${key}-progress-${requestId}`;
+  const cancelKey = `${key}-cancel-${requestId}`;
 
   cancelCallback && cancelCallback(() => {
     ipcRenderer.off(progressKey, onMainProgress);
@@ -79,6 +80,7 @@ export const callMain = (key, params = {}, transform = d => d) => new Promise((r
   ipcRenderer.send(key, {
     returnChannel: returnKey,
     progressChannel: progressKey,
+    cancelChannel: cancelCallback ? cancelKey : undefined,
     ...restParams,
   });
 
