@@ -161,17 +161,25 @@ export async function printSVGs(printerName, svgDataList, options = {}) {
     scaleY = 1,
     landscape = false,
     contentLandscape = landscape,
-    paperSize = ''
+    paperSize = '',
+    printChunkSize = 10
   } = options;
 
   const [width, height] = landscape?[pageHeightMm, pageWidthMm]:[pageWidthMm, pageHeightMm];
   const [contentWidth, contentHeight] = contentLandscape?[contentHeightMm, contentWidthMm]:[contentWidthMm, contentHeightMm];
+  const totalPages = svgDataList.length;
+  const normalizedChunkSize = Number.isFinite(printChunkSize) ? Math.max(1, Math.floor(printChunkSize)) : 10;
+  const totalChunks = Math.ceil(totalPages / normalizedChunkSize);
 
-  // ✅ 提取 HTML 生成，避免 IDE 报红
-  const html = buildPrintHTML(svgDataList, { width, height, contentWidth, contentHeight, offsetXmm, offsetYmm, scaleX, scaleY });
-
-  const tempFile = path.join(app.getPath('temp'), `print_${Date.now()}.html`);
-  fs.writeFileSync(tempFile, html);
+  if (!totalPages) {
+    return {
+      success: true,
+      cancelled: false,
+      error: null,
+      totalPages: 0,
+      totalChunks: 0
+    };
+  }
 
   const win = new BrowserWindow({
     show: false,
@@ -181,13 +189,43 @@ export async function printSVGs(printerName, svgDataList, options = {}) {
   });
 
   try {
-    await win.loadFile(tempFile);
-    await waitForLoad(win);
+    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+      const pageStart = chunkIndex * normalizedChunkSize;
+      const pageEnd = Math.min(pageStart + normalizedChunkSize, totalPages);
+      const tempFile = createPrintTempFile(
+        buildPrintHTML(svgDataList.slice(pageStart, pageEnd), { width, height, contentWidth, contentHeight, offsetXmm, offsetYmm, scaleX, scaleY }),
+        chunkIndex
+      );
 
-    return await executePrint(win, printerName, { paperSize, landscape, width, height });
+      try {
+        await win.loadFile(tempFile);
+        await waitForLoad(win);
+
+        const result = await executePrint(win, printerName, { paperSize, landscape, width, height });
+        if (!result.success) {
+          return {
+            ...result,
+            chunkIndex,
+            totalChunks,
+            pageStart,
+            pageEnd,
+            totalPages
+          };
+        }
+      } finally {
+        fs.unlinkSync(tempFile);
+      }
+    }
+
+    return {
+      success: true,
+      cancelled: false,
+      error: null,
+      totalPages,
+      totalChunks
+    };
   } finally {
     win.destroy();
-    fs.unlinkSync(tempFile);
   }
 }
 
@@ -245,6 +283,12 @@ function buildPrintHTML(svgDataList, { width, height, contentWidth, contentHeigh
 </head>
 <body>${pages}</body>
 </html>`;
+}
+
+function createPrintTempFile(html, pageIndex = 0) {
+  const tempFile = path.join(app.getPath('temp'), `print_${Date.now()}_${process.pid}_${pageIndex}.html`);
+  fs.writeFileSync(tempFile, html);
+  return tempFile;
 }
 
 async function waitForLoad(win) {
@@ -307,5 +351,3 @@ async function executePrint(win, printerName, { paperSize, landscape, width, hei
     });
   });
 }
-
-
