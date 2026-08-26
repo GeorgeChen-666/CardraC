@@ -6,6 +6,48 @@ import { useGlobalStore } from './state/store';
 import { useUiRuntimeStore } from './state/uiRuntimeStore';
 import { triggerNotification } from './parts/Notification';
 
+const backendJobClearTimers = new Map();
+const backendJobRunIds = new Map();
+
+const cancelBackendJobClear = (key) => {
+  const timeoutId = backendJobClearTimers.get(key);
+  if (timeoutId) {
+    clearTimeout(timeoutId);
+    backendJobClearTimers.delete(key);
+  }
+};
+
+const beginBackendJob = (key, updates = {}) => {
+  cancelBackendJobClear(key);
+  backendJobRunIds.set(key, (backendJobRunIds.get(key) || 0) + 1);
+  useGlobalStore.getState().updateBackendJob(key, {
+    visible: true,
+    progress: 0,
+    ...updates,
+  });
+};
+
+const scheduleBackendJobClear = (key) => {
+  cancelBackendJobClear(key);
+  const runId = backendJobRunIds.get(key) || 0;
+
+  const timeoutId = setTimeout(() => {
+    const store = useGlobalStore.getState();
+    const currentJob = store.Global.backendJobs?.[key];
+    const currentRunId = backendJobRunIds.get(key) || 0;
+
+    if (currentRunId !== runId || !currentJob?.visible || currentJob.progress < 1) {
+      return;
+    }
+
+    store.clearBackendJob(key);
+    backendJobClearTimers.delete(key);
+    console.log(`✅ Backend job [${key}] completed and removed`);
+  }, 1000);
+
+  backendJobClearTimers.set(key, timeoutId);
+};
+
 
 
 export const isDev = process?.env?.NODE_ENV === 'development';
@@ -190,7 +232,7 @@ export const openImage = async (isDoubleSides = false, isMultiImage = false) => 
 
   if (allFiles.length > 0) {
     try {
-      updateBackendJob(backendJobKey.loadHighQuality, { visible: true });
+      beginBackendJob(backendJobKey.loadHighQuality);
       const result = await getGlobalState().loading(() => loadImageList({
         imageList: allFiles,
         // onProgress: (v) => {
@@ -255,19 +297,24 @@ ipcRenderer.on(eleActions.backendJobProgress, (event, args) => {
 
   if (!key) return;
 
+  const normalizedProgress = Math.min(Math.max(progress, 0), 1);
   const store = useGlobalStore.getState();
-  if(store.Global.backendJobs?.[key]?.visible) {
-    store.updateBackendJob(key, { progress: Math.min(Math.max(progress, 0), 1) });
+  if (normalizedProgress < 1) {
+    cancelBackendJobClear(key);
   }
-  console.log(`📊 Backend job [${key}]: ${(progress * 100).toFixed(1)}%`);
 
-  if (progress >= 1) {
-    setTimeout(() => {
-      store.clearBackendJob(key);
-      console.log(`✅ Backend job [${key}] completed and removed`);
-    }, 1000);
+  if(store.Global.backendJobs?.[key]?.visible) {
+    store.updateBackendJob(key, { progress: normalizedProgress });
+  }
+  console.log(`📊 Backend job [${key}]: ${(normalizedProgress * 100).toFixed(1)}%`);
+
+  if (normalizedProgress >= 1) {
+    scheduleBackendJobClear(key);
   }
 });
 export const updateBackendJob = (key, updates) => {
+  if (updates?.visible || updates?.progress < 1) {
+    cancelBackendJobClear(key);
+  }
   useGlobalStore.getState().updateBackendJob(key, updates);
 };

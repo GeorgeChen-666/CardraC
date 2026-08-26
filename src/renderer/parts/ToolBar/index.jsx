@@ -67,6 +67,13 @@ export function BaseToolbar({ SubMenu }) {
   const canRedo = useGlobalStore(state => state.History.canRedo);
   const historyUndo = useGlobalStore(state => state.historyUndo);
   const historyRedo = useGlobalStore(state => state.historyRedo);
+  const isExportOrPrintBlocked = useGlobalStore((state) => {
+    const isLoading = Number(state.Global.isLoading) > 0;
+    const hasVisibleBackendJob = Object.values(state.Global.backendJobs || {}).some((job) => (
+      job?.visible && job.progress > 0 && job.progress < 1
+    ));
+    return isLoading || hasVisibleBackendJob;
+  });
   const { Config, Global, CardList } = useGlobalStore.selectors;
   const cardListLength = CardList().length;
   const globalBackground = Config.globalBackground();
@@ -151,6 +158,7 @@ export function BaseToolbar({ SubMenu }) {
         disabled={cardListLength === 0}
       />
       <GeneralIconButton
+        disabled={isExportOrPrintBlocked}
         label={t('toolbar.btnExport', { format: 'PDF' })}
         icon={<ExportIcon />}
         onClick={async () => {
@@ -162,6 +170,7 @@ export function BaseToolbar({ SubMenu }) {
         }}
       />
       <GeneralIconButton
+        disabled={isExportOrPrintBlocked}
         label={t('toolbar.btnExport', { format: 'PNG' })}
         icon={<ExportIcon label={'png'} />}
         onClick={async () => {
@@ -178,7 +187,7 @@ export function BaseToolbar({ SubMenu }) {
       {/*  onClick={() => exportFile(exportType.svg)}*/}
       {/*/>*/}
       <GeneralIconButton
-        disabled={cardListLength === 0}
+        disabled={cardListLength === 0 || isExportOrPrintBlocked}
         label={t('toolbar.print')}
         icon={<PrintIcon />}
         onClick={() => {
