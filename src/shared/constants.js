@@ -119,7 +119,8 @@ export const emptyImgContent = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA
 
 export const imageCacheType = Object.freeze({
   thumbnails: 'thumbnails',
-  highQuality: 'high-quality'
+  highQuality: 'high-quality',
+  highQualityRetry: 'high-quality-retry',
 })
 
 export const backendJobKey = Object.freeze({

@@ -15,13 +15,21 @@ import { getPagedImageListByCardList } from '../../services/file_render/utils';
 import { expandPath, filePathToImageKey, fixPath } from '../../../shared/functions';
 import { refreshCardStorage } from '../functions';
 
-const taskFn = (storage) => {
+const highQualityRetryAttempted = new Set();
+
+const taskFn = (storage, options = {}) => {
+  const { onEmptyResult = null } = options;
   return async (task, ...args) => {
     if(task.cancelled) return Promise.resolve(null);
     const compressedResult = await readCompressedImage(...args);
     if(task.cancelled) return Promise.resolve(null);
     const imagePathKey = filePathToImageKey(fixPath(args[0]));
-    storage[imagePathKey] = compressedResult
+    if (compressedResult) {
+      storage[imagePathKey] = compressedResult;
+    } else if (onEmptyResult) {
+      onEmptyResult({ args, imagePathKey });
+    }
+    return compressedResult;
   }
 }
 
@@ -31,7 +39,26 @@ const compressThumbnail = taskPool.task(taskFn(OverviewStorage), {
   uniqueKey: (args) => args[0]
 });
 
-const compressHighQuality = taskPool.task(taskFn(ImageStorage), {
+const compressHighQualityRetry = taskPool.task(taskFn(ImageStorage), {
+  tag: imageCacheType.highQualityRetry,
+  priority: -100,
+  uniqueKey: (args) => args[0]
+});
+
+const scheduleHighQualityRetry = (imagePath, options, imagePathKey) => {
+  if (highQualityRetryAttempted.has(imagePathKey)) {
+    return null;
+  }
+  highQualityRetryAttempted.add(imagePathKey);
+  console.warn(`Retrying high quality image load once: ${imagePath}`);
+  return compressHighQualityRetry(imagePath, options);
+};
+
+const compressHighQuality = taskPool.task(taskFn(ImageStorage, {
+  onEmptyResult: ({ args, imagePathKey }) => {
+    scheduleHighQualityRetry(args[0], args[1], imagePathKey);
+  }
+}), {
   tag: imageCacheType.highQuality,
   priority: 10,
   uniqueKey: (args) => args[0]
@@ -63,6 +90,57 @@ const getCompressParams = () => {
   return compressParamsList[compressLevel - 1]
 }
 
+const waitForTaskResult = async (taskId, timeoutMs = 15000) => {
+  await Promise.race([
+    taskPool.waitTask(taskId),
+    new Promise((_, reject) => setTimeout(() => reject(), timeoutMs))
+  ]);
+};
+
+const loadHighQualityWithRetry = async (imagePath, options, timeoutMs = 15000) => {
+  const imageKey = filePathToImageKey(fixPath(imagePath));
+  highQualityRetryAttempted.delete(imageKey);
+  const firstTaskId = compressHighQuality(imagePath, options);
+
+  try {
+    await waitForTaskResult(firstTaskId, timeoutMs);
+  } catch (_) {}
+
+  let highData = await ImageStorage[imageKey];
+  if (highData) {
+    return highData;
+  }
+
+  const retryTask = taskPool.getTaskByTagAndUniqueKey(imageCacheType.highQualityRetry, imagePath);
+  if (retryTask?.status === 'pending' || retryTask?.status === 'running') {
+    try {
+      await waitForTaskResult(retryTask.id, timeoutMs);
+    } catch (_) {}
+  }
+
+  return ImageStorage[imageKey];
+};
+
+const updateHighQualityProgress = (getMainWindow) => {
+  const mainWindow = getMainWindow();
+  const primaryStats = taskPool.getStatsByTag(imageCacheType.highQuality);
+  const retryStats = taskPool.getStatsByTag(imageCacheType.highQualityRetry);
+  const total = primaryStats.total + retryStats.total;
+  const done = primaryStats.completed + primaryStats.failed + primaryStats.cancelled
+    + retryStats.completed + retryStats.failed + retryStats.cancelled;
+  const progress = total > 0 ? done / total : 1;
+  const key = backendJobKey.loadHighQuality;
+
+  mainWindow.webContents.send(eleActions.backendJobProgress, {
+    key,
+    progress
+  });
+
+  if (total > 0 && progress >= 1) {
+    console.log('✅ High quality loading completed');
+  }
+};
+
 const pathToImageData = (imagePath, option = { }) => {
   const { force = false, skipOverviewStorage = false, skipImageStorage = false } = option;
   const ext = imagePath.split('.').pop();
@@ -71,6 +149,7 @@ const pathToImageData = (imagePath, option = { }) => {
   const returnObj = { path: fixPath(imagePath), mtime: mtime.getTime() };
 
   const fixedImagePath = expandPath(imagePath);
+  highQualityRetryAttempted.delete(imagePathKey);
 
   if(!skipOverviewStorage && (!OverviewStorage.has(imagePathKey) || force)) {
     compressThumbnail(
@@ -94,21 +173,11 @@ const pathToImageData = (imagePath, option = { }) => {
 
 export default (getMainWindow) => {
 
-  taskPool.onCompleteByTag(imageCacheType.highQuality, ({ stats }) => {
-    const mainWindow = getMainWindow();
-    const { total, completed, failed, cancelled } = stats;
-    const done = completed + failed + cancelled;
-    const progress = total > 0 ? done / total : 1;
-    const key = backendJobKey.loadHighQuality;
-
-    mainWindow.webContents.send(eleActions.backendJobProgress, {
-      key,
-      progress
-    });
-
-    if (progress >= 1) {
-      console.log('✅ High quality loading completed');
-    }
+  taskPool.onCompleteByTag(imageCacheType.highQuality, () => {
+    updateHighQualityProgress(getMainWindow);
+  });
+  taskPool.onCompleteByTag(imageCacheType.highQualityRetry, () => {
+    updateHighQualityProgress(getMainWindow);
   });
 
   protocol.handle('cardrac', async (request) => {
@@ -162,27 +231,32 @@ export default (getMainWindow) => {
 
       if (!highData) {
         const highTask = taskPool.getTaskByTagAndUniqueKey(imageCacheType.highQuality, expandedPath);
+        const retryTask = taskPool.getTaskByTagAndUniqueKey(imageCacheType.highQualityRetry, expandedPath);
 
         if (highTask?.status === 'pending' || highTask?.status === 'running') {
           // 等待进行中的任务
           try {
-            await Promise.race([
-              taskPool.waitTask(highTask.id),
-              new Promise((_, reject) => setTimeout(() => reject(), 15000))
-            ]);
+            await waitForTaskResult(highTask.id);
+            highData = await ImageStorage[imageKey];
+          } catch (_) {}
+          if (!highData) {
+            const pendingRetryTask = taskPool.getTaskByTagAndUniqueKey(imageCacheType.highQualityRetry, expandedPath);
+            if (pendingRetryTask?.status === 'pending' || pendingRetryTask?.status === 'running') {
+              try {
+                await waitForTaskResult(pendingRetryTask.id);
+                highData = await ImageStorage[imageKey];
+              } catch (_) {}
+            }
+          }
+        } else if (retryTask?.status === 'pending' || retryTask?.status === 'running') {
+          try {
+            await waitForTaskResult(retryTask.id);
             highData = await ImageStorage[imageKey];
           } catch (_) {}
         } else {
           // 没有任务，触发并等待
           const ext = imagePath.split('.').pop();
-          const taskId = compressHighQuality(expandedPath, { format: ext, ...getCompressParams() });
-          try {
-            await Promise.race([
-              taskPool.waitTask(taskId),
-              new Promise((_, reject) => setTimeout(() => reject(), 15000))
-            ]);
-            highData = await ImageStorage[imageKey];
-          } catch (_) {}
+          highData = await loadHighQualityWithRetry(expandedPath, { format: ext, ...getCompressParams() });
         }
       }
 
@@ -307,6 +381,8 @@ export default (getMainWindow) => {
 
     taskPool.cancelTasksByTag(imageCacheType.thumbnails)
     taskPool.cancelTasksByTag(imageCacheType.highQuality)
+    taskPool.cancelTasksByTag(imageCacheType.highQualityRetry)
+    highQualityRetryAttempted.clear();
     // 清理未使用的图片
     refreshCardStorage(CardList, globalBackground);
 
@@ -316,6 +392,8 @@ export default (getMainWindow) => {
       isTerminated = true;
       taskPool.cancelTasksByTag(imageCacheType.thumbnails);
       taskPool.cancelTasksByTag(imageCacheType.highQuality);
+      taskPool.cancelTasksByTag(imageCacheType.highQualityRetry);
+      highQualityRetryAttempted.clear();
     });
 
     const alreadyKnownKey = new Set();
@@ -352,7 +430,12 @@ export default (getMainWindow) => {
 
     await taskPool.waitTasksByTag(imageCacheType.highQuality, {
       progressCallback: progressChannel
-        ? (p) => progressChannel && mainWindow.webContents.send(progressChannel, p)
+        ? (p) => progressChannel && mainWindow.webContents.send(progressChannel, p * 0.5)
+        : null
+    });
+    await taskPool.waitTasksByTag(imageCacheType.highQualityRetry, {
+      progressCallback: progressChannel
+        ? (p) => progressChannel && mainWindow.webContents.send(progressChannel, 0.5 + p * 0.5)
         : null
     });
     if (isTerminated) {
