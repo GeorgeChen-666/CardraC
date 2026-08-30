@@ -617,7 +617,7 @@ export class TaskPool {
   }
 
   async waitTasksByTag(tag, options = {}) {
-    const { timeout = 60000, interval = 100, progressCallback = null } = options;
+    const { timeout = 60 * 60 * 1000, interval = 100, progressCallback = null } = options;
     const startTime = Date.now();
 
     const trackedTasks = Array.from(this.tagIndex.get(tag) || [])
