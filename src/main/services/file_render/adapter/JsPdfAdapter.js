@@ -1,6 +1,21 @@
 import { jsPDF } from 'jspdf';
 import { IAdapter } from './IAdapter';
 
+const getPdfImageFormat = ({ base64, ext }) => {
+  const normalizedExt = String(ext || '').toLowerCase();
+  const mimeMatch = typeof base64 === 'string'
+    ? base64.match(/^data:image\/([a-zA-Z0-9.+-]+);base64,/i)
+    : null;
+  const normalizedMimeExt = mimeMatch?.[1]?.toLowerCase();
+  const format = normalizedMimeExt || normalizedExt;
+
+  if (['jpg', 'jpeg'].includes(format)) return 'JPEG';
+  if (format === 'webp') return 'WEBP';
+  if (format === 'bmp') return 'BMP';
+  if (format === 'gif') return 'GIF';
+  return 'PNG';
+};
+
 export class JsPDFAdapter extends IAdapter {
   constructor(config) {
     super();
@@ -56,7 +71,7 @@ export class JsPDFAdapter extends IAdapter {
   }
 
   drawImage({ data, x, y, width, height, rotation = 0 }) {
-    this.doc.addImage(data.base64, data.ext, x, y, width, height, data.path, 'FAST', rotation);
+    this.doc.addImage(data.base64, getPdfImageFormat(data), x, y, width, height, data.path, 'FAST', rotation);
   }
 
   getPageSize() {

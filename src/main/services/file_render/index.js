@@ -31,6 +31,7 @@ const loadImageAverageColor = async () => {
 
 export const exportFile = async (doc, state, pagesToRender = null) => {
   await taskPool.waitTasksByTag(imageCacheType.highQuality);
+  await taskPool.waitTasksByTag(imageCacheType.highQualityRetry);
   const { Config } = getConfigStore();
 
   const {avoidDislocation, sides, lineWeight, cutlineColor, foldLineType, offsetX, offsetY, marginX, marginY, bleedX, bleedY, pageNumber, columns, rows, printOffsetX = 0, printOffsetY = 0} = Config;

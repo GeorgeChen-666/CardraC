@@ -16,6 +16,7 @@ import { expandPath, filePathToImageKey, fixPath } from '../../../shared/functio
 import { refreshCardStorage } from '../functions';
 
 const highQualityRetryAttempted = new Set();
+const imageDataUrlPattern = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/i;
 
 const taskFn = (storage, options = {}) => {
   const { onEmptyResult = null } = options;
@@ -190,11 +191,20 @@ export default (getMainWindow) => {
     };
 
     const buildImageResponse = async (imageData, imagePath) => {
-      const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
-      const buffer = Buffer.from(base64Data, 'base64');
+      const matchedDataUrl = typeof imageData === 'string' ? imageData.match(imageDataUrlPattern) : null;
       const ext = imagePath.split('.').pop().toLowerCase();
-      const mimeTypes = { 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'gif': 'image/gif', 'webp': 'image/webp' };
-      return createResponse(buffer, mimeTypes[ext] || 'image/png', 200);
+      const mimeTypes = {
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'bmp': 'image/bmp',
+        'webp': 'image/webp'
+      };
+      const mimeType = matchedDataUrl?.[1]?.toLowerCase() || mimeTypes[ext] || 'image/png';
+      const base64Data = matchedDataUrl?.[2] || imageData.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+      return createResponse(buffer, mimeType, 200);
     };
 
     try {

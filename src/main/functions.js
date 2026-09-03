@@ -62,11 +62,12 @@ export async function getBorderAverageColors(base64String, borderWidth = 5) {
 }
 
 export const readCompressedImage = async (path, options = {}) => {
-  options.format = options.format === 'jpg' ? 'jpeg' : 'png';
+  const normalizedSourceFormat = String(options.format || '').toLowerCase();
+  options.format = ['jpg', 'jpeg'].includes(normalizedSourceFormat) ? 'jpeg' : 'png';
   const {
     maxWidth = 1000,
     quality = 80,
-    format= 'webp',
+    format= 'png',
     maxDpi = 300,
     returnFormat = 'base64'
   } = options;

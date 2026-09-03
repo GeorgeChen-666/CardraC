@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron';
-import { backendJobKey, eleActions, emptyImg } from '../shared/constants';
+import { backendJobKey, eleActions, emptyImg, supportedImageExtensionsCsv } from '../shared/constants';
 import { filePathToImageKey, fixPath, generateUUID } from '../shared/functions';
 import { getGlobalState } from './global';
 import { useGlobalStore } from './state/store';
@@ -213,7 +213,12 @@ export const getFileDetails = (params) =>
 
 export const openMultiImage = (isDoubleSides = false) => openImage(isDoubleSides, true)
 export const openImage = async (isDoubleSides = false, isMultiImage = false) => {
-  const selectedFiles = await showFileOpenDialog({multiSelect: isMultiImage, filterExtensions: 'jpg,png,gif',isDoubleSides, showFileIcon: true});
+  const selectedFiles = await showFileOpenDialog({
+    multiSelect: isMultiImage,
+    filterExtensions: supportedImageExtensionsCsv,
+    isDoubleSides,
+    showFileIcon: true
+  });
   const convertFn = (data) => data ? {
     ext: data.ext,
     mtime: data.modified,

@@ -53,6 +53,16 @@ export const exportType = Object.freeze({
   zip: 'zip'
 })
 
+export const supportedImageExtensions = Object.freeze([
+  'png',
+  'jpg',
+  'jpeg',
+  'gif',
+  'webp',
+]);
+
+export const supportedImageExtensionsCsv = supportedImageExtensions.join(',');
+
 export const initialState = Object.freeze({
   Global: {
     availableLangs: [],
