@@ -103,7 +103,7 @@ describe('工具栏压缩等级行为', () => {
     await page.menu.clickButton(t.compressLevel);
     await page.menu.user.click(await screen.findByText(t.compressMenu.fixPath));
 
-    expect(await screen.findByText(configDialog.reloadImageWizard)).toBeTruthy();
+    expect(await screen.findByText(configDialog.reloadImageWorkbench)).toBeTruthy();
     expect(await screen.findByText('missing-face.png')).toBeTruthy();
     expect(await screen.findByText('missing-back.png')).toBeTruthy();
   });
@@ -157,8 +157,8 @@ describe('工具栏压缩等级行为', () => {
     await page.menu.clickButton(t.compressLevel);
     await page.menu.user.click(await screen.findByText(t.compressMenu.fixPath));
 
-    const sourceRow = (await screen.findByText('C:/old/cards/card-01.png')).closest('tr');
-    await page.menu.user.click(within(sourceRow).getByRole('button'));
+    await screen.findByText(configDialog.reloadImageWorkbench);
+    await page.menu.user.click(await screen.findByRole('button', { name: configDialog.reloadImageChooseReplacement }));
 
     expect(checkImageMock).toHaveBeenNthCalledWith(2, {
       pathList: [
@@ -199,6 +199,5 @@ describe('工具栏压缩等级行为', () => {
     });
   });
 });
-
 
 

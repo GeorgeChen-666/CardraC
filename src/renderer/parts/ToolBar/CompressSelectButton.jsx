@@ -7,13 +7,13 @@ import MenuItem from '@mui/material/MenuItem';
 import { Divider } from '@mui/material';
 import Tooltip from '@mui/material/Tooltip';
 import Badge from '@mui/material/Badge';
-import { ReloadDialog } from './ReloadImg/ReloadDialog';
+import { ReloadSmartDialog } from './ReloadImg/ReloadSmartDialog';
 import { checkImage } from '../../functions';
 import { useTranslation } from 'react-i18next';
 
 export const CompressSelectButton = ({ label, disabled }) => {
   const { t } = useTranslation();
-  const dialogReloadRef = useRef(null);
+  const dialogReloadSmartRef = useRef(null);
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   const [invalidImages, setInvalidImages] = useState([]);
@@ -28,7 +28,7 @@ export const CompressSelectButton = ({ label, disabled }) => {
 
     const pathList = [];
     Config.globalBackground?.path && pathList.push(Config.globalBackground?.path);
-    CardList.forEach((card, index) => {
+    CardList.forEach((card) => {
       card.face?.path && pathList.push(card.face?.path);
       card.back?.path && pathList.push(card.back?.path);
     });
@@ -62,9 +62,9 @@ export const CompressSelectButton = ({ label, disabled }) => {
       open={open}
       onClose={handleClose}
     >
-      <MenuItem key={'clbFixPath'} disabled={disabled} onClick={() => {
+      <MenuItem key={'clbFixPathSmart'} disabled={disabled} onClick={() => {
         handleClose();
-        dialogReloadRef.current.openDialog(invalidImages);
+        dialogReloadSmartRef.current.openDialog(invalidImages);
       }}>
         <Tooltip title={invalidImages.length>0?`${t('toolbar.compressMenu.fixPathTooltip', {num:invalidImages.length})}`:''} placement='right'>
           <Badge color='warning' badgeContent={invalidImages.length} max={999}>
@@ -93,6 +93,6 @@ export const CompressSelectButton = ({ label, disabled }) => {
         </Tooltip>
       </MenuItem>
     </Menu>
-    <ReloadDialog ref={dialogReloadRef} />
+    <ReloadSmartDialog ref={dialogReloadSmartRef} />
   </>);
 };
